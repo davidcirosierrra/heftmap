@@ -7,8 +7,8 @@
 
 Nombre: **Heft** (antes «Workspace Files»). Repo `heft`; prefijo de ajustes y comandos `heft.*`.
 
-Estado: **fase 0 hecha** (núcleo como CLI, validado con dos repos reales; ver
-[docs/fase-0.md](docs/fase-0.md)). Sin extensión todavía. Fecha: 13-11-2026.
+Estado: **fase 1 hecha** (vista «Carpetas», ámbito, comandos; instalar y probar con
+[prepareextension.md](prepareextension.md)). Fase 0 en [docs/fase-0.md](docs/fase-0.md). Fecha: 13-11-2026.
 Las capturas son de la v1: valen como referencia visual, con las diferencias de la sección 8.
 
 ---
@@ -54,6 +54,9 @@ Contenedor propio en la barra de actividad. Solo usa lo que el `TreeView` nativo
   (ej. `15,3 MB · 51 % · 3 arch.`). Sin barras: el TreeView no las admite.
 - **Casilla nativa** (`TreeItem.checkboxState`) en cada carpeta = pertenece al ámbito. Marcar una
   carpeta incluye sus subcarpetas.
+  - La API no permite desactivar una casilla: las subcarpetas de una carpeta marcada salen marcadas
+    (tooltip «En el ámbito por «src/»») y, si se desmarcan, Heft avisa «Quita primero «src/»» y no
+    cambia nada. Se usa `manageCheckboxStateManually` para que el editor no propague solo.
 - Clic en un archivo: lo abre (comportamiento nativo, un solo clic). No hay doble clic.
 - Botones en la cabecera de la vista: `Abrir panel`, `Todo el repositorio`, `Refrescar`.
 
@@ -222,7 +225,9 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
 0. ~~**Validación con un repo real**~~ **Hecha** ([docs/fase-0.md](docs/fase-0.md)): Feos pero majos
    survival (0 falsos; coincide con Knip) y `vitejs/vite` (3.006 archivos en ~2 s; de 21 «sin rastro»
    a 1 real tras corregir 7 causas de falsos positivos).
-1. Vista lateral «Carpetas» con tamaños y casillas de ámbito.
+1. ~~Vista lateral «Carpetas» con tamaños y casillas de ámbito.~~ **Hecha**: más comandos, menú
+   contextual del explorador, barra de estado, ajustes y recálculo al cambiar archivos (completo, con
+   espera de 1,5 s; el incremental queda pendiente). Multi-root: solo la primera carpeta.
 2. Panel con la tabla (tamaño, orden, filtro, ámbito).
 3. Treemap 2D enlazado con la tabla (área, color por extensión, zoom).
 4. Uso: columna, estados, fila desplegable, color «Uso», acciones sobre «sin rastro».
