@@ -16,7 +16,7 @@ git clone https://github.com/davidcirosierrra/Heft.git
 cd Heft
 git checkout fase-1-carpetas    # mientras el PR no esté en main
 npm install
-npm test                        # 31 tests: núcleo, ámbito, árbol y humo de la extensión
+npm test                        # 48 tests: núcleo, ámbito, árbol y humo de la extensión
 ```
 
 ## 3. Dos formas de probarla
@@ -80,6 +80,7 @@ Marca cada punto. Si algo falla, abre **Heft: Mostrar registro** (`Ctrl+Shift+P`
 - [ ] Cada carpeta muestra `tamaño · % de su carpeta padre · nº de archivos` (ej. `15,3 MB · 51 % · 3 arch.`).
 - [ ] Iconos de carpeta y de archivo según tu tema de iconos.
 - [ ] Un clic en un archivo lo abre.
+- [ ] Al pasar el ratón por una carpeta `__tests__` o un archivo `[id].tsx`: la ruta se lee tal cual.
 - [ ] Al pasar el ratón por un archivo: líneas, estado de uso (Referenciado, Sin rastro…),
       último commit y nº de cambios.
 - [ ] Un archivo con cambios sin guardar en git muestra `●` al final.
@@ -106,6 +107,8 @@ Marca cada punto. Si algo falla, abre **Heft: Mostrar registro** (`Ctrl+Shift+P`
 
 **Actualización**
 - [ ] Crea o borra un archivo: en 1–2 s la vista se actualiza sola.
+- [ ] Lanza un build del proyecto (escribe en `dist/`, ignorado por git): en el registro **no** aparece
+      un `Índice (cambios en disco)` nuevo.
 - [ ] Haz un commit: el tooltip del archivo muestra el commit nuevo.
 - [ ] Cambia un ajuste `heft.*` (*Settings → Heft*): se vuelve a analizar.
 - [ ] Botón «refrescar» de la cabecera: vuelve a analizar.
@@ -125,7 +128,8 @@ Marca cada punto. Si algo falla, abre **Heft: Mostrar registro** (`Ctrl+Shift+P`
 |---------|-----------|
 | No aparece el icono de Heft | *Extensions*: ¿está Heft instalada y activada? Recarga la ventana. |
 | La vista sale vacía | ¿Tienes una carpeta abierta? Mira **Heft: Mostrar registro**. |
-| «No se pudo analizar el repositorio» | El mensaje completo está en el registro. ¿Está `git` en el `PATH`? |
+| «No se pudo analizar el repositorio» | El mensaje completo está en el registro. |
+| No hay datos de git (commits, `●`) | Si `git` no está en el `PATH`, Heft analiza sin git y lo avisa en el registro (`aviso: No se encuentra «git»…`). |
 | `Install from VSIX` falla | Comprueba la versión: Heft pide VS Code ≥ 1.85 (*Help → About*). |
 | No hay casillas en las carpetas | Versión del editor demasiado antigua: las casillas en vistas existen desde VS Code 1.80. |
 

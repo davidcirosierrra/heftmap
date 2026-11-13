@@ -16,6 +16,7 @@ export async function buildIndex(rootArg: string, opts: BuildOptions = {}): Prom
 
   // 1. Listado
   const info = await gitInfo(root);
+  if (info.warning) warnings.push(info.warning);
   const paths = await listFiles(root, info.isGit);
   const tList = performance.now();
 
@@ -70,10 +71,11 @@ export async function buildIndex(rootArg: string, opts: BuildOptions = {}): Prom
   // 3. Git: último commit, nº de cambios, estado
   let commitsRead = 0;
   if (info.isGit) {
-    const [{ history, commits }, status] = await Promise.all([
+    const [{ history, commits, warning }, status] = await Promise.all([
       readHistory(root, opts.since),
       readStatus(root, info.prefix),
     ]);
+    if (warning) warnings.push(warning);
     commitsRead = commits;
     for (const f of files.values()) {
       if (f.ignoredByGit) continue;

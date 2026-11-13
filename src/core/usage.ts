@@ -49,6 +49,36 @@ export function analyzeUsage(input: UsageInput): UsageResult {
   const resolve = makeResolver(files, publicDir);
   const tsc = makeTsResolver(root);
 
+  /**
+   * Destino de un import: TypeScript primero; si no lo resuelve (recursos: TS no sigue
+   * `paths` hacia extensiones que no son suyas), ruta directa y, por último, alias a mano.
+   */
+  const importTarget = (spec: string, from: string): string | null => {
+    const viaTs = tsc.resolve(spec, from);
+    if (viaTs !== undefined) return viaTs;
+    return resolve(spec, from) ?? tsc.alias(spec, from).find((c) => files.has(c)) ?? null;
+  };
+
+  /** Archivos del índice que casan con los patrones de un `import.meta.glob`. */
+  const globTargets = (patterns: string[], from: string): string[] => {
+    const dir = posix.dirname(from);
+    const expand = (p: string): string[] => {
+      if (p.startsWith('/')) return [p.slice(1)];
+      if (p.startsWith('./') || p.startsWith('../')) return [posix.normalize(posix.join(dir, p))];
+      const viaAlias = tsc.alias(p, from);
+      return viaAlias.length ? viaAlias : [posix.normalize(posix.join(dir, p))];
+    };
+    const toRes = (list: string[]): RegExp[] => list.flatMap(expand).map(globToRegExp);
+    const yes = toRes(patterns.filter((p) => !p.startsWith('!')));
+    const no = toRes(patterns.filter((p) => p.startsWith('!')).map((p) => p.slice(1)));
+    if (!yes.length) return [];
+    const out: string[] = [];
+    for (const f of files.keys()) {
+      if (yes.some((re) => re.test(f)) && !no.some((re) => re.test(f))) out.push(f);
+    }
+    return out;
+  };
+
   for (const from of sources) {
     const text = texts.get(from);
     if (text == null) continue;
@@ -62,9 +92,7 @@ export function analyzeUsage(input: UsageInput): UsageResult {
     if (COMPONENT_EXT.has(ext)) {
       // .vue/.svelte/.astro: imports del bloque <script>, atributos de la plantilla y strings.
       for (const spec of ts.preProcessFile(text, true, true).importedFiles.map((f) => f.fileName)) {
-        const viaTs = tsc(spec, from);
-        const to = viaTs === undefined ? resolve(spec, from) : viaTs;
-        if (to) add(from, to, 'import');
+        add(from, importTarget(spec, from), 'import');
       }
       for (const spec of htmlAttrs(text)) add(from, resolve(spec, from), 'src/href');
       for (const spec of quotedStrings(text)) add(from, resolve(spec, from), 'ruta en string');
@@ -72,15 +100,16 @@ export function analyzeUsage(input: UsageInput): UsageResult {
     }
     if (CODE_EXT.has(ext)) {
       for (const spec of tsImports(text, ext)) {
-        const viaTs = tsc(spec, from);
-        const to = viaTs === undefined ? resolve(spec, from) : viaTs;
+        const to = importTarget(spec, from);
         if (to) add(from, to, 'import');
-        else if (viaTs === undefined && (spec.startsWith('./') || spec.startsWith('../'))) {
-          unresolved.push(`${from} → ${spec}`);
-        }
+        else if (spec.startsWith('./') || spec.startsWith('../')) unresolved.push(`${from} → ${spec}`);
       }
       // Strings del AST: sin comentarios (un JSDoc que cita una ruta no es uso).
-      for (const spec of codeStrings(text, from)) add(from, resolve(spec, from), 'ruta en string');
+      const scan = scanCode(text, from);
+      for (const spec of scan.strings) add(from, resolve(spec, from), 'ruta en string');
+      for (const patterns of scan.globs) {
+        for (const to of globTargets(patterns, from)) add(from, to, 'import.meta.glob');
+      }
       continue;
     }
     if (ext === 'md' || ext === 'mdx') {
@@ -187,7 +216,13 @@ export function makeResolver(files: Map<string, unknown>, publicDir: string): Re
  * `baseUrl`, extensiones). Devuelve la ruta relativa, null si resuelve fuera del repo
  * (paquete de node_modules) o undefined si TypeScript no lo resuelve.
  */
-function makeTsResolver(root: string): (spec: string, from: string) => string | null | undefined {
+interface TsResolver {
+  resolve: (spec: string, from: string) => string | null | undefined;
+  /** Candidatos (rutas relativas) al aplicar a mano `paths` y `baseUrl` del tsconfig. */
+  alias: (spec: string, from: string) => string[];
+}
+
+function makeTsResolver(root: string): TsResolver {
   const configs = loadTsConfigs(root);
   const fallback: ts.CompilerOptions = {
     module: ts.ModuleKind.ESNext,
@@ -203,7 +238,35 @@ function makeTsResolver(root: string): (spec: string, from: string) => string | 
     for (const c of configs) if (c.files.has(absFile)) return c.options;
     return configs[0]?.options ?? fallback;
   };
-  return (spec, from) => {
+  const toRel = (abs: string): string => toPosix(path.relative(root, abs));
+  const alias = (spec: string, from: string): string[] => {
+    const clean = spec.replace(/[?#].*$/, '');
+    if (!clean || clean.startsWith('.') || clean.startsWith('/')) return [];
+    const options = optionsFor(path.join(root, from));
+    // `pathsBasePath`: carpeta del tsconfig cuando hay `paths` sin `baseUrl` (campo interno de TS).
+    const base = options.baseUrl ?? (options as { pathsBasePath?: string }).pathsBasePath;
+    const out: string[] = [];
+    if (base) {
+      for (const [pattern, targets] of Object.entries(options.paths ?? {})) {
+        const star = pattern.indexOf('*');
+        let captured: string | null = null;
+        if (star < 0) {
+          if (clean === pattern) captured = '';
+        } else {
+          const pre = pattern.slice(0, star);
+          const post = pattern.slice(star + 1);
+          if (clean.length >= pre.length + post.length && clean.startsWith(pre) && clean.endsWith(post)) {
+            captured = clean.slice(pre.length, clean.length - post.length);
+          }
+        }
+        if (captured === null) continue;
+        for (const t of targets) out.push(toRel(path.resolve(base, t.replace('*', captured))));
+      }
+    }
+    if (options.baseUrl) out.push(toRel(path.resolve(options.baseUrl, clean)));
+    return out.filter((r) => r && !r.startsWith('..'));
+  };
+  const resolve = (spec: string, from: string): string | null | undefined => {
     const absFrom = path.join(root, from);
     const options = optionsFor(absFrom);
     let cache = caches.get(options);
@@ -214,9 +277,10 @@ function makeTsResolver(root: string): (spec: string, from: string) => string | 
     const { resolvedModule } = ts.resolveModuleName(spec, absFrom, options, ts.sys, cache);
     if (!resolvedModule) return undefined;
     if (resolvedModule.isExternalLibraryImport) return null;
-    const rel = toPosix(path.relative(root, resolvedModule.resolvedFileName));
+    const rel = toRel(resolvedModule.resolvedFileName);
     return rel.startsWith('..') ? null : rel;
   };
+  return { resolve, alias };
 }
 
 interface TsConfig {
@@ -271,18 +335,65 @@ const looksLikePath = (s: string): boolean => {
 
 /** Literales de string en código TS/JS (incluye atributos JSX), leídos del AST. */
 export function codeStrings(text: string, fileName: string): string[] {
+  return scanCode(text, fileName).strings;
+}
+
+/**
+ * Una sola pasada por el AST: strings con pinta de ruta y los patrones de cada
+ * `import.meta.glob(...)` de Vite (un string o un array; los que empiezan por `!` excluyen).
+ */
+export function scanCode(text: string, fileName: string): { strings: string[]; globs: string[][] } {
   const ext = extOf(fileName);
   const kind = ext === 'tsx' ? ts.ScriptKind.TSX : ext === 'jsx' ? ts.ScriptKind.JSX : ext.includes('ts') ? ts.ScriptKind.TS : ts.ScriptKind.JS;
   const sf = ts.createSourceFile(fileName, text, ts.ScriptTarget.Latest, false, kind);
-  const out: string[] = [];
+  const strings: string[] = [];
+  const globs: string[][] = [];
+  const isStr = (n: ts.Node): n is ts.StringLiteral | ts.NoSubstitutionTemplateLiteral =>
+    ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n);
   const visit = (node: ts.Node): void => {
-    if ((ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) && node.text.length <= 300) {
-      if (looksLikePath(node.text)) out.push(node.text);
+    if (isStr(node) && node.text.length <= 300) {
+      if (looksLikePath(node.text)) strings.push(node.text);
+    }
+    if (
+      ts.isCallExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      /^glob(Eager)?$/.test(node.expression.name.text) &&
+      ts.isMetaProperty(node.expression.expression)
+    ) {
+      const arg = node.arguments[0];
+      const patterns = !arg ? [] : isStr(arg) ? [arg.text] : ts.isArrayLiteralExpression(arg) ? arg.elements.filter(isStr).map((e) => e.text) : [];
+      if (patterns.length) globs.push(patterns);
     }
     node.forEachChild(visit);
   };
   visit(sf);
-  return out;
+  return { strings, globs };
+}
+
+/** Glob de Vite a expresión regular: `**`, `*`, `?` y `{a,b}`. */
+export function globToRegExp(glob: string): RegExp {
+  const body = (g: string): string => {
+    let re = '';
+    for (let i = 0; i < g.length; i++) {
+      const c = g[i] as string;
+      if (c === '*') {
+        if (g[i + 1] === '*') {
+          i++;
+          if (g[i + 1] === '/') {
+            i++;
+            re += '(?:.*/)?';
+          } else re += '.*';
+        } else re += '[^/]*';
+      } else if (c === '?') re += '[^/]';
+      else if (c === '{' && g.indexOf('}', i) > i) {
+        const end = g.indexOf('}', i);
+        re += `(?:${g.slice(i + 1, end).split(',').map(body).join('|')})`;
+        i = end;
+      } else re += escapeRe(c);
+    }
+    return re;
+  };
+  return new RegExp(`^${body(glob)}$`);
 }
 
 /** Strings entre comillas con pinta de ruta (HTML, CSS, JSON, otros lenguajes). */
