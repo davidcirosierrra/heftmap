@@ -14,7 +14,15 @@ export async function git(cwd: string, args: string[]): Promise<string> {
   return stdout;
 }
 
-export async function gitInfo(root: string): Promise<{ isGit: boolean; prefix: string; head: string | null }> {
+export interface GitInfo {
+  isGit: boolean;
+  prefix: string;
+  head: string | null;
+  /** Motivo por el que se trabaja sin git cuando no es simplemente «no es un repo». */
+  warning?: string;
+}
+
+export async function gitInfo(root: string): Promise<GitInfo> {
   try {
     const inside = (await git(root, ['rev-parse', '--is-inside-work-tree'])).trim();
     if (inside !== 'true') return { isGit: false, prefix: '', head: null };
@@ -26,7 +34,16 @@ export async function gitInfo(root: string): Promise<{ isGit: boolean; prefix: s
       // repo sin commits
     }
     return { isGit: true, prefix, head };
-  } catch {
+  } catch (err) {
+    // Sin el ejecutable no se puede saber si es un repo: se avisa en vez de callar.
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+      return {
+        isGit: false,
+        prefix: '',
+        head: null,
+        warning: 'No se encuentra «git» en el PATH: se analiza sin git (sin .gitignore, historial ni cambios)',
+      };
+    }
     return { isGit: false, prefix: '', head: null };
   }
 }
@@ -44,7 +61,7 @@ export interface FileHistory {
 export async function readHistory(
   root: string,
   since?: string,
-): Promise<{ history: Map<string, FileHistory>; commits: number }> {
+): Promise<{ history: Map<string, FileHistory>; commits: number; warning?: string }> {
   const args = [
     'log',
     '--no-renames',
@@ -56,8 +73,15 @@ export async function readHistory(
   let out: string;
   try {
     out = await git(root, args);
-  } catch {
-    return { history: new Map(), commits: 0 };
+  } catch (err) {
+    // Repo sin commits: no es un error. Cualquier otro fallo se cuenta.
+    const msg = err instanceof Error ? err.message : String(err);
+    const empty = /does not have any commits yet|bad default revision/.test(msg);
+    return {
+      history: new Map(),
+      commits: 0,
+      warning: empty ? undefined : `No se pudo leer el historial de git: ${msg.split('\n').find((l) => l.trim() && !l.startsWith('Command failed')) ?? msg.split('\n')[0]}`,
+    };
   }
   const history = new Map<string, FileHistory>();
   let commits = 0;

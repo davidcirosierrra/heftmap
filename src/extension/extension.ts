@@ -1,5 +1,6 @@
 import path from 'node:path';
 import * as vscode from 'vscode';
+import { git } from '../core/git.js';
 import { buildIndex, type FileEntry, type HeftIndex } from '../core/index.js';
 import { fmtMs, fmtSize, rel, USAGE_LABEL } from '../report.js';
 import {
@@ -43,6 +44,10 @@ class Heft implements vscode.Disposable {
   private pending = false;
   private timer: NodeJS.Timeout | undefined;
   private error: string | undefined;
+  /** Rutas del índice actual, para descartar eventos de disco que no le afectan. */
+  private known = new Set<string>();
+  /** Vigilancia de la carpeta analizada; se sustituye si cambia la raíz. */
+  private watching: vscode.Disposable[] = [];
 
   private readonly provider: FoldersProvider;
   private readonly view: vscode.TreeView<TreeNode>;
@@ -97,6 +102,7 @@ class Heft implements vscode.Disposable {
   async start(): Promise<void> {
     const folders = vscode.workspace.workspaceFolders ?? [];
     this.root = folders[0]?.uri;
+    this.stopWatching();
     if (!this.root) {
       this.index = undefined;
       this.tree = undefined;
@@ -107,14 +113,42 @@ class Heft implements vscode.Disposable {
       this.log.appendLine(`Workspace con ${folders.length} carpetas: Heft analiza solo la primera (${folders[0]?.name}).`);
     }
     const watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(this.root, '**/*'));
-    const onFs = (uri: vscode.Uri): void => {
-      // Dentro de .git solo interesa un cambio de HEAD o de ramas (nuevo commit).
-      const p = uri.path;
-      if (p.includes('/.git/') && !/\/\.git\/(HEAD|refs\/)/.test(p)) return;
-      this.schedule('cambios en disco');
-    };
-    this.disposables.push(watcher, watcher.onDidCreate(onFs), watcher.onDidChange(onFs), watcher.onDidDelete(onFs));
+    this.watching = [
+      watcher,
+      watcher.onDidCreate((uri) => void this.onFs(uri, 'create')),
+      watcher.onDidChange((uri) => void this.onFs(uri, 'change')),
+      watcher.onDidDelete((uri) => void this.onFs(uri, 'delete')),
+    ];
     await this.rebuild('inicio');
+  }
+
+  private stopWatching(): void {
+    for (const d of this.watching) d.dispose();
+    this.watching = [];
+  }
+
+  /**
+   * Un cambio en disco solo relanza el análisis si puede cambiar el índice. Lo que git
+   * ignora (dist/, node_modules/, cachés) no está en él: sin este filtro, cada build del
+   * proyecto analizado provocaría un análisis completo.
+   */
+  private async onFs(uri: vscode.Uri, kind: 'create' | 'change' | 'delete'): Promise<void> {
+    const root = this.root;
+    if (!root) return;
+    const p = uri.path;
+    if (p.includes('/.git/') || p.endsWith('/.git')) {
+      // Dentro de .git solo interesa un cambio de HEAD o de ramas (nuevo commit).
+      if (/\/\.git\/(HEAD|refs\/)/.test(p)) this.schedule('cambios en git');
+      return;
+    }
+    const rel = path.relative(root.fsPath, uri.fsPath).split(path.sep).join('/');
+    const inIndex = this.known.has(rel) || this.tree?.byPath.has(rel);
+    if (this.index?.isGit && rel && !rel.startsWith('..') && !inIndex) {
+      // Modificar o borrar algo que no está en el índice no lo cambia.
+      if (kind !== 'create') return;
+      if (await isIgnoredByGit(root.fsPath, rel)) return;
+    }
+    this.schedule('cambios en disco');
   }
 
   // ---------------------------------------------------------------- datos
@@ -159,7 +193,15 @@ class Heft implements vscode.Disposable {
       });
       this.index = index;
       this.tree = buildFolderTree(index);
+      this.known = new Set(index.files.map((f) => f.path));
       this.error = undefined;
+      // Carpetas del ámbito que ya no existen (borradas, renombradas): no tendrían casilla que desmarcar.
+      const alive = this.scope.filter((s) => this.tree?.byPath.has(s));
+      if (alive.length !== this.scope.length) {
+        this.log.appendLine(`  ámbito: se quitan carpetas que ya no existen (${this.scope.filter((s) => !alive.includes(s)).join(', ')})`);
+        this.scope = alive;
+        void this.context.workspaceState.update(SCOPE_KEY, alive);
+      }
       const t = index.timings;
       this.log.appendLine(
         `[${new Date().toLocaleTimeString('es-ES')}] Índice (${reason}): ${index.files.length} archivos, ` +
@@ -229,9 +271,21 @@ class Heft implements vscode.Disposable {
     const list = uris?.length ? uris : uri ? [uri] : [];
     if (!this.root) return [];
     const rootPath = this.root.fsPath;
-    return list
+    const rels = list
       .map((u) => path.relative(rootPath, u.fsPath).split(path.sep).join('/'))
       .filter((r) => r && !r.startsWith('..') && !path.isAbsolute(r));
+    // Solo carpetas con archivos en el índice: una ignorada por git (node_modules, dist) o un
+    // archivo de una selección múltiple dejarían un ámbito vacío e imposible de desmarcar.
+    const tree = this.tree;
+    if (!tree) return rels;
+    const valid = rels.filter((r) => tree.byPath.has(r));
+    if (valid.length < rels.length) {
+      const skipped = rels.filter((r) => !valid.includes(r));
+      void vscode.window.showInformationMessage(
+        `Heft no tiene archivos en ${skipped.map((s) => `«${s}»`).join(', ')} (ignorada por git o vacía): no se añade al ámbito.`,
+      );
+    }
+    return valid;
   }
 
   // ---------------------------------------------------------------- pintado
@@ -259,6 +313,7 @@ class Heft implements vscode.Disposable {
 
   dispose(): void {
     clearTimeout(this.timer);
+    this.stopWatching();
     for (const d of this.disposables) d.dispose();
   }
 }
@@ -308,10 +363,14 @@ class FoldersProvider implements vscode.TreeDataProvider<TreeNode> {
           ? 'Quitar del ámbito'
           : 'Añadir al ámbito',
     };
+    // Las rutas van como texto: en Markdown `__tests__` se pintaría en negrita y `[id].tsx` como enlace.
     const md = new vscode.MarkdownString();
-    md.appendMarkdown(`**${dir.path}/**\n\n`);
-    md.appendMarkdown(`${fmtSize(dir.size)} · ${dir.count} archivos · ${pct(share(dir.size, dir.parent?.size ?? 0))} de la carpeta padre`);
-    if (ancestor) md.appendMarkdown(`\n\nEn el ámbito porque lo está \`${ancestor}/\``);
+    md.appendText(`${dir.path}/`);
+    md.appendMarkdown(`\n\n${fmtSize(dir.size)} · ${dir.count} archivos · ${pct(share(dir.size, dir.parent?.size ?? 0))} de la carpeta padre`);
+    if (ancestor) {
+      md.appendMarkdown('\n\nEn el ámbito porque lo está ');
+      md.appendText(`«${ancestor}/»`);
+    }
     item.tooltip = md;
     return item;
   }
@@ -327,8 +386,8 @@ class FoldersProvider implements vscode.TreeDataProvider<TreeNode> {
     if (uri) item.command = { command: 'vscode.open', title: 'Abrir', arguments: [uri] };
 
     const md = new vscode.MarkdownString();
-    md.appendMarkdown(`**${f.path}**\n\n`);
-    md.appendMarkdown(`${fmtSize(f.size)}${f.lines != null ? ` · ${f.lines.toLocaleString('es-ES')} líneas` : ''}`);
+    md.appendText(f.path);
+    md.appendMarkdown(`\n\n${fmtSize(f.size)}${f.lines != null ? ` · ${f.lines.toLocaleString('es-ES')} líneas` : ''}`);
     md.appendMarkdown(` · ${USAGE_LABEL[f.usage]}`);
     if (f.refsIn.length) md.appendMarkdown(` (${f.refsIn.length} ${f.refsIn.length === 1 ? 'archivo lo usa' : 'archivos lo usan'})`);
     if (f.lastCommit) {
@@ -348,10 +407,21 @@ function isTreeNode(x: unknown): x is TreeNode {
   return !!x && typeof x === 'object' && 'kind' in x && ((x as TreeNode).kind === 'dir' || (x as TreeNode).kind === 'file');
 }
 
-function pct(x: number): string {
+/** Porcentaje como en el SPEC §2.1: «51 %»; un decimal solo por debajo del 10 %. */
+export function pct(x: number): string {
   if (x <= 0) return '0 %';
   if (x < 0.001) return '<0,1 %';
-  return `${(x * 100).toFixed(x >= 0.995 ? 0 : 1).replace('.', ',')} %`;
+  return `${(x * 100).toFixed(x >= 0.0995 ? 0 : 1).replace('.', ',')} %`;
+}
+
+/** `git check-ignore` sale con 0 si la ruta está ignorada y con 1 si no. */
+async function isIgnoredByGit(root: string, rel: string): Promise<boolean> {
+  try {
+    await git(root, ['check-ignore', '-q', '--', rel]);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function escapeMd(s: string): string {

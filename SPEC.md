@@ -150,6 +150,16 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
     el archivo (`public/`, `docs/public/`, `packages/app/public/`).
   - YAML/TOML y las carpetas con punto (`.github/`, `.vscode/`) son configuración.
   - Las menciones buscan el nombre completo y la raíz si tiene 3 letras o más.
+- Reglas añadidas tras la revisión de código de las fases 0 y 1:
+  - Un JSON en la raíz, o con nombre de herramienta (`biome.json`, `components.json`,
+    `renovate.json`, `*.config.json`…), es configuración, no un recurso «sin rastro». El manifest
+    PWA sigue siendo recurso y origen de iconos.
+  - Los imports de recursos con alias del tsconfig (`@/assets/logo.png`) se resuelven a mano:
+    TypeScript no sigue `paths` hacia extensiones que no son suyas.
+  - `import.meta.glob` de Vite: lo que casa con el patrón queda «referenciado» (tipo
+    `import.meta.glob`). Admite arrays, alias, `{a,b}` y exclusiones con `!`.
+  - Límite conocido: un recurso usado solo por código sin importadores sale «referenciado»
+    (no hay alcanzabilidad desde los puntos de entrada). Candidato para la fase 4.
 
 ### 3.4 Git
 - `●` = cambios en el árbol de trabajo **o** en staging. Archivo sin commits = «nuevo».
@@ -228,6 +238,7 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
 1. ~~Vista lateral «Carpetas» con tamaños y casillas de ámbito.~~ **Hecha**: más comandos, menú
    contextual del explorador, barra de estado, ajustes y recálculo al cambiar archivos (completo, con
    espera de 1,5 s; el incremental queda pendiente). Multi-root: solo la primera carpeta.
+   Los cambios en archivos ignorados por git (`dist/`, `node_modules/`) no relanzan el análisis.
 2. Panel con la tabla (tamaño, orden, filtro, ámbito).
 3. Treemap 2D enlazado con la tabla (área, color por extensión, zoom).
 4. Uso: columna, estados, fila desplegable, color «Uso», acciones sobre «sin rastro».

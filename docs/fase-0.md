@@ -57,5 +57,8 @@ y actualizar de forma incremental (SPEC §4.3), sin worker de momento.
 ## Pendiente para la siguiente fase
 
 - La lista de «mencionado en» puede ser enorme con nombres genéricos: en la UI, mostrar los 3 primeros.
-- `import.meta.glob` de Vite no se interpreta (no apareció en estos repos).
+- ~~`import.meta.glob` de Vite no se interpreta~~: resuelto en la revisión posterior a la fase 1,
+  junto con los JSON de configuración y los alias hacia recursos (SPEC §3.3).
+- El análisis de uso es síncrono: en un repo de miles de archivos bloquea el proceso de extensiones
+  1–2 s por análisis. Pendiente: worker o análisis incremental.
 - Paths de Windows: sin probar.

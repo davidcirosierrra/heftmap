@@ -69,6 +69,11 @@ export class MarkdownString {
     this.value += s;
     return this;
   }
+  /** Como la real: el texto se escapa para que no se interprete como Markdown. */
+  appendText(s: string): this {
+    this.value += s.replace(/[\\`*_{}[\]()#+\-!~]/g, '\\$&');
+    return this;
+  }
 }
 
 export class TreeItem {
@@ -98,6 +103,10 @@ export const fake = {
   infos: [] as string[],
   quickPickAnswer: undefined as ((items: any[]) => any[] | undefined) | undefined,
   log: [] as string[],
+  /** Eventos del FileSystemWatcher, para dispararlos desde el test. */
+  fs: { create: new EventEmitter<Uri>(), change: new EventEmitter<Uri>(), delete: new EventEmitter<Uri>() },
+  watchers: 0,
+  folderListeners: [] as (() => unknown)[],
   treeView: undefined as
     | {
         provider: any;
@@ -116,6 +125,9 @@ export const fake = {
     this.executed = [];
     this.infos = [];
     this.log = [];
+    this.fs = { create: new EventEmitter<Uri>(), change: new EventEmitter<Uri>(), delete: new EventEmitter<Uri>() };
+    this.watchers = 0;
+    this.folderListeners = [];
     this.treeView = undefined;
     this.state.clear();
   },
@@ -183,13 +195,19 @@ export const workspace = {
     get: <T>(key: string) => fake.config[key] as T | undefined,
   }),
   onDidChangeConfiguration: () => disposable,
-  onDidChangeWorkspaceFolders: () => disposable,
-  createFileSystemWatcher: () => ({
-    onDidCreate: () => disposable,
-    onDidChange: () => disposable,
-    onDidDelete: () => disposable,
-    dispose: () => undefined,
-  }),
+  onDidChangeWorkspaceFolders: (fn: () => unknown) => {
+    fake.folderListeners.push(fn);
+    return disposable;
+  },
+  createFileSystemWatcher: () => {
+    fake.watchers++;
+    return {
+      onDidCreate: (fn: (u: Uri) => unknown) => fake.fs.create.event(fn),
+      onDidChange: (fn: (u: Uri) => unknown) => fake.fs.change.event(fn),
+      onDidDelete: (fn: (u: Uri) => unknown) => fake.fs.delete.event(fn),
+      dispose: () => void fake.watchers--,
+    };
+  },
 };
 
 export function makeContext() {

@@ -27,6 +27,7 @@ export type RefKind =
   | 'url()'
   | 'src/href'
   | 'enlace md'
+  | 'import.meta.glob'
   | 'script npm'
   | 'mención';
 

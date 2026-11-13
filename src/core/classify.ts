@@ -40,6 +40,26 @@ const CONFIG_NAMES = new Set([
   'license', 'licence', 'makefile', 'vercel.json', 'netlify.toml', 'wrangler.toml',
 ]);
 
+/** JSON de herramientas que suelen vivir fuera de la raíz (monorepos, subcarpetas). */
+const CONFIG_JSON_NAMES = new Set([
+  'biome.json', 'biome.jsonc', 'components.json', 'renovate.json', 'firebase.json', 'turbo.json', 'nx.json',
+  'lerna.json', 'deno.json', 'deno.jsonc', 'jsr.json', 'cspell.json', 'tslint.json', 'typedoc.json',
+  'nodemon.json', 'angular.json', 'project.json', 'composer.json', 'api-extractor.json', 'now.json',
+]);
+
+/**
+ * JSON que es configuración y no un recurso: nadie lo referencia desde el código, lo lee
+ * una herramienta por su nombre. Sin esta regla saldría «sin rastro · candidato a borrar».
+ * En la raíz se asume para cualquier JSON salvo el manifest PWA, que sí es origen de iconos.
+ */
+function isConfigJson(p: string, base: string, ext: string): boolean {
+  if (ext !== 'json' && ext !== 'jsonc' && ext !== 'json5') return false;
+  if (base === 'manifest.json') return false;
+  if (CONFIG_JSON_NAMES.has(base)) return true;
+  if (/(\.config|rc)\.json[c5]?$/.test(base)) return true; // staticwebapp.config.json, .babelrc.json
+  return !p.includes('/');
+}
+
 export function extOf(p: string): string {
   const base = path.posix.basename(p);
   const i = base.lastIndexOf('.');
@@ -57,6 +77,7 @@ export function categorize(p: string): Category {
   // .github/workflows, .vscode, .husky…: configuración de herramientas, salvo código
   if (/^\.[^/]+\//.test(p) && !CODE.has(ext) && !COMPONENT_EXT.has(ext) && !RESOURCE_MEDIA.has(ext)) return 'config';
   if (ext === 'yaml' || ext === 'yml' || ext === 'toml' || ext === 'ini') return 'config';
+  if (isConfigJson(p, base, ext)) return 'config';
   if (CODE.has(ext) || COMPONENT_EXT.has(ext)) return 'code';
   if (STYLE.has(ext)) return 'style';
   if (MARKUP.has(ext)) return 'markup';

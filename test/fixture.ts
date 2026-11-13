@@ -74,3 +74,24 @@ export function createKartGame(): string {
   write('src/nuevo.ts', `export const nuevo = 1\n`);
   return root;
 }
+
+/** Repo mínimo con git y un commit, a partir de un mapa ruta → contenido. */
+export function createRepo(files: Record<string, string | Buffer>): string {
+  const root = mkdtempSync(path.join(tmpdir(), 'heft-repo-'));
+  for (const [rel, content] of Object.entries(files)) {
+    const abs = path.join(root, rel);
+    mkdirSync(path.dirname(abs), { recursive: true });
+    writeFileSync(abs, content);
+  }
+  const git = (...args: string[]): void => {
+    execFileSync('git', args, {
+      cwd: root,
+      stdio: 'ignore',
+      env: { ...process.env, GIT_AUTHOR_NAME: 'David', GIT_AUTHOR_EMAIL: 'd@example.com', GIT_COMMITTER_NAME: 'David', GIT_COMMITTER_EMAIL: 'd@example.com' },
+    });
+  };
+  git('init', '-q', '-b', 'main');
+  git('add', '-A');
+  git('commit', '-q', '-m', 'Inicial');
+  return root;
+}
