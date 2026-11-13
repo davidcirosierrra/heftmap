@@ -14,7 +14,6 @@ Funciona igual en VS Code.
 ```bash
 git clone https://github.com/davidcirosierrra/Heft.git
 cd Heft
-git checkout fase-1-carpetas    # mientras el PR no esté en main
 npm install
 npm test                        # 48 tests: núcleo, ámbito, árbol y humo de la extensión
 ```
