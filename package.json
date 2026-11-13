@@ -2,18 +2,195 @@
   "name": "heft",
   "displayName": "Heft",
   "description": "Qué pesa en este repo y se está usando: tamaños, treemap, huérfanos y hotspots.",
-  "version": "0.0.1",
+  "version": "0.1.0",
+  "publisher": "davidcirosierrra",
   "private": true,
   "type": "module",
   "license": "UNLICENSED",
-  "engines": {
-    "node": ">=20"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/davidcirosierrra/Heft"
   },
+  "engines": {
+    "node": ">=20",
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "main": "./dist/extension.cjs",
   "bin": {
     "heft": "dist/cli.js"
   },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "heft",
+          "title": "Heft",
+          "icon": "media/heft.svg"
+        }
+      ]
+    },
+    "views": {
+      "heft": [
+        {
+          "id": "heft.folders",
+          "name": "Carpetas",
+          "icon": "media/heft.svg"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "heft.folders",
+        "contents": "Abre una carpeta para ver qué pesa y qué se usa.\n[Abrir carpeta](command:vscode.openFolder)",
+        "when": "workbenchState == empty"
+      }
+    ],
+    "commands": [
+      {
+        "command": "heft.refresh",
+        "title": "Refrescar",
+        "category": "Heft",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "heft.pickScope",
+        "title": "Elegir carpetas del ámbito…",
+        "category": "Heft",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "heft.clearScope",
+        "title": "Todo el repositorio",
+        "category": "Heft",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "heft.addToScope",
+        "title": "Añadir al ámbito de Heft",
+        "category": "Heft"
+      },
+      {
+        "command": "heft.limitScope",
+        "title": "Limitar el ámbito de Heft a esta carpeta",
+        "category": "Heft"
+      },
+      {
+        "command": "heft.revealInExplorer",
+        "title": "Revelar en el explorador",
+        "category": "Heft"
+      },
+      {
+        "command": "heft.showLog",
+        "title": "Mostrar registro",
+        "category": "Heft"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "heft.pickScope",
+          "when": "view == heft.folders",
+          "group": "navigation@1"
+        },
+        {
+          "command": "heft.clearScope",
+          "when": "view == heft.folders",
+          "group": "navigation@2"
+        },
+        {
+          "command": "heft.refresh",
+          "when": "view == heft.folders",
+          "group": "navigation@3"
+        },
+        {
+          "command": "heft.showLog",
+          "when": "view == heft.folders"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "heft.limitScope",
+          "when": "view == heft.folders && viewItem == heftDir",
+          "group": "heft@1"
+        },
+        {
+          "command": "heft.revealInExplorer",
+          "when": "view == heft.folders && viewItem =~ /^heft(Dir|File)$/",
+          "group": "heft@2"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "heft.addToScope",
+          "when": "explorerResourceIsFolder",
+          "group": "heft@1"
+        },
+        {
+          "command": "heft.limitScope",
+          "when": "explorerResourceIsFolder",
+          "group": "heft@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "heft.addToScope",
+          "when": "false"
+        },
+        {
+          "command": "heft.limitScope",
+          "when": "false"
+        },
+        {
+          "command": "heft.revealInExplorer",
+          "when": "false"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Heft",
+      "properties": {
+        "heft.publicDir": {
+          "type": "string",
+          "default": "public",
+          "description": "Carpeta contra la que se resuelven las rutas absolutas (/models/x.glb). Se busca la más cercana subiendo desde cada archivo."
+        },
+        "heft.git.since": {
+          "type": "string",
+          "default": "",
+          "description": "Limitar el historial de git en repos grandes, p. ej. «1.year». Vacío = todo."
+        },
+        "heft.usage.ignore": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Archivos (rutas relativas) que nunca cuentan como huérfanos."
+        },
+        "heft.usage.entryPoints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Puntos de entrada extra además de los detectados automáticamente."
+        }
+      }
+    }
+  },
   "scripts": {
-    "build": "esbuild src/cli.ts --bundle --platform=node --format=esm --target=node20 --external:typescript --outfile=dist/cli.js",
+    "build": "npm run build:cli && npm run build:ext",
+    "build:cli": "esbuild src/cli.ts --bundle --platform=node --format=esm --target=node20 --external:typescript --outfile=dist/cli.js",
+    "build:ext": "esbuild src/extension/extension.ts --bundle --platform=node --format=cjs --target=node20 --external:vscode --minify --sourcemap --outfile=dist/extension.cjs",
+    "watch:ext": "npm run build:ext -- --watch",
+    "package": "npm run build:ext && vsce package --no-dependencies --skip-license --out heft.vsix",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "heft": "node dist/cli.js"
@@ -23,6 +200,8 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/vscode": "1.85.0",
+    "@vscode/vsce": "^4.1.1",
     "esbuild": "^0.28.2",
     "vitest": "^5.1.0"
   }
