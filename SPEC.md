@@ -7,7 +7,8 @@
 
 Nombre: **Heft** (antes «Workspace Files»). Repo `heft`; prefijo de ajustes y comandos `heft.*`.
 
-Estado: **diseño v2 cerrado tras revisión crítica, sin código todavía**. Fecha: 13-11-2026.
+Estado: **fase 0 hecha** (núcleo como CLI, validado con dos repos reales; ver
+[docs/fase-0.md](docs/fase-0.md)). Sin extensión todavía. Fecha: 13-11-2026.
 Las capturas son de la v1: valen como referencia visual, con las diferencias de la sección 8.
 
 ---
@@ -134,7 +135,18 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
   configs (`vite.config.*`, `eslint.config.*`, `tailwind.config.*`…), tests y stories (`*.test.*`,
   `*.spec.*`, `*.stories.*`), `*.d.ts`, service workers y el manifest PWA.
 - Se **leen como origen** de referencias, aunque no sean candidatos: `index.html`, el manifest PWA
-  (iconos), CSS y Markdown (imágenes del README).
+  (iconos), configs como `vite.config.ts` (donde a menudo se declara el manifest), CSS, componentes
+  `.vue/.svelte/.astro` y Markdown (imágenes del README).
+- Reglas añadidas en la fase 0 (ver [docs/fase-0.md](docs/fase-0.md)):
+  - En TS/JS los strings se leen del AST: una ruta en un comentario no es uso.
+  - En Markdown solo cuentan enlaces e `<img>` hacia recursos y documentos: citar `src/x.ts` en el
+    README no demuestra que el código se use.
+  - Las referencias desde scripts de tooling (`scripts/`, `tools/`, `bin/`, otros lenguajes) bajan a
+    «mención»: un generador nombra lo que escribe.
+  - Las rutas absolutas (`/x.png`) se resuelven contra la carpeta pública más cercana subiendo desde
+    el archivo (`public/`, `docs/public/`, `packages/app/public/`).
+  - YAML/TOML y las carpetas con punto (`.github/`, `.vscode/`) son configuración.
+  - Las menciones buscan el nombre completo y la raíz si tiene 3 letras o más.
 
 ### 3.4 Git
 - `●` = cambios en el árbol de trabajo **o** en staging. Archivo sin commits = «nuevo».
@@ -155,6 +167,8 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
 ### 4.1 Stack
 - TypeScript, API `vscode`. Build con **esbuild**, dos bundles: extensión (Node) y webview (navegador).
 - Webview: React + `d3-hierarchy`. Sin Three.js en el producto mínimo.
+- Análisis de imports con **`typescript@5.9.3` propia**: TypeScript 7 (nativa) ya no expone
+  `preProcessFile`, `resolveModuleName` ni `createSourceFile`. No depende de la versión del proyecto.
 - Estilo de código: `async/await` en lugar de cadenas `.then/.catch` (el top-level `await` no aplica:
   todo cuelga de `activate()`).
 - Empaquetado `.vsix` con `vsce`; instalar con *Extensions: Install from VSIX…*. Comprobar la versión
@@ -205,9 +219,9 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
 
 ## 5. Fases
 
-0. **Validación con un repo real** (antes de cualquier interfaz): `core/` como CLI sobre un proyecto
-   propio con recursos pesados (p. ej. `ugaokart`). Medir tiempos y contar cuántos «sin rastro» son
-   falsos. Si la mayoría son falsos, replantear 3.3 antes de seguir.
+0. ~~**Validación con un repo real**~~ **Hecha** ([docs/fase-0.md](docs/fase-0.md)): Feos pero majos
+   survival (0 falsos; coincide con Knip) y `vitejs/vite` (3.006 archivos en ~2 s; de 21 «sin rastro»
+   a 1 real tras corregir 7 causas de falsos positivos).
 1. Vista lateral «Carpetas» con tamaños y casillas de ámbito.
 2. Panel con la tabla (tamaño, orden, filtro, ámbito).
 3. Treemap 2D enlazado con la tabla (área, color por extensión, zoom).

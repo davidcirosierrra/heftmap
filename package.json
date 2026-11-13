@@ -1,0 +1,29 @@
+{
+  "name": "heft",
+  "displayName": "Heft",
+  "description": "Qué pesa en este repo y se está usando: tamaños, treemap, huérfanos y hotspots.",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "heft": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "esbuild src/cli.ts --bundle --platform=node --format=esm --target=node20 --external:typescript --outfile=dist/cli.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "heft": "node dist/cli.js"
+  },
+  "dependencies": {
+    "typescript": "5.9.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.28.2",
+    "vitest": "^5.1.0"
+  }
+}
