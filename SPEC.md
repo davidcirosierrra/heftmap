@@ -191,6 +191,17 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
 - **`core/`**: módulo puro, sin dependencia de `vscode` (entrada: ruta del repo; salida: índice).
   Se puede ejecutar como CLI y probar con tests. Aquí viven el listado, git y el grafo de uso.
 - **`extension/`**: `TreeDataProvider` de carpetas, comandos, `WebviewPanel`, vigilancia de cambios.
+  - El análisis corre en un **worker** (`worker_threads`), uno por análisis: `runner.ts` lo lanza y
+    `worker.ts` ejecuta el núcleo. El bundle de la extensión (`dist/extension.cjs`, ~13 KB) no
+    contiene el núcleo ni TypeScript; van en `dist/worker.cjs`. `extension.ts` solo importa tipos
+    del núcleo.
+  - Un análisis nuevo **cancela** el que esté en curso (se termina el worker).
+  - Progreso: barra nativa sobre la vista (`withProgress` con `viewId`, indeterminada) y fase con
+    avance en la barra de estado (`uso 1.200/3.006`). Fases: listado, lectura, git, uso, menciones.
+  - Resultado en dos tiempos: en el primer análisis el árbol con tamaños aparece al acabar la
+    lectura (`onPartial`, índice con `complete: false`); uso y git llegan al final. En un
+    reanálisis se mantiene el índice completo anterior hasta tener el nuevo.
+  - El panel de la fase 2 debe colgarse de los mismos avisos (`IndexEvents`).
 - **`webview/`**: tabla, treemap y detalle. CSP con nonce, recursos con `asWebviewUri`, comunicación
   por `postMessage`, estado (orden, zoom, selección) con `getState/setState`.
 - Índice en memoria:
@@ -239,6 +250,7 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
    contextual del explorador, barra de estado, ajustes y recálculo al cambiar archivos (completo, con
    espera de 1,5 s; el incremental queda pendiente). Multi-root: solo la primera carpeta.
    Los cambios en archivos ignorados por git (`dist/`, `node_modules/`) no relanzan el análisis.
+   El análisis corre en un worker, con progreso y cancelación (§4.2).
 2. Panel con la tabla (tamaño, orden, filtro, ámbito).
 3. Treemap 2D enlazado con la tabla (área, color por extensión, zoom).
 4. Uso: columna, estados, fila desplegable, color «Uso», acciones sobre «sin rastro».

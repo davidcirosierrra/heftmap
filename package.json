@@ -188,8 +188,10 @@
   "scripts": {
     "build": "npm run build:cli && npm run build:ext",
     "build:cli": "esbuild src/cli.ts --bundle --platform=node --format=esm --target=node20 --external:typescript --outfile=dist/cli.js",
-    "build:ext": "esbuild src/extension/extension.ts --bundle --platform=node --format=cjs --target=node20 --external:vscode --minify --sourcemap --outfile=dist/extension.cjs",
-    "watch:ext": "npm run build:ext -- --watch",
+    "build:ext": "npm run build:host && npm run build:worker",
+    "build:host": "esbuild src/extension/extension.ts --bundle --platform=node --format=cjs --target=node20 --external:vscode --minify --sourcemap --outfile=dist/extension.cjs",
+    "build:worker": "esbuild src/extension/worker.ts --bundle --platform=node --format=cjs --target=node20 --minify --sourcemap --outfile=dist/worker.cjs",
+    "watch:ext": "npm run build:worker && npm run build:host -- --watch",
     "package": "npm run build:ext && vsce package --no-dependencies --skip-license --out heft.vsix",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

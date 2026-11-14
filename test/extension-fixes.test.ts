@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { activate, pct } from '../src/extension/extension.js';
 import { fake, makeContext, Uri, type TreeItem } from './fake-vscode.js';
 import { createRepo } from './fixture.js';
+import { inProcessRunner } from './in-process-runner.js';
 
 /** Fallos de la extensión encontrados en la revisión de código de la fase 1. */
 let root: string;
@@ -39,7 +40,7 @@ beforeAll(async () => {
   fake.reset(root);
   fake.state.set('heft.scope', ['src/old', 'src/borrada']);
   context = makeContext();
-  activate(context as never);
+  activate(context as never, inProcessRunner);
   await waitFor(() => rebuilds() === 1);
 });
 afterAll(() => {

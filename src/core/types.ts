@@ -84,6 +84,26 @@ export interface BuildOptions {
   ignore?: string[];
 }
 
+/** Fase del análisis, en orden. `mentions` es la segunda pasada del uso. */
+export type Phase = 'list' | 'read' | 'git' | 'usage' | 'mentions';
+
+/** Avance dentro de una fase. `total` es 0 cuando la fase no se puede medir (listado, git). */
+export interface Progress {
+  phase: Phase;
+  done: number;
+  total: number;
+}
+
+/** Avisos durante el análisis, para pintar progreso sin esperar al final. */
+export interface BuildHooks {
+  onProgress?: (p: Progress) => void;
+  /**
+   * Índice a medias, en cuanto se conocen los archivos y sus tamaños (antes de git y del
+   * uso). Tiene `complete: false`: los datos de git y de uso todavía no valen.
+   */
+  onPartial?: (index: HeftIndex) => void;
+}
+
 export interface Timings {
   list: number;
   read: number;
@@ -94,6 +114,8 @@ export interface Timings {
 
 export interface HeftIndex {
   root: string;
+  /** false en el índice a medias de `onPartial`: solo valen archivos, tamaños y líneas. */
+  complete: boolean;
   isGit: boolean;
   head: string | null;
   commitsRead: number;

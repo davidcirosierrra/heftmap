@@ -32,5 +32,6 @@ npm run package   # heft.vsix
 
 - `src/core/`: núcleo sin dependencia de `vscode` (listado, git, uso).
 - `src/extension/`: la extensión. `scope.ts` y `tree-model.ts` son lógica pura con tests;
-  `extension.ts` es la capa de `vscode`.
+  `extension.ts` es la capa de `vscode`. El análisis corre en un worker: `runner.ts` lo lanza y
+  `worker.ts` ejecuta el núcleo (bundle aparte, `dist/worker.cjs`).
 - `test/fake-vscode.ts`: doble de la API para el test de humo (alias en `vitest.config.ts`).

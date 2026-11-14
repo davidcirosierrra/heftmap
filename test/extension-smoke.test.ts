@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { activate } from '../src/extension/extension.js';
 import { fake, makeContext, TreeItemCheckboxState, Uri, type TreeItem } from './fake-vscode.js';
 import { createKartGame } from './fixture.js';
+import { inProcessRunner } from './in-process-runner.js';
 
 /**
  * Test de humo: la extensión real contra un `vscode` simulado (alias en vitest.config.ts)
@@ -35,7 +36,7 @@ beforeAll(async () => {
   root = createKartGame();
   fake.reset(root);
   context = makeContext();
-  activate(context as never);
+  activate(context as never, inProcessRunner);
   await waitFor(() => fake.log.some((l) => l.includes('Índice (inicio)')));
 });
 afterAll(() => {

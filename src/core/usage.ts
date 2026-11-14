@@ -2,7 +2,7 @@ import path from 'node:path';
 import ts from 'typescript';
 import { COMPONENT_EXT, extOf } from './classify.js';
 import { toPosix } from './files.js';
-import type { FileEntry, Ref, RefKind } from './types.js';
+import type { FileEntry, Phase, Ref, RefKind } from './types.js';
 
 /**
  * Grafo de uso (SPEC §4.3), en dos pasadas:
@@ -24,6 +24,7 @@ export interface UsageInput {
   /** Archivos que se leen como origen de referencias. */
   sources: string[];
   publicDir: string;
+  onProgress?: (phase: Phase, done: number, total: number) => void;
 }
 
 export interface UsageResult {
@@ -32,7 +33,7 @@ export interface UsageResult {
 }
 
 export function analyzeUsage(input: UsageInput): UsageResult {
-  const { root, files, texts, sources, publicDir } = input;
+  const { root, files, texts, sources, publicDir, onProgress } = input;
   const refs: Ref[] = [];
   const seen = new Set<string>();
   const warnings: string[] = [];
@@ -79,7 +80,10 @@ export function analyzeUsage(input: UsageInput): UsageResult {
     return out;
   };
 
+  let scanned = 0;
+  onProgress?.('usage', 0, sources.length);
   for (const from of sources) {
+    onProgress?.('usage', ++scanned, sources.length);
     const text = texts.get(from);
     if (text == null) continue;
     const ext = extOf(from);
@@ -134,8 +138,11 @@ export function analyzeUsage(input: UsageInput): UsageResult {
   // 2.ª pasada: menciones, solo para recursos todavía sin referencia (SPEC §3.3).
   const referenced = new Set(refs.map((r) => r.to));
   const haystack = sources.filter((s) => texts.has(s));
-  for (const f of files.values()) {
-    if (f.category !== 'resource' || f.ignoredByGit || referenced.has(f.path)) continue;
+  const pending = [...files.values()].filter((f) => f.category === 'resource' && !f.ignoredByGit && !referenced.has(f.path));
+  let searched = 0;
+  if (pending.length) onProgress?.('mentions', 0, pending.length);
+  for (const f of pending) {
+    onProgress?.('mentions', ++searched, pending.length);
     const base = posix.basename(f.path);
     const stem = base.replace(/\.[^.]+$/, '');
     const needles = [base];
