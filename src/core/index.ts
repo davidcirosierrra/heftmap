@@ -17,7 +17,7 @@ export async function buildIndex(rootArg: string, opts: BuildOptions = {}, hooks
 
   // 1. Listado
   progress('list', 0, 0);
-  const info = await gitInfo(root);
+  const info = opts.useGit === false ? { isGit: false, prefix: '', head: null } : await gitInfo(root);
   if (info.warning) warnings.push(info.warning);
   const paths = await listFiles(root, info.isGit);
   const tList = performance.now();

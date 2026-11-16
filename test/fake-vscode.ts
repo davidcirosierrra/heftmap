@@ -118,6 +118,7 @@ export const fake = {
   progress: [] as { location: unknown; done: boolean }[],
   folderListeners: [] as (() => unknown)[],
   configListeners: [] as ((e: { affectsConfiguration(k: string): boolean }) => unknown)[],
+  trustListeners: [] as (() => unknown)[],
   treeView: undefined as
     | {
         provider: any;
@@ -161,6 +162,7 @@ export const fake = {
     this.progress = [];
     this.folderListeners = [];
     this.configListeners = [];
+    this.trustListeners = [];
     this.treeView = undefined;
     this.panels = [];
     this.warnings = [];
@@ -305,6 +307,11 @@ export const workspace = {
   }),
   fs: {
     delete: async (uri: Uri, options: any) => void fake.deleted.push({ path: uri.path, options }),
+  },
+  isTrusted: true,
+  onDidGrantWorkspaceTrust: (fn: () => unknown) => {
+    fake.trustListeners.push(fn);
+    return disposable;
   },
   onDidChangeConfiguration: (fn: (e: { affectsConfiguration(k: string): boolean }) => unknown) => {
     fake.configListeners.push(fn);

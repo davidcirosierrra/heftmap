@@ -98,11 +98,11 @@ describe('import.meta.glob', () => {
 
   it('extrae los patrones del AST y traduce el glob', () => {
     expect(scanCode(`const a = import.meta.glob('./a/*.png'); const b = other.glob('./b/*')`, 'x.ts').globs).toEqual([['./a/*.png']]);
-    expect(globToRegExp('src/**/*.png').test('src/a.png')).toBe(true);
-    expect(globToRegExp('src/**/*.png').test('src/a/b/c.png')).toBe(true);
-    expect(globToRegExp('src/*.png').test('src/a/b.png')).toBe(false);
-    expect(globToRegExp('src/*.{mp3,ogg}').test('src/a.ogg')).toBe(true);
-    expect(globToRegExp('src/a.png').test('src/aXpng')).toBe(false);
+    expect(globToRegExp('src/**/*.png')!.test('src/a.png')).toBe(true);
+    expect(globToRegExp('src/**/*.png')!.test('src/a/b/c.png')).toBe(true);
+    expect(globToRegExp('src/*.png')!.test('src/a/b.png')).toBe(false);
+    expect(globToRegExp('src/*.{mp3,ogg}')!.test('src/a.ogg')).toBe(true);
+    expect(globToRegExp('src/a.png')!.test('src/aXpng')).toBe(false);
   });
 });
 

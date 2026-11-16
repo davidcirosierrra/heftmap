@@ -18,5 +18,6 @@
   "config.usage.ignore": "Files (relative paths) that never count as orphans.",
   "config.usage.entryPoints": "Extra entry points besides the ones detected automatically.",
   "config.language.auto": "The editor's display language (English if it is not Spanish or Basque)",
-  "config.language": "Language of the Heft panel and side view. Command and setting names follow the editor's display language."
+  "config.language": "Language of the Heft panel and side view. Command and setting names follow the editor's display language.",
+  "capabilities.untrusted": "In Restricted Mode Heft does not run git: it shows sizes and usage, without history or uncommitted changes. Workspace settings for Heft are ignored."
 }

@@ -75,6 +75,8 @@ export const en = {
   'reason.disk': 'changes on disk',
   'reason.git': 'git changes',
   'reason.trash': 'file moved to trash',
+  'reason.trust': 'workspace trusted',
+  'view.restricted': 'Restricted Mode: analyzing without git (no history or uncommitted changes). Trust the folder to see them.',
 
   // ------------------------------------------------------------------ vista «Carpetas» y barra de estado
   'view.analyzingSuffix': '{scope} · analyzing…',
@@ -297,6 +299,8 @@ export const es: Messages = {
   'reason.disk': 'cambios en disco',
   'reason.git': 'cambios en git',
   'reason.trash': 'archivo a la papelera',
+  'reason.trust': 'workspace de confianza',
+  'view.restricted': 'Modo restringido: se analiza sin git (sin historial ni cambios sin commit). Confía en la carpeta para verlos.',
 
   'view.analyzingSuffix': '{scope} · analizando…',
   'view.error': 'No se pudo analizar el repositorio: {error}',
@@ -513,6 +517,8 @@ export const eu: Messages = {
   'reason.disk': 'aldaketak diskoan',
   'reason.git': 'aldaketak git-en',
   'reason.trash': 'fitxategia zakarrontzira',
+  'reason.trust': 'lan-eremu fidagarria',
+  'view.restricted': 'Modu mugatua: git gabe aztertzen da (historiarik eta commit gabeko aldaketarik gabe). Fidatu karpetaz horiek ikusteko.',
 
   'view.analyzingSuffix': '{scope} · aztertzen…',
   'view.error': 'Ezin izan da biltegia aztertu: {error}',

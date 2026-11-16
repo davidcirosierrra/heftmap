@@ -137,6 +137,7 @@ class Heft implements vscode.Disposable, PanelHost {
         if (e.affectsConfiguration('heft')) this.schedule('reason.settings');
       }),
       vscode.workspace.onDidChangeWorkspaceFolders(() => void this.start()),
+      vscode.workspace.onDidGrantWorkspaceTrust(() => void this.rebuild('reason.trust')),
     );
   }
 
@@ -245,6 +246,8 @@ class Heft implements vscode.Disposable, PanelHost {
         since: cfg.get<string>('git.since') || undefined,
         ignore: cfg.get<string[]>('usage.ignore') ?? [],
         entryPoints: cfg.get<string[]>('usage.entryPoints') ?? [],
+        // Workspace sin confianza: git podría ejecutar programas que trae el propio repo (SPEC §3.6).
+        useGit: vscode.workspace.isTrusted,
       },
       {
         onProgress: (p) => {
@@ -493,7 +496,9 @@ class Heft implements vscode.Disposable, PanelHost {
     const I = this.I;
     const label = scopeLabel(this.scope, I.t('scope.all'));
     this.view.description = this.building ? I.t('view.analyzingSuffix', { scope: label }) : label;
-    this.view.message = this.error ? I.t('view.error', { error: this.error }) : this.firstScanMessage();
+    this.view.message = this.error
+      ? I.t('view.error', { error: this.error })
+      : (this.firstScanMessage() ?? (this.root && !vscode.workspace.isTrusted ? I.t('view.restricted') : undefined));
     this.panel.statusChanged();
 
     if (!this.root) {

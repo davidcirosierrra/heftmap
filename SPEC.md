@@ -176,6 +176,17 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
 - Lockfiles y archivos generados quedan fuera del cálculo (cambian mucho y no dicen nada).
 - Sin git no hay hotspots: el área `Líneas` sigue funcionando, el color `Cambios` se desactiva.
 
+### 3.6 Seguridad
+
+- La carpeta analizada es entrada no fiable. Detalle y revisión en [docs/seguridad.md](docs/seguridad.md).
+- **Workspace Trust** (`capabilities.untrustedWorkspaces: limited`): sin confianza, Heft no ejecuta
+  git (analiza como carpeta sin repo) e ignora sus ajustes del workspace; la vista lo dice. Al
+  confiar, se reanaliza.
+- Git: ejecutable buscado en el `PATH` sin mirar la carpeta analizada; `core.fsmonitor`,
+  `log.showSignature` y submódulos desactivados en cada llamada; sin bloqueos del índice.
+- No se siguen enlaces simbólicos. Las expresiones regulares sobre el contenido tienen repeticiones
+  acotadas, y los patrones de `import.meta.glob` peligrosos se descartan.
+
 ## 4. Implementación
 
 ### 4.1 Stack

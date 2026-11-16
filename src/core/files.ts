@@ -79,8 +79,13 @@ export interface FileRead {
 /** Tamaño, binario o texto, nº de líneas y contenido. null si el archivo ya no existe. */
 export async function readFile(root: string, rel: string): Promise<FileRead | null> {
   const abs = path.join(root, rel);
-  const st = await fs.stat(abs).catch(() => null);
-  if (!st || !st.isFile()) return null;
+  // Un enlace simbólico no se sigue: puede apuntar fuera del repo (~/.ssh, /dev/zero). Cuenta
+  // como el enlace en sí, igual que lo guarda git.
+  const lst = await fs.lstat(abs).catch(() => null);
+  if (!lst) return null;
+  if (lst.isSymbolicLink()) return { size: lst.size, binary: false, lines: null, text: null };
+  const st = lst;
+  if (!st.isFile()) return null;
   if (BINARY_EXT.has(extOf(rel)) || st.size > MAX_TEXT_BYTES) {
     return { size: st.size, binary: BINARY_EXT.has(extOf(rel)), lines: null, text: null };
   }

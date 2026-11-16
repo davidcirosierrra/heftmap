@@ -26,6 +26,18 @@
   "activationEvents": [
     "onStartupFinished"
   ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "%capabilities.untrusted%",
+      "restrictedConfigurations": [
+        "heft.publicDir",
+        "heft.git.since",
+        "heft.usage.ignore",
+        "heft.usage.entryPoints"
+      ]
+    }
+  },
   "contributes": {
     "viewsContainers": {
       "activitybar": [
