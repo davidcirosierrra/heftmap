@@ -116,6 +116,22 @@ describe('primer análisis: aviso sobre el árbol y panel de espera', () => {
     expect(refs).toHaveLength(full.files.reduce((s, f) => s + f.refsOut.length, 0));
   });
 
+  it('y los datos de git: cada commit una sola vez, y qué archivos tienen cambios', () => {
+    const { files, commits, isGit } = last('index').index;
+    expect(isGit).toBe(true);
+    expect(commits).toHaveLength(new Set(full.files.map((f) => f.lastCommit?.hash).filter(Boolean)).size);
+    const physics = files.find((f: any) => f.path === 'src/game/Physics.ts');
+    expect(commits[physics.commit]).toEqual(full.files.find((f) => f.path === 'src/game/Physics.ts')!.lastCommit);
+    // Lo que el núcleo da por nuevo o modificado llega igual al panel.
+    for (const f of full.files) {
+      const sent = files.find((x: any) => x.path === f.path);
+      expect(!!sent.dirty).toBe(f.dirty);
+      expect(!!sent.untracked).toBe(f.untracked);
+      if (!f.lastCommit) expect(sent.commit).toBeUndefined();
+    }
+    expect(full.files.some((f) => f.untracked)).toBe(true);
+  });
+
   it('un reanálisis con datos en pantalla no vuelve a poner el aviso', async () => {
     void fake.commands.get('heft.refresh')!();
     await tick();
@@ -139,6 +155,14 @@ describe('panel: mensajes del webview', () => {
     expect(fake.executed.at(-1)!.id).toBe('revealInExplorer');
     const before = fake.executed.length;
     panel().receive.fire({ type: 'reveal', path: '/etc/passwd' });
+    expect(fake.executed).toHaveLength(before);
+  });
+
+  it('«Ver diff» usa el comando de git del editor', () => {
+    panel().receive.fire({ type: 'diff', path: 'src/main.tsx' });
+    expect(fake.executed.at(-1)!.id).toBe('git.openChange');
+    const before = fake.executed.length;
+    panel().receive.fire({ type: 'diff', path: 'no/existe.ts' });
     expect(fake.executed).toHaveLength(before);
   });
 

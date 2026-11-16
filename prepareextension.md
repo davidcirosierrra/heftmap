@@ -178,13 +178,26 @@ Marca cada punto. Si algo falla, abre **Heft: Mostrar registro** (`Ctrl+Shift+P`
 - [ ] Durante el primer análisis de un repo grande la columna dice «Analizando…» y los filtros
       rápidos están apagados.
 
+**Git (fase 5)**
+- [ ] Columna **Último cambio**: fecha relativa y hash corto. Ordenar por ella pone lo más reciente arriba.
+- [ ] Modifica un archivo sin hacer commit: aparece `●` en su fila y entra en el filtro rápido
+      `Con cambios sin commit`. Un archivo recién creado dice «nuevo».
+- [ ] Detalle: hash, mensaje, autor y fecha del último commit. Clic en el hash: copia el hash
+      completo (pégalo para comprobarlo). Con cambios sin commit aparece **Ver diff**, que abre el
+      diff del editor.
+- [ ] Color `Antigüedad`: hasta 5 tramos, del más reciente (rojo) al más antiguo (azul), calculados
+      con las fechas del propio repo. La leyenda dice qué periodo cubre cada uno.
+- [ ] Color `Commits recientes`: solo los 8 últimos commits tienen color; el resto, gris. La leyenda
+      lleva hash y mensaje; clic en uno resalta lo que tocó.
+- [ ] En una carpeta sin git: la columna muestra `—` y el filtro de cambios está apagado.
+
 **Estado**
 - [ ] Cambia a otra pestaña y vuelve: se conservan orden, filtro, selección, área, color y zoom.
 - [ ] Crea o borra un archivo: la tabla se actualiza sola; mientras, arriba dice «Actualizando: …».
 
 ## 7. Limitaciones conocidas
 
-- Las columnas y colores de git y líneas (fases 5 y 6) no están todavía.
+- Las columnas Líneas y Cambios y los hotspots (fase 6) no están todavía.
 - «Lo usan» y «Usa» están en el detalle inferior, no en una fila desplegable.
 - Al recargar la ventana el panel se cierra; hay que volver a abrirlo.
 - En un workspace con **varias carpetas raíz**, Heft analiza solo la primera (queda anotado en el registro).

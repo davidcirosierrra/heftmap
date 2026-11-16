@@ -1,14 +1,17 @@
 // @vitest-environment jsdom
 import { beforeAll, describe, expect, it } from 'vitest';
-import type { PanelFile, PanelRef } from '../src/extension/panel-protocol.js';
+import type { PanelCommit, PanelFile, PanelRef } from '../src/extension/panel-protocol.js';
 import { mountPanel, status, type Harness } from './webview-harness.js';
 
 /** El panel de verdad (React) en jsdom: lo que la lógica pura de `model.ts` no cubre. */
+const commits: PanelCommit[] = [
+  { hash: 'e41d0b7' + 'a'.repeat(33), short: 'e41d0b7', author: 'David', time: Date.now() - 3 * 86_400_000, subject: 'Añade el kart' },
+];
 const files: PanelFile[] = [
-  { path: 'README.md', size: 300, usage: 'not-analyzed' },
-  { path: 'src/main.tsx', size: 120, usage: 'entry' },
-  { path: 'src/game/Kart.ts', size: 900, usage: 'referenced' },
-  { path: 'public/models/kart.glb', size: 4000, usage: 'none' },
+  { path: 'README.md', size: 300, usage: 'not-analyzed', commit: 0 },
+  { path: 'src/main.tsx', size: 120, usage: 'entry', dirty: true, untracked: true },
+  { path: 'src/game/Kart.ts', size: 900, usage: 'referenced', commit: 0, dirty: true },
+  { path: 'public/models/kart.glb', size: 4000, usage: 'none', commit: 0 },
 ];
 const refs: PanelRef[] = [[1, 2, 'import']];
 let p: Harness;
@@ -26,7 +29,7 @@ describe('panel (DOM): tabla', () => {
 
   it('pinta la tabla al recibir el índice', async () => {
     await p.send(status());
-    await p.send({ type: 'index', index: { rootName: 'kart', complete: true, files, refs } });
+    await p.send({ type: 'index', index: { rootName: 'kart', complete: true, isGit: true, files, refs, commits } });
     expect(names()).toEqual(['kart.glb', 'Kart.ts', 'main.tsx', 'README.md']);
   });
 
@@ -129,7 +132,7 @@ describe('panel (DOM): uso', () => {
   });
 
   it('filtros rápidos con recuento; recortan tabla y treemap', async () => {
-    expect(p.text('.pill')).toEqual(['Todos', 'Sin rastro1', 'Mencionados0', 'Puntos de entrada1']);
+    expect(p.text('.pill')).toEqual(['Todos', 'Sin rastro1', 'Mencionados0', 'Puntos de entrada1', 'Con cambios sin commit2']);
     await p.click(pill('Sin rastro'));
     expect(names()).toEqual(['kart.glb']);
     expect(p.$$('.tm-file')).toHaveLength(1);
@@ -175,6 +178,36 @@ describe('panel (DOM): uso', () => {
   it('color «Uso»: leyenda por estados', async () => {
     await p.choose(p.$$('.select select')[1], 'usage');
     expect(p.text('.leg')).toEqual(['Sin rastro', 'Referenciado', 'Punto de entrada', 'No analizado']);
+  });
+
+  it('columna Último cambio: fecha y hash, ● con cambios, «nuevo» sin commits', () => {
+    const cells = Object.fromEntries(p.$$('.body .row').map((r) => [r.querySelector('.name')!.textContent, r.querySelector('.cell.changed')!.textContent]));
+    expect(cells).toEqual({ 'kart.glb': 'hace 3 d e41d0b7', 'Kart.ts': 'hace 3 d e41d0b7 ●', 'main.tsx': 'nuevo', 'README.md': 'hace 3 d e41d0b7' });
+  });
+
+  it('detalle del commit: clic en el hash copia el completo; «Ver diff» solo con cambios', async () => {
+    await selectRow('Kart.ts');
+    expect(p.$('.d-subject')?.textContent).toBe('Añade el kart');
+    expect(p.$('.d-commit .d-meta')?.textContent).toMatch(/^David · hace 3 d \(/);
+    await p.click(p.$('.d-commit .hash'));
+    expect(p.sent.at(-1)).toEqual({ type: 'copy', text: commits[0]!.hash });
+    expect(p.$('.copied')?.textContent).toBe('copiado');
+    await p.click(p.$$('.d-commit button').find((b) => b.textContent === 'Ver diff'));
+    expect(p.sent.at(-1)).toEqual({ type: 'diff', path: 'src/game/Kart.ts' });
+    await selectRow('kart.glb');
+    expect(p.$$('.d-commit button').map((b) => b.textContent)).toEqual(['e41d0b7']);
+    await selectRow('main.tsx');
+    expect(p.$('.d-commit')?.textContent).toContain('todavía sin commits');
+  });
+
+  it('filtro «Con cambios sin commit» y colores de git', async () => {
+    await p.click(pill('Con cambios sin commit'));
+    expect(names()).toEqual(['Kart.ts', 'main.tsx']);
+    await p.click(pill('Todos'));
+    await p.choose(p.$$('.select select')[1], 'recent');
+    expect(p.text('.leg')).toEqual(['Nuevo (sin commit)', 'e41d0b7 Añade el kart']);
+    await p.choose(p.$$('.select select')[1], 'age');
+    expect(p.text('.leg')).toEqual(['Nuevo (sin commit)', 'hasta hace 3 d']);
   });
 
   it('con el índice a medias: uso pendiente y filtros rápidos apagados', async () => {

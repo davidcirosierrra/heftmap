@@ -225,3 +225,22 @@ button { font: inherit; color: inherit; }
 @media (max-width: 760px) { .d-links { flex-direction: column; max-height: 30vh; overflow-y: auto; } }
 .cell.usage { padding-left: 14px; padding-right: 0; }
 .cell.usage .share { width: auto; }
+
+/* ------------------------------------------------------------ git (fase 5) */
+.table { flex-basis: 54%; }
+.tm-pane { flex-basis: 46%; }
+.cell.changed { padding-left: 14px; padding-right: 0; }
+.hash { font-family: var(--vscode-editor-font-family, monospace); font-size: 0.92em; color: var(--vscode-descriptionForeground); }
+.link.hash { color: var(--vscode-textLink-foreground); }
+.dirty { color: var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d); white-space: nowrap; }
+.new { color: var(--vscode-gitDecoration-untrackedResourceForeground, #73c991); }
+.body:focus .row.selected .hash, .body:focus .row.selected .dirty, .body:focus .row.selected .new { color: inherit; }
+.d-commit { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-top: 4px; }
+.d-subject { min-width: 0; max-width: 60ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.copied { color: var(--vscode-descriptionForeground); }
+/* Con todas las columnas la tabla necesita un ancho mínimo: si no cabe, se desplaza en horizontal. */
+.main { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+.table { overflow-x: auto; }
+.table .head, .table .body { min-width: 730px; box-sizing: border-box; }
+.cell.usage .share { margin-left: 0.3em; }
+@media (max-width: 760px) { .main { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); } }

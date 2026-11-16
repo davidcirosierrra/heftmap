@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { coloring } from '../src/webview/colors.js';
+import { coloring, quantileFloors } from '../src/webview/colors.js';
 import { DEFAULT_SORT, filterRows, linksOf, nextSort, quickCounts, quickRows, sortRows, toRows, totalSize, visibleRange } from '../src/webview/model.js';
-import type { PanelFile, PanelRef } from '../src/extension/panel-protocol.js';
+import type { PanelCommit, PanelFile, PanelRef } from '../src/extension/panel-protocol.js';
 
 const files = [
   { path: 'README.md', size: 300 },
@@ -125,11 +125,11 @@ describe('uso (fase 4)', () => {
   it('con el índice a medias el uso está pendiente, no «no analizado»', () => {
     const partial = toRows(uFiles, [], { complete: false });
     expect(new Set(partial.map((r) => r.usage))).toEqual(new Set(['pending']));
-    expect(quickCounts(partial)).toEqual({ all: 8, none: 0, mentioned: 0, entry: 0 });
+    expect(quickCounts(partial)).toEqual({ all: 8, none: 0, mentioned: 0, entry: 0, dirty: 0 });
   });
 
   it('filtros rápidos y sus recuentos', () => {
-    expect(quickCounts(all)).toEqual({ all: 8, none: 1, mentioned: 1, entry: 1 });
+    expect(quickCounts(all)).toEqual({ all: 8, none: 1, mentioned: 1, entry: 1, dirty: 0 });
     expect(quickRows(all, 'none').map((r) => r.path)).toEqual(['public/trees.glb']);
     expect(quickRows(all, 'mentioned').map((r) => r.path)).toEqual(['public/grass.png']);
     expect(quickRows(all, 'entry').map((r) => r.path)).toEqual(['index.html']);
@@ -163,5 +163,116 @@ describe('uso (fase 4)', () => {
     expect(c.legend[3]).toMatchObject({ count: 3, size: 5020 });
     expect(c.colorOf(usageOf('public/trees.glb'))).not.toBe(c.colorOf(usageOf('public/kart.glb')));
     expect(c.keyOf(usageOf('public/grass.png'))).toBe('mentioned');
+  });
+});
+
+describe('git (fase 5)', () => {
+  const DAY = 86_400_000;
+  const now = Date.UTC(2026, 10, 16);
+  const commit = (i: number, daysAgo: number): PanelCommit => ({
+    hash: `${i}`.repeat(40),
+    short: `${i}`.repeat(7),
+    author: 'David',
+    time: now - daysAgo * DAY,
+    subject: `commit ${i}`,
+  });
+  // 10 commits, del más reciente (0, hoy) al más antiguo (9, hace 900 días).
+  const commits = Array.from({ length: 10 }, (_, i) => commit(i, i * 100));
+  const gFiles: PanelFile[] = [
+    ...commits.map((_, i) => ({ path: `src/f${i}.ts`, size: 100 + i, commit: i })),
+    { path: 'src/tocado.ts', size: 10, commit: 0, dirty: true },
+    { path: 'src/nuevo.ts', size: 10, dirty: true, untracked: true },
+    { path: 'src/viejo.ts', size: 10 },
+  ];
+  const rows = toRows(gFiles, [], { commits });
+  const row = (p: string) => rows.find((r) => r.path === p)!;
+
+  it('cada fila lleva su último commit y su estado', () => {
+    expect(row('src/f3.ts').commit).toBe(commits[3]);
+    expect(row('src/tocado.ts')).toMatchObject({ dirty: true, untracked: false });
+    expect(row('src/nuevo.ts')).toMatchObject({ commit: null, dirty: true, untracked: true });
+    expect(row('src/viejo.ts')).toMatchObject({ commit: null, dirty: false });
+  });
+
+  it('con el índice a medias no hay datos de git', () => {
+    const partial = toRows(gFiles, [], { commits, complete: false });
+    expect(partial.every((r) => r.commit === null && !r.dirty && !r.untracked)).toBe(true);
+  });
+
+  it('ordenar por Último cambio: lo nuevo primero, lo que no tiene dato al final', () => {
+    expect(nextSort(DEFAULT_SORT, 'changed')).toEqual({ key: 'changed', dir: 'desc' });
+    const order = sortRows(rows, { key: 'changed', dir: 'desc' }).map((r) => r.path);
+    expect(order[0]).toBe('src/nuevo.ts');
+    expect(order.slice(1, 3).sort()).toEqual(['src/f0.ts', 'src/tocado.ts']);
+    expect(order.at(-2)).toBe('src/f9.ts');
+    expect(order.at(-1)).toBe('src/viejo.ts');
+  });
+
+  it('filtro «Con cambios sin commit»: modificados y nuevos', () => {
+    expect(quickCounts(rows).dirty).toBe(2);
+    expect(quickRows(rows, 'dirty').map((r) => r.path)).toEqual(['src/tocado.ts', 'src/nuevo.ts']);
+  });
+
+  it('cortes por cuantiles: tramos con los mismos archivos, sin partir valores iguales', () => {
+    expect(quantileFloors([10, 9, 8, 7, 6, 5, 4, 3, 2, 1], 5)).toEqual([9, 7, 5, 3, 1]);
+    expect(quantileFloors([5, 5, 5, 5, 1], 5)).toEqual([5, 1]);
+    expect(quantileFloors([7], 5)).toEqual([7]);
+    expect(quantileFloors([], 5)).toEqual([]);
+  });
+
+  it('un commit que toca casi todo el repo se queda con un tramo, y el resto se reparte los demás', () => {
+    // 85 archivos del commit inicial (valor 1) y 15 cambios posteriores, cada uno distinto.
+    const values = [...Array.from({ length: 15 }, (_, i) => 100 + i), ...Array.from({ length: 85 }, () => 1)];
+    const floors = quantileFloors(values, 5);
+    expect(floors).toHaveLength(5);
+    expect(floors.at(-1)).toBe(1);
+    expect(floors.slice(0, 4).every((f) => f >= 100)).toBe(true);
+    // Los 15 recientes, en 4 tramos parecidos.
+    const sizes = floors.slice(0, 4).map((f, i) => values.filter((v) => v >= f && (i === 0 || v < floors[i - 1]!)).length);
+    expect(sizes).toEqual([4, 4, 4, 3]);
+  });
+
+  it('el valor dominante puede estar en medio o ser el más reciente', () => {
+    expect(quantileFloors([9, 8, ...Array.from({ length: 20 }, () => 5), 3, 2, 1], 5)).toEqual([9, 8, 5, 2, 1]);
+    expect(quantileFloors([...Array.from({ length: 20 }, () => 9), 4, 3, 2, 1], 5)).toEqual([9, 4, 3, 2, 1]);
+  });
+
+  it('nunca devuelve más tramos que los pedidos, ni tramos repetidos', () => {
+    for (const values of [[5, 5, 4, 4, 3, 3, 2, 2, 1, 1], [3, 3, 3, 2, 2, 2, 1, 1, 1], [9, 9, 9, 9, 5, 1, 1, 1, 1]]) {
+      const floors = quantileFloors(values, 3);
+      expect(floors.length).toBeLessThanOrEqual(3);
+      expect(new Set(floors).size).toBe(floors.length);
+      expect(floors.at(-1)).toBe(Math.min(...values));
+    }
+  });
+
+  it('color «Antigüedad»: 5 tramos por cuantiles del repo, más nuevos y sin dato', () => {
+    const c = coloring('age', rows, now);
+    expect(c.legend.map((l) => l.count)).toEqual([1, 3, 2, 2, 2, 2, 1]);
+    expect(c.legend[0]!.label).toBe('Nuevo (sin commit)');
+    expect(c.legend[1]!.label).toBe('hasta hace 3 meses');
+    expect(c.legend.at(-1)!.label).toBe('Sin dato de git');
+    expect(c.keyOf(row('src/f0.ts'))).toBe('t0');
+    expect(c.keyOf(row('src/f9.ts'))).toBe('t4');
+    expect(new Set(c.legend.map((l) => l.color)).size).toBe(7);
+  });
+
+  it('«Antigüedad» se adapta al repo: si todo es de la última semana, también reparte', () => {
+    const recent = Array.from({ length: 10 }, (_, i) => commit(i, i * 0.5));
+    const c = coloring('age', toRows(recent.map((_, i) => ({ path: `f${i}`, size: 1, commit: i })), [], { commits: recent }), now);
+    expect(c.legend).toHaveLength(5);
+  });
+
+  it('color «Commits recientes»: solo los últimos 8; mismo commit, mismo color', () => {
+    const c = coloring('recent', rows);
+    expect(c.legend.map((l) => l.label)).toEqual([
+      'Nuevo (sin commit)',
+      ...commits.slice(0, 8).map((k) => `${k.short} ${k.subject}`),
+      'Anteriores',
+    ]);
+    expect(c.colorOf(row('src/f0.ts'))).toBe(c.colorOf(row('src/tocado.ts')));
+    expect(c.colorOf(row('src/f0.ts'))).not.toBe(c.colorOf(row('src/f1.ts')));
+    expect(c.colorOf(row('src/f8.ts'))).toBe(c.colorOf(row('src/f9.ts')));
+    expect(c.legend.at(-1)).toMatchObject({ count: 3 });
   });
 });

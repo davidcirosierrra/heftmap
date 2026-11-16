@@ -1,6 +1,6 @@
 import { fileInScope, type Scope } from '../extension/scope.js';
 import type { Usage } from '../core/types.js';
-import type { PanelFile, PanelRef } from '../extension/panel-protocol.js';
+import type { PanelCommit, PanelFile, PanelRef } from '../extension/panel-protocol.js';
 
 /**
  * Datos de la tabla (SPEC §2.2): filas, filtro y orden. Lógica pura, sin DOM ni React,
@@ -18,12 +18,17 @@ export interface Row {
   usage: RowUsage;
   /** Nº de archivos que lo referencian o mencionan, de todo el repo. */
   refsIn: number;
+  /** Último commit; null si no tiene (nuevo, fuera de `git.since`, sin git o índice a medias). */
+  commit: PanelCommit | null;
+  /** Cambios sin commit, incluidos los archivos nuevos. */
+  dirty: boolean;
+  untracked: boolean;
 }
 
 export type RowUsage = Usage | 'pending';
 
-export type SortKey = 'name' | 'folder' | 'size' | 'usage';
-export const SORT_KEYS: readonly SortKey[] = ['name', 'folder', 'size', 'usage'];
+export type SortKey = 'name' | 'folder' | 'size' | 'usage' | 'changed';
+export const SORT_KEYS: readonly SortKey[] = ['name', 'folder', 'size', 'usage', 'changed'];
 export type SortDir = 'asc' | 'desc';
 export interface Sort {
   key: SortKey;
@@ -36,6 +41,7 @@ export const DEFAULT_SORT: Sort = { key: 'name', dir: 'asc' };
 export interface RowContext {
   complete?: boolean;
   refs?: readonly PanelRef[];
+  commits?: readonly PanelCommit[];
 }
 
 /** Archivos del ámbito como filas. Las referencias se cuentan sobre todo el repo. */
@@ -59,6 +65,9 @@ export function toRows(files: readonly PanelFile[], scope: Scope, ctx: RowContex
       size: f.size,
       usage: complete ? (f.usage ?? 'not-analyzed') : 'pending',
       refsIn: refsIn[i] ?? 0,
+      commit: (complete && f.commit !== undefined && ctx.commits?.[f.commit]) || null,
+      dirty: complete && !!f.dirty,
+      untracked: complete && !!f.untracked,
     });
   }
   return rows;
@@ -79,16 +88,26 @@ export function filterRows(rows: readonly Row[], text: string): Row[] {
   });
 }
 
+/**
+ * Momento del último cambio, para ordenar: lo que aún no tiene commit (nuevo) es lo más
+ * reciente; lo que no tiene dato (sin git, fuera de `git.since`) va al final.
+ */
+export function changedAt(r: Row): number {
+  if (r.untracked) return Number.MAX_SAFE_INTEGER;
+  return r.commit ? r.commit.time : 0;
+}
+
 const USAGE_ORDER: readonly RowUsage[] = ['none', 'no-importers', 'mentioned', 'referenced', 'entry', 'exception', 'not-analyzed', 'ignored-by-git', 'pending'];
 
 /** Filtros rápidos de la barra superior (SPEC §2.2). */
-export type Quick = 'all' | 'none' | 'mentioned' | 'entry';
+export type Quick = 'all' | 'none' | 'mentioned' | 'entry' | 'dirty';
 
 export const QUICK_LABEL: Record<Quick, string> = {
   all: 'Todos',
   none: 'Sin rastro',
   mentioned: 'Mencionados',
   entry: 'Puntos de entrada',
+  dirty: 'Con cambios sin commit',
 };
 
 const QUICK_TEST: Record<Quick, (r: Row) => boolean> = {
@@ -96,6 +115,7 @@ const QUICK_TEST: Record<Quick, (r: Row) => boolean> = {
   none: (r) => r.usage === 'none',
   mentioned: (r) => r.usage === 'mentioned',
   entry: (r) => r.usage === 'entry',
+  dirty: (r) => r.dirty,
 };
 
 export function quickRows(rows: readonly Row[], quick: Quick): Row[] {
@@ -103,8 +123,9 @@ export function quickRows(rows: readonly Row[], quick: Quick): Row[] {
 }
 
 export function quickCounts(rows: readonly Row[]): Record<Quick, number> {
-  const out = { all: rows.length, none: 0, mentioned: 0, entry: 0 } satisfies Record<Quick, number>;
+  const out = { all: rows.length, none: 0, mentioned: 0, entry: 0, dirty: 0 } satisfies Record<Quick, number>;
   for (const r of rows) {
+    if (r.dirty) out.dirty++;
     if (r.usage === 'none') out.none++;
     else if (r.usage === 'mentioned') out.mentioned++;
     else if (r.usage === 'entry') out.entry++;
@@ -153,6 +174,7 @@ export function sortRows(rows: readonly Row[], sort: Sort): Row[] {
     size: (a, b) => a.size - b.size,
     // Lo más sospechoso primero; dentro de cada estado, lo menos referenciado.
     usage: (a, b) => USAGE_ORDER.indexOf(a.usage) - USAGE_ORDER.indexOf(b.usage) || a.refsIn - b.refsIn,
+    changed: (a, b) => changedAt(a) - changedAt(b),
   };
   const cmp = by[sort.key];
   const sign = sort.dir === 'asc' ? 1 : -1;
@@ -162,7 +184,8 @@ export function sortRows(rows: readonly Row[], sort: Sort): Row[] {
 /** Clic en una cabecera: misma columna invierte; otra empieza por su sentido natural. */
 export function nextSort(current: Sort, key: SortKey): Sort {
   if (current.key === key) return { key, dir: current.dir === 'asc' ? 'desc' : 'asc' };
-  return { key, dir: key === 'size' ? 'desc' : 'asc' };
+  // Tamaño y fecha empiezan por lo grande y lo reciente.
+  return { key, dir: key === 'size' || key === 'changed' ? 'desc' : 'asc' };
 }
 
 export function totalSize(rows: readonly Row[]): number {

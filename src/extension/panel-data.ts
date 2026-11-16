@@ -1,5 +1,5 @@
 import type { HeftIndex } from '../core/index.js';
-import type { PanelIndex, PanelRef } from './panel-protocol.js';
+import type { PanelCommit, PanelFile, PanelIndex, PanelRef } from './panel-protocol.js';
 
 /** Del índice del núcleo a lo que viaja al panel. Pura, sin `vscode`. */
 export function toPanelIndex(index: HeftIndex, rootName: string): PanelIndex {
@@ -14,10 +14,22 @@ export function toPanelIndex(index: HeftIndex, rootName: string): PanelIndex {
       if (to !== undefined) refs.push([from, to, r.kind]);
     }
   });
-  return {
-    rootName,
-    complete: index.complete,
-    files: kept.map((f) => ({ path: f.path, size: f.size, usage: f.usage })),
-    refs,
-  };
+  // Los commits también una sola vez: muchos archivos comparten el último.
+  const commits: PanelCommit[] = [];
+  const commitAt = new Map<string, number>();
+  const files = kept.map((f) => {
+    const out: PanelFile = { path: f.path, size: f.size, usage: f.usage };
+    if (f.lastCommit) {
+      let i = commitAt.get(f.lastCommit.hash);
+      if (i === undefined) {
+        i = commits.push(f.lastCommit) - 1;
+        commitAt.set(f.lastCommit.hash, i);
+      }
+      out.commit = i;
+    }
+    if (f.dirty) out.dirty = true;
+    if (f.untracked) out.untracked = true;
+    return out;
+  });
+  return { rootName, complete: index.complete, isGit: index.isGit, files, refs, commits };
 }
