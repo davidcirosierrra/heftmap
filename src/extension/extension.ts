@@ -4,6 +4,7 @@ import { git } from '../core/git.js';
 import type { FileEntry, HeftIndex, Progress } from '../core/index.js';
 import { i18n, resolveLocale, type I18n, type Locale, type MessageKey } from '../i18n/index.js';
 import { warningText } from '../i18n/warnings.js';
+import { bar, weightTier, type WeightTier } from './bars.js';
 import { guard, guardSync, HeftLog } from './log.js';
 import { HeftPanel, type PanelHost } from './panel.js';
 import { toPanelIndex } from './panel-data.js';
@@ -142,6 +143,7 @@ class Heft implements vscode.Disposable, PanelHost {
       this.view,
       this.status,
       this.panel,
+      vscode.window.registerFileDecorationProvider(new HeftDecorations()),
       this.view.onDidChangeCheckboxState(on('checkbox', (e: vscode.TreeCheckboxChangeEvent<TreeNode>) => this.onCheckboxes(e))),
       vscode.workspace.onDidChangeConfiguration(on('settings change', (e: vscode.ConfigurationChangeEvent) => {
         if (e.affectsConfiguration('heft.language')) {
@@ -521,7 +523,10 @@ class Heft implements vscode.Disposable, PanelHost {
   private renderStatus(): void {
     const I = this.I;
     const label = scopeLabel(this.scope, I.t('scope.all'));
-    this.view.description = this.building ? I.t('view.analyzingSuffix', { scope: label }) : label;
+    // Total del ámbito junto al título de la vista (el panel ya lo enseña; aquí faltaba).
+    const totals = this.scopeTotals();
+    const summary = totals ? `${label} · ${I.size(totals.size)} · ${I.tp('files', totals.count)}` : label;
+    this.view.description = this.building ? I.t('view.analyzingSuffix', { scope: summary }) : summary;
     this.view.message = this.error
       ? I.t('view.error', { error: this.error })
       : (this.firstScanMessage() ?? (this.root && !vscode.workspace.isTrusted ? I.t('view.restricted') : undefined));
@@ -536,12 +541,33 @@ class Heft implements vscode.Disposable, PanelHost {
     } else if (!this.index) {
       this.status.text = '$(layers) Heft';
     } else {
-      const files = this.index.files.filter((f) => !f.ignoredByGit && fileInScope(this.scope, f.path));
-      const size = files.reduce((s, f) => s + f.size, 0);
-      this.status.text = `$(layers) ${I.t('status.text', { scope: label, files: I.tp('files', files.length), size: I.size(size) })}`;
+      const t = totals ?? { size: 0, count: 0 };
+      this.status.text = `$(layers) ${I.t('status.text', { scope: label, files: I.tp('files', t.count), size: I.size(t.size) })}`;
     }
     this.status.tooltip = I.t('status.tooltip');
     this.status.show();
+  }
+
+  /** Archivos y tamaño del ámbito (el repo entero si no hay ámbito); undefined sin índice. */
+  private scopeTotals(): { size: number; count: number } | undefined {
+    if (!this.index) return undefined;
+    let size = 0;
+    let count = 0;
+    for (const f of this.index.files) {
+      if (f.ignoredByGit || !fileInScope(this.scope, f.path)) continue;
+      size += f.size;
+      count++;
+    }
+    return { size, count };
+  }
+
+  /**
+   * URI con el que la vista pinta un elemento: el del archivo con `?heft=<tramo>`. Los iconos
+   * del tema salen igual (dependen del nombre), y el color por peso (`HeftDecorations`) solo
+   * se aplica a estos URI: el explorador nativo y las pestañas no se tiñen.
+   */
+  decoratedUri(uri: vscode.Uri | undefined, fraction: number): vscode.Uri | undefined {
+    return uri?.with({ query: `heft=${weightTier(fraction) ?? 'none'}` });
   }
 
   /**
@@ -606,10 +632,11 @@ class FoldersProvider implements vscode.TreeDataProvider<TreeNode> {
     const scope = this.heft.getScope();
     const item = new vscode.TreeItem(dir.name, vscode.TreeItemCollapsibleState.Collapsed);
     item.id = `d:${dir.path}`;
-    item.resourceUri = this.heft.uriOf(dir);
+    item.resourceUri = this.heft.decoratedUri(this.heft.uriOf(dir), share(dir.size, dir.parent?.size ?? 0));
     item.iconPath = vscode.ThemeIcon.Folder;
     item.contextValue = 'heftDir';
-    item.description = `${I.size(dir.size)} · ${I.pct(share(dir.size, dir.parent?.size ?? 0))} · ${I.t('tree.filesShort', { n: I.num(dir.count) })}`;
+    const dirShare = share(dir.size, dir.parent?.size ?? 0);
+    item.description = `${withBar(dirShare)}${I.pct(dirShare)} · ${I.size(dir.size)} · ${I.t('tree.filesShort', { n: I.num(dir.count) })}`;
 
     const covering = coveringFolder(scope, dir.path);
     const ancestor = coveredByAncestor(scope, dir.path);
@@ -636,9 +663,10 @@ class FoldersProvider implements vscode.TreeDataProvider<TreeNode> {
     const name = f.path.slice(f.path.lastIndexOf('/') + 1);
     const item = new vscode.TreeItem(name, vscode.TreeItemCollapsibleState.None);
     item.id = `f:${f.path}`;
-    item.resourceUri = uri;
+    item.resourceUri = this.heft.decoratedUri(uri, share(f.size, parent.size));
     item.contextValue = 'heftFile';
-    item.description = `${I.size(f.size)} · ${I.pct(share(f.size, parent.size))}${f.dirty ? ' ●' : ''}`;
+    const fileShare = share(f.size, parent.size);
+    item.description = `${withBar(fileShare)}${I.pct(fileShare)} · ${I.size(f.size)}${f.dirty ? ' ●' : ''}`;
     if (uri) item.command = { command: 'vscode.open', title: I.t('common.open'), arguments: [uri] };
 
     const md = new vscode.MarkdownString();
@@ -670,6 +698,27 @@ class FoldersProvider implements vscode.TreeDataProvider<TreeNode> {
     }
     item.tooltip = md;
     return item;
+  }
+}
+
+/** Barra seguida de espacio, o nada si el elemento no pesa. */
+function withBar(fraction: number): string {
+  const b = bar(fraction);
+  return b ? `${b} ` : '';
+}
+
+/** Color del nombre por peso dentro de la carpeta padre (la barra, en la descripción, no admite color). */
+const TIER_COLOR: Record<WeightTier, string> = {
+  heavy: 'charts.red',
+  large: 'charts.orange',
+  notable: 'charts.yellow',
+};
+
+class HeftDecorations implements vscode.FileDecorationProvider {
+  provideFileDecoration(uri: vscode.Uri): vscode.FileDecoration | undefined {
+    const tier = /(?:^|&)heft=(\w+)/.exec(uri.query)?.[1];
+    if (!tier || !(tier in TIER_COLOR)) return undefined;
+    return new vscode.FileDecoration(undefined, undefined, new vscode.ThemeColor(TIER_COLOR[tier as WeightTier]));
   }
 }
 

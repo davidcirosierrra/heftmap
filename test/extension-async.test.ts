@@ -88,7 +88,7 @@ describe('extensión: análisis asíncrono', () => {
 
   it('con el índice a medias ya hay árbol con tamaños, sin veredicto de uso', () => {
     runs[0]!.events.onPartial(partial);
-    expect(find('public').item.description).toMatch(/MB · \d+ % · 10 arch\.$/);
+    expect(find('public').item.description).toMatch(/^█+\S* \d+ % · \d+,\d MB · 10 arch\.$/);
     expect(physicsTip()).toContain('Analizando uso y git…');
     expect(physicsTip()).not.toContain('Referenciado');
     expect(physicsTip()).not.toContain('No analizado');
@@ -102,7 +102,7 @@ describe('extensión: análisis asíncrono', () => {
     expect(physicsTip()).toContain('Referenciado');
     expect(physicsTip()).toContain('3 cambios');
     expect(fake.status.text).toMatch(/^\$\(layers\) Heft: Todo el repositorio · \d+ archivos/);
-    expect(fake.treeView!.description).toBe('Todo el repositorio');
+    expect(fake.treeView!.description).toMatch(/^Todo el repositorio · \d+ MB · 30 archivos$/);
     expect(fake.progress[0]!.done).toBe(true);
     expect(logged()).toBe(1);
   });

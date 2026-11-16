@@ -24,6 +24,7 @@ export class Uri {
   private constructor(
     readonly fsPath: string,
     readonly path: string,
+    readonly query = '',
   ) {}
   static file(p: string): Uri {
     return new Uri(p, p.split(path.sep).join('/'));
@@ -31,9 +32,24 @@ export class Uri {
   static joinPath(base: Uri, ...parts: string[]): Uri {
     return Uri.file(path.join(base.fsPath, ...parts));
   }
-  toString(): string {
-    return `file://${this.path}`;
+  with(change: { query?: string }): Uri {
+    return new Uri(this.fsPath, this.path, change.query ?? this.query);
   }
+  toString(): string {
+    return `file://${this.path}${this.query ? `?${this.query}` : ''}`;
+  }
+}
+
+export class ThemeColor {
+  constructor(readonly id: string) {}
+}
+
+export class FileDecoration {
+  constructor(
+    readonly badge?: string,
+    readonly tooltip?: string,
+    readonly color?: ThemeColor,
+  ) {}
 }
 
 export class RelativePattern {
@@ -130,6 +146,7 @@ export const fake = {
     | undefined,
   status: { text: '', tooltip: '', visible: false },
   clipboard: '' as string,
+  decorations: undefined as { provideFileDecoration(uri: Uri): FileDecoration | undefined } | undefined,
   /** Avisos modales: lo que se preguntó y qué botón «pulsa» el test. */
   warnings: [] as { message: string; options: any; items: string[] }[],
   warningAnswer: undefined as string | undefined,
@@ -264,6 +281,10 @@ export const window = {
     };
     fake.panels.push(record);
     return panel;
+  },
+  registerFileDecorationProvider: (provider: { provideFileDecoration(uri: Uri): FileDecoration | undefined }) => {
+    fake.decorations = provider;
+    return disposable;
   },
   showWarningMessage: async (message: string, options: any, ...items: string[]) => {
     fake.warnings.push({ message, options, items });
