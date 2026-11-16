@@ -92,6 +92,13 @@ export class HeftPanel implements vscode.Disposable {
     if (this.ready) this.post({ type: 'status', status: this.host.panelStatus() });
   }
 
+  /** Pide al panel las filas que se ven para copiarlas. false si no hay panel listo. */
+  requestExport(): boolean {
+    if (!this.ready) return false;
+    this.post({ type: 'requestExport' });
+    return true;
+  }
+
   private post(m: HostMessage): void {
     void this.panel?.webview.postMessage(m);
   }

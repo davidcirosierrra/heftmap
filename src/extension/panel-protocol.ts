@@ -81,7 +81,9 @@ export interface PanelStatus {
 export type HostMessage =
   /** null: todavía no hay índice (primer análisis) o no hay carpeta abierta. */
   | { type: 'index'; index: PanelIndex | null }
-  | { type: 'status'; status: PanelStatus };
+  | { type: 'status'; status: PanelStatus }
+  /** Comando «Copiar tabla»: el panel contesta con `exportTable` y las filas que se ven. */
+  | { type: 'requestExport' };
 
 export type WebviewMessage =
   | { type: 'ready' }
@@ -99,5 +101,7 @@ export type WebviewMessage =
   | { type: 'refresh' }
   | { type: 'showLog' }
   | { type: 'copy'; text: string }
+  /** «Copiar tabla»: las rutas de las filas que se ven, en su orden. La extensión pide el formato. */
+  | { type: 'exportTable'; paths: string[] }
   /** Fallo dentro del panel: va al registro de Heftmap. */
   | { type: 'error'; where: string; message: string; stack?: string };

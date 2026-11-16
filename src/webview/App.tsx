@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { HostMessage, PanelIndex, PanelStatus } from '../extension/panel-protocol.js';
 import type { I18n, MessageKey } from '../i18n/index.js';
 import { setLocale, useI18n } from './locale.js';
@@ -30,7 +30,7 @@ export function App() {
         setLocale(e.data.status.locale);
         setStatus(e.data.status);
         applyDefaults(e.data.status.defaults);
-      }
+      } else if (e.data.type === 'requestExport') exportRows();
     };
     window.addEventListener('message', onMessage);
     post({ type: 'ready' });
@@ -70,6 +70,11 @@ export function App() {
   // Grupo de la leyenda pulsado: atenúa el resto en el treemap y recorta la tabla a ese grupo.
   const group = highlight != null ? coloring.legend.find((l) => l.key === highlight) : undefined;
   const rows = useMemo(() => (group ? zoomed.filter((r) => coloring.keyOf(r) === group.key) : zoomed), [zoomed, group, coloring]);
+  // «Copiar tabla» (botón o comando): las filas que se ven, en su orden. Por ref, porque el
+  // comando llega por el oyente de mensajes, que se registra una vez.
+  const rowsRef = useRef(rows);
+  rowsRef.current = rows;
+  const exportRows = (): void => post({ type: 'exportTable', paths: rowsRef.current.map((r) => r.path) });
 
   const split = useSplit(setSaved);
 
@@ -121,6 +126,9 @@ export function App() {
             ? I.t('bar.filteredTotals', { shown: I.num(rows.length), files: count(scoped.length), size: I.size(totalSize(rows)) })
             : `${count(scoped.length)} · ${I.size(scopeBytes)}`}
         </div>
+        <button className="link export" title={I.t('export.buttonTip')} disabled={rows.length === 0} onClick={exportRows}>
+          {I.t('export.button')}
+        </button>
         <input
           className="filter"
           type="search"

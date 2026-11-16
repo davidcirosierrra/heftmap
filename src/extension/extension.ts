@@ -1,6 +1,7 @@
 import path from 'node:path';
 import * as vscode from 'vscode';
-import type { BuildOptions, HeftIndex, Progress } from '../core/index.js';
+import type { BuildOptions, FileEntry, HeftIndex, Progress } from '../core/index.js';
+import { renderTable, type TableFormat } from '../report.js';
 import { i18n, resolveLocale, type I18n, type Locale } from '../i18n/index.js';
 import { invalidPatternsText, warningText } from '../i18n/warnings.js';
 import { Analysis, type Reason } from './analysis.js';
@@ -156,6 +157,16 @@ class Heft implements vscode.Disposable, PanelHost {
       if (uri) return vscode.commands.executeCommand('revealInExplorer', uri);
     });
     cmd('heftmap.showLog', () => this.log.show());
+    cmd('heftmap.exportTable', () => {
+      // Con el panel abierto, lo que se ve en su tabla; si no, todo el ámbito.
+      if (this.panel.requestExport()) return;
+      if (!this.index) {
+        void vscode.window.showInformationMessage(this.I.t('scope.stillAnalyzing'));
+        return;
+      }
+      const paths = this.index.files.filter((f) => !f.ignoredByGit && fileInScope(this.scope, f.path)).map((f) => f.path);
+      return this.exportTable(paths);
+    });
     cmd('heftmap.openPanel', () => this.panel.show());
     cmd('heftmap.copyReport', async () => {
       await vscode.env.clipboard.writeText(this.log.report());
@@ -365,11 +376,33 @@ class Heft implements vscode.Disposable, PanelHost {
     else if (m.type === 'showLog') this.log.show();
     else if (m.type === 'copy') {
       if (typeof m.text === 'string') void vscode.env.clipboard.writeText(m.text);
+    } else if (m.type === 'exportTable') {
+      if (Array.isArray(m.paths)) void this.exportTable(m.paths.filter((p): p is string => typeof p === 'string'));
     } else if (m.type === 'error') {
       // El panel ya enseña su propia pantalla de error: aquí solo se registra.
       const err = Object.assign(new Error(String(m.message)), { stack: typeof m.stack === 'string' ? m.stack.split('\n').slice(0, 40).join('\n') : undefined });
       this.log.error(`panel (${String(m.where)})`, err);
     }
+  }
+
+  /** «Copiar tabla»: pide el formato y copia las filas (solo rutas del índice, en su orden). */
+  private async exportTable(paths: string[]): Promise<void> {
+    const byPath = new Map((this.index?.files ?? []).map((f) => [f.path, f]));
+    const files = paths.map((p) => byPath.get(p)).filter((f): f is FileEntry => !!f && !f.ignoredByGit);
+    const I = this.I;
+    if (files.length === 0) {
+      void vscode.window.showInformationMessage(I.t('export.empty'));
+      return;
+    }
+    type Item = vscode.QuickPickItem & { format: TableFormat };
+    const items: Item[] = [
+      { label: I.t('export.markdown'), detail: I.t('export.markdownDetail'), format: 'markdown' },
+      { label: I.t('export.csv'), detail: I.t('export.csvDetail'), format: 'csv' },
+    ];
+    const picked = await vscode.window.showQuickPick(items, { title: I.t('export.title') });
+    if (!picked) return;
+    await vscode.env.clipboard.writeText(renderTable(files, picked.format, I));
+    void vscode.window.showInformationMessage(I.t('export.copied', { rows: I.tp('files', files.length), format: picked.label }));
   }
 
   /** «Ignorar este archivo»: a `heftmap.usage.ignore` del workspace. El cambio de ajuste reanaliza. */

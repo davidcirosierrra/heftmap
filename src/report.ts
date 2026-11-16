@@ -134,3 +134,39 @@ export function renderReport(index: HeftIndex, top = 10): string {
   }
   return out.join('\n');
 }
+
+/** Formato de «Copiar tabla» (paso 3.5). */
+export type TableFormat = 'markdown' | 'csv';
+
+/**
+ * Tabla de archivos para copiar desde el panel, en el idioma de la interfaz. En Markdown, los
+ * tamaños y las fechas van formateados para leer; en CSV, en bytes y fecha ISO, para calcular.
+ */
+export function renderTable(files: readonly FileEntry[], format: TableFormat, I: I18n): string {
+  const header = [I.t('export.path'), I.t('col.size'), I.t('col.lines'), I.t('col.changes'), I.t('col.usage'), I.t('col.changed')];
+  const csv = format === 'csv';
+  const rows = files.map((f) => [
+    f.path,
+    csv ? String(f.size) : I.size(f.size),
+    f.lines == null ? '' : csv ? String(f.lines) : I.num(f.lines),
+    String(f.changes),
+    usageLabel(f.usage, I),
+    f.untracked
+      ? I.t('common.new')
+      : f.lastCommit
+        ? `${f.lastCommit.short} ${csv ? new Date(f.lastCommit.time).toISOString().slice(0, 10) : I.rel(f.lastCommit.time)}`
+        : '',
+  ]);
+  if (csv) return [header, ...rows].map((r) => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
+  const md = (r: string[]): string => `| ${r.map((c) => c.replace(/\\/g, '\\\\').replace(/\|/g, '\\|')).join(' | ')} |`;
+  return [md(header), `|${[' --- ', ' ---: ', ' ---: ', ' ---: ', ' --- ', ' --- '].join('|')}|`, ...rows.map(md)].join('\n') + '\n';
+}
+
+/**
+ * Celda CSV (RFC 4180). Una celda que empieza por `=`, `+`, `-`, `@`, tabulador o retorno lleva
+ * delante un apóstrofo: un nombre de archivo no debe ejecutarse como fórmula al abrir el CSV.
+ */
+function csvCell(s: string): string {
+  const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+  return /[",\r\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+}
