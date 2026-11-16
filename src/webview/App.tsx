@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { HostMessage, PanelIndex, PanelStatus } from '../extension/panel-protocol.js';
 import { fmtSize, pct } from '../report.js';
-import { COLOR_LABEL, coloring as buildColoring, type ColorMode } from './colors.js';
+import { COLOR_LABEL, USAGE_COLOR, coloring as buildColoring, usageLabel, type ColorMode } from './colors.js';
 import { Detail } from './Detail.js';
-import { DEFAULT_SORT, SORT_KEYS, filterRows, nextSort, sortRows, toRows, totalSize, type Sort } from './model.js';
+import { DEFAULT_SORT, QUICK_LABEL, SORT_KEYS, filterRows, linksOf, nextSort, quickCounts, quickRows, sortRows, toRows, totalSize, type Quick, type Sort } from './model.js';
 import { Table, type Column } from './Table.js';
 import { Treemap } from './Treemap.js';
 import { AREA_LABEL, crumbs, effectiveZoom, type AreaMode } from './treemap-layout.js';
@@ -15,6 +15,7 @@ import { post, vscode } from './vscode.js';
 interface Saved {
   sort: Sort;
   filter: string;
+  quick: Quick;
   selected: string | null;
   area: AreaMode;
   color: ColorMode;
@@ -27,6 +28,7 @@ function loadSaved(): Saved {
   return {
     sort,
     filter: typeof s.filter === 'string' ? s.filter : '',
+    quick: s.quick && s.quick in QUICK_LABEL ? s.quick : 'all',
     selected: typeof s.selected === 'string' ? s.selected : null,
     area: s.area && s.area in AREA_LABEL ? s.area : 'bytes',
     color: s.color && s.color in COLOR_LABEL ? s.color : 'ext',
@@ -61,14 +63,21 @@ export function App() {
   }, [saved]);
 
   const scope = status?.scope ?? [];
-  const scoped = useMemo(() => toRows(index?.files ?? [], scope), [index, scope.join('\n')]);
+  const scoped = useMemo(() => toRows(index?.files ?? [], scope, { complete: index?.complete, refs: index?.refs }), [index, scope.join('\n')]);
   const scopeBytes = useMemo(() => totalSize(scoped), [scoped]);
-  const filtered = useMemo(() => filterRows(scoped, saved.filter), [scoped, saved.filter]);
+  const counts = useMemo(() => quickCounts(scoped), [scoped]);
+  // Con el índice a medias no hay veredicto de uso: un filtro rápido guardado vaciaría la tabla.
+  const quick: Quick = index?.complete ? saved.quick : 'all';
+  const filtered = useMemo(() => filterRows(quickRows(scoped, quick), saved.filter), [scoped, quick, saved.filter]);
   const rows = useMemo(() => sortRows(filtered, saved.sort), [filtered, saved.sort]);
   // Colores sobre el ámbito, no sobre el filtro: escribir en el filtro no debe cambiarlos.
   const coloring = useMemo(() => buildColoring(saved.color, scoped), [saved.color, scoped]);
   const zoom = useMemo(() => effectiveZoom(filtered, saved.zoom), [filtered, saved.zoom]);
   const selectedRow = useMemo(() => (saved.selected ? scoped.find((r) => r.path === saved.selected) : undefined), [scoped, saved.selected]);
+  const links = useMemo(
+    () => (index && selectedRow ? linksOf(index.files, index.refs ?? [], selectedRow.path, scope) : { usedBy: [], uses: [] }),
+    [index, selectedRow, scope.join('\n')],
+  );
 
   useEffect(() => {
     if (highlight != null && !coloring.legend.some((l) => l.key === highlight)) setHighlight(null);
@@ -119,9 +128,22 @@ export function App() {
         </>
       ),
     },
+    {
+      key: 'usage',
+      label: 'Uso',
+      width: '176px',
+      title: 'Estado de uso y nº de archivos que lo referencian',
+      render: (r) => (
+        <span title={r.usage === 'no-importers' ? 'Código sin importadores: aviso de baja confianza. Para código muerto, usa Knip.' : undefined}>
+          <i className="dot" style={{ background: USAGE_COLOR[r.usage] }} />
+          {usageLabel(r.usage)}
+          {r.refsIn > 0 && <span className="share"> · {r.refsIn}</span>}
+        </span>
+      ),
+    },
   ];
 
-  const isFiltered = saved.filter.trim() !== '';
+  const isFiltered = saved.filter.trim() !== '' || quick !== 'all';
   return (
     <div className="app">
       <header className="bar">
@@ -154,6 +176,20 @@ export function App() {
           onChange={(e) => set({ filter: e.target.value })}
         />
       </header>
+      <div className="quick" role="group" aria-label="Filtros rápidos">
+        {(Object.keys(QUICK_LABEL) as Quick[]).map((q) => (
+          <button
+            key={q}
+            className={`pill${quick === q ? ' on' : ''}`}
+            aria-pressed={quick === q}
+            disabled={!index.complete && q !== 'all'}
+            onClick={() => set({ quick: q })}
+          >
+            {QUICK_LABEL[q]}
+            {q !== 'all' && index.complete && <span className="n">{counts[q].toLocaleString('es-ES')}</span>}
+          </button>
+        ))}
+      </div>
       {status.building && (
         <div className="working" role="status">
           <span className="spinner small" />
@@ -221,7 +257,7 @@ export function App() {
           </div>
         </section>
       </div>
-      <Detail row={selectedRow} scopeBytes={scopeBytes} />
+      <Detail row={selectedRow} scopeBytes={scopeBytes} links={links} onSelect={(path, inScope) => (inScope ? set({ selected: path }) : post({ type: 'open', path }))} />
     </div>
   );
 }

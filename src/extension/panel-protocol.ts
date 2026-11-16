@@ -3,12 +3,19 @@
  * los dos bundles (Node y navegador) y no debe traer código de ninguno.
  */
 
-/** Lo que el panel necesita de cada archivo. Crece con las fases (uso, git, líneas). */
+import type { RefKind, Usage } from '../core/types.js';
+
+/** Lo que el panel necesita de cada archivo. Crece con las fases (git, líneas). */
 export interface PanelFile {
   /** Ruta relativa a la raíz, con `/`. */
   path: string;
   size: number;
+  /** Estado de uso (SPEC §3.3). Solo vale con el índice completo. */
+  usage?: Usage;
 }
+
+/** Referencia entre archivos, por posición en `files`: [origen, destino, tipo]. */
+export type PanelRef = [from: number, to: number, kind: RefKind];
 
 export interface PanelIndex {
   /** Nombre de la carpeta analizada. */
@@ -17,6 +24,8 @@ export interface PanelIndex {
   complete: boolean;
   /** Todo el repo, sin recortar por ámbito: el panel filtra. */
   files: PanelFile[];
+  /** Grafo de referencias de todo el repo (el ámbito no lo recorta, SPEC §3.1). */
+  refs?: PanelRef[];
 }
 
 export interface PanelStatus {
@@ -39,6 +48,10 @@ export type WebviewMessage =
   | { type: 'ready' }
   | { type: 'open'; path: string }
   | { type: 'reveal'; path: string }
+  /** Añade el archivo a `heft.usage.ignore`: deja de salir como «sin rastro». */
+  | { type: 'ignoreUsage'; path: string }
+  /** Pide mover a la papelera un archivo «sin rastro». La extensión confirma antes. */
+  | { type: 'trash'; path: string }
   | { type: 'removeScope'; folder: string }
   | { type: 'clearScope' }
   | { type: 'pickScope' }

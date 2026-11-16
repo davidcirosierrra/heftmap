@@ -56,6 +56,10 @@ export enum ViewColumn {
   Active = -1,
   One = 1,
 }
+export enum ConfigurationTarget {
+  Global = 1,
+  Workspace = 2,
+}
 export enum StatusBarAlignment {
   Left = 1,
   Right = 2,
@@ -124,6 +128,12 @@ export const fake = {
     | undefined,
   status: { text: '', tooltip: '', visible: false },
   clipboard: '' as string,
+  /** Avisos modales: lo que se preguntó y qué botón «pulsa» el test. */
+  warnings: [] as { message: string; options: any; items: string[] }[],
+  warningAnswer: undefined as string | undefined,
+  errors: [] as string[],
+  deleted: [] as { path: string; options: any }[],
+  configUpdates: [] as { key: string; value: unknown; target: unknown }[],
   logShown: 0,
   /** Paneles webview abiertos: lo que la extensión les manda y un emisor para contestarle. */
   panels: [] as {
@@ -151,6 +161,11 @@ export const fake = {
     this.folderListeners = [];
     this.treeView = undefined;
     this.panels = [];
+    this.warnings = [];
+    this.warningAnswer = undefined;
+    this.errors = [];
+    this.deleted = [];
+    this.configUpdates = [];
     this.state.clear();
   },
 };
@@ -238,6 +253,14 @@ export const window = {
     fake.panels.push(record);
     return panel;
   },
+  showWarningMessage: async (message: string, options: any, ...items: string[]) => {
+    fake.warnings.push({ message, options, items });
+    return fake.warningAnswer;
+  },
+  showErrorMessage: async (msg: string) => {
+    fake.errors.push(msg);
+    return undefined;
+  },
   showQuickPick: async (items: any[]) => fake.quickPickAnswer?.(items),
   withProgress: async <T>(options: { location: unknown }, task: () => Promise<T>): Promise<T> => {
     fake.progress.push({ location: options.location, done: false });
@@ -271,7 +294,14 @@ export const workspace = {
   },
   getConfiguration: (_section: string) => ({
     get: <T>(key: string) => fake.config[key] as T | undefined,
+    update: async (key: string, value: unknown, target: unknown) => {
+      fake.config[key] = value;
+      fake.configUpdates.push({ key, value, target });
+    },
   }),
+  fs: {
+    delete: async (uri: Uri, options: any) => void fake.deleted.push({ path: uri.path, options }),
+  },
   onDidChangeConfiguration: () => disposable,
   onDidChangeWorkspaceFolders: (fn: () => unknown) => {
     fake.folderListeners.push(fn);
