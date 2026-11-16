@@ -2,6 +2,11 @@
   "name": "heft",
   "displayName": "%displayName%",
   "description": "%description%",
+  "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#1f2430",
+    "theme": "dark"
+  },
   "version": "0.1.0",
   "publisher": "davidcirosierrra",
   "author": {
@@ -24,6 +29,23 @@
   "categories": [
     "Visualization",
     "Other"
+  ],
+  "keywords": [
+    "treemap",
+    "file size",
+    "disk usage",
+    "unused files",
+    "unused assets",
+    "orphan files",
+    "hotspots",
+    "churn",
+    "git history",
+    "monorepo",
+    "bundle size",
+    "assets",
+    "tamaño de archivos",
+    "huérfanos",
+    "euskara"
   ],
   "main": "./dist/extension.cjs",
   "activationEvents": [
@@ -245,7 +267,7 @@
     "build:worker": "esbuild src/extension/worker.ts --bundle --platform=node --format=cjs --target=node20 --minify --sourcemap --outfile=dist/worker.cjs",
     "build:webview": "esbuild src/webview/main.tsx --bundle --platform=browser --format=iife --target=es2022 --minify --outfile=dist/webview.js",
     "watch:ext": "npm run build:worker && npm run build:webview && npm run build:host -- --watch",
-    "package": "npm run build:ext && vsce package --no-dependencies --skip-license --out heft.vsix",
+    "package": "npm run build:ext && vsce package --no-dependencies --out heft.vsix",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "heft": "node dist/cli.js"

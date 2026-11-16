@@ -1,0 +1,39 @@
+name: Publish
+
+# Al crear una release en GitHub (tag vX.Y.Z) se publica en Open VSX y se adjunta el .vsix.
+# Necesita el secreto OVSX_PAT (token de open-vsx.org, ver docs/publicar.md).
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: openvsx
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - name: Comprobar que el tag coincide con la versión
+        run: |
+          version="v$(node -p "require('./package.json').version")"
+          if [ "$version" != "${GITHUB_REF_NAME}" ]; then
+            echo "El tag ${GITHUB_REF_NAME} no coincide con package.json (${version})"; exit 1
+          fi
+      - run: npm run package
+      - name: Publicar en Open VSX
+        run: npx --yes ovsx publish heft.vsix -p "$OVSX_PAT"
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+      - name: Adjuntar el .vsix a la release
+        run: gh release upload "${GITHUB_REF_NAME}" heft.vsix --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}

@@ -1,5 +1,5 @@
 {
-  "displayName": "Heft",
+  "displayName": "Heft — what's heavy in your repo",
   "description": "What's heavy in your repo and whether it's used: file table, treemap, unreferenced assets, git history and hotspots.",
   "container.title": "Heft",
   "view.folders": "Folders",

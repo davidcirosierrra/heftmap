@@ -1,5 +1,5 @@
 {
-  "displayName": "Heft",
+  "displayName": "Heft — qué pesa en tu repo",
   "description": "Qué pesa en tu repo y si se usa: tabla de archivos, treemap, recursos sin rastro, último cambio en git y hotspots.",
   "container.title": "Heft",
   "view.folders": "Carpetas",

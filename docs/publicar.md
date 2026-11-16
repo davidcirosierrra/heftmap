@@ -1,168 +1,91 @@
 # Publicar Heft
 
-Qué falta para publicar la extensión y los textos que hay que poner. Estado: **borrador**, con
-decisiones pendientes (sección 1). Fecha: 16-11-2026.
+Guía paso a paso. Fecha: 16-11-2026. Lo marcado **(David)** solo lo puedes hacer tú; el resto ya
+está en el repo.
 
 Cursor instala desde **Open VSX**, no desde el Marketplace de Microsoft. Para Cursor basta Open VSX;
-el Marketplace solo hace falta si se quiere llegar a usuarios de VS Code.
+el Marketplace solo hace falta para llegar a usuarios de VS Code (sección 6).
 
-## 1. Decisiones antes de publicar
+## 1. Ya está hecho en el repo
 
-| Decisión | Opciones | Propuesta |
-|----------|----------|-----------|
-| Dónde | Solo Open VSX · Open VSX + Marketplace · seguir con `.vsix` propio | Open VSX primero; el Marketplace cuando esté estable |
-| Licencia | MIT · Apache-2.0 · otra. Open VSX exige una licencia; hoy es `UNLICENSED` | MIT |
-| Repo | Público o privado. Si es privado, las imágenes del README no cargan en la tienda y nadie puede abrir incidencias | Público |
-| Idioma | Hoy toda la interfaz está en español. Publicar solo en español limita mucho el alcance; traducir supone usar `vscode.l10n` y `package.nls.json` | Publicar en español con README bilingüe; traducir la interfaz en una versión posterior |
-| Nombre | «Heft» es también el nombre del sistema de build de Rush Stack (Microsoft), con paquetes `@rushstack/heft-*`. El identificador `davidcirosierrra.heft` es único, pero en búsquedas se mezclará | Mantener `heft` como `name` y usar un `displayName` más descriptivo, p. ej. «Heft — peso y uso de archivos» |
-| Versión | `0.1.0` o `1.0.0` | `0.1.0` hasta tener el análisis incremental |
+- Licencia MIT, `SECURITY.md`, `CHANGELOG.md`.
+- `package.json`: nombre visible y descripción en tres idiomas (`package.nls*.json`), icono
+  (`media/icon.png`, 256×256), `galleryBanner`, `keywords`, `author`, `homepage`, `bugs`.
+- README de la tienda en inglés (`README.md`), con versiones en castellano y euskera
+  (`README.es.md`, `README.eu.md`). Lo de desarrollo está en `CONTRIBUTING.md`.
+- Capturas en `docs/images/` (hotspots, uso, antigüedad), hechas con el panel real sobre el repo
+  de Vite.
+- GitHub Actions: `ci.yml` (tests en cada PR) y `publish.yml` (publica al crear una release).
 
-## 2. Cuentas y pasos (Open VSX)
+## 2. Antes de hacer público el repo (David)
 
-1. Entrar en open-vsx.org con GitHub.
-2. En el perfil, **Log in with Eclipse** (crear la cuenta de Eclipse Foundation si no hay) y firmar
-   el **Publisher Agreement** desde el propio perfil de Open VSX. No es el «Eclipse Contributor
-   Agreement» (ECA): es otro documento, y firmarlo solo en la web de Eclipse no basta.
-3. Crear un token de acceso en el perfil.
-4. Crear el namespace, que tiene que coincidir con `publisher` del `package.json`:
-   `npx ovsx create-namespace davidcirosierrra -p <token>`.
-5. Publicar: `npx ovsx publish heft.vsix -p <token>`.
-6. Desde febrero-marzo de 2026 Open VSX revisa cada extensión antes de publicarla (secretos,
-   suplantación de nombres, patrones maliciosos). Puede quedar en cuarentena unas horas.
+1. **Emails del historial.** Al hacerlo público, el email de autor de cada commit queda visible.
+   En el historial hay dos tuyos: el personal y el de Tecnalia (en un commit hecho desde el
+   trabajo). Si no quieres que se vean, hay que reescribir el historial *antes* de hacerlo
+   público (después ya está copiado). Para los commits futuros: GitHub → Settings → Emails →
+   *Keep my email addresses private* y usar el email `…@users.noreply.github.com`.
+2. **Hacerlo público**: Settings → General → Danger Zone → *Change visibility*.
+3. **Seguridad** (Settings → Advanced Security): activar *Private vulnerability reporting* (lo
+   usa `SECURITY.md`), *Dependabot alerts* y *Secret scanning*.
+4. **Proteger `main`** (Settings → Rules → Rulesets): PR obligatorio y que pase `CI`.
+5. **Revisar el euskera** de `src/i18n/messages.ts`, `package.nls.eu.json` y `README.eu.md`.
 
-Para el Marketplace: crear un publisher en marketplace.visualstudio.com/manage con el mismo ID,
-un token de Azure DevOps con permiso *Marketplace (Manage)* y `npx vsce publish`.
+## 3. Cuenta en Open VSX (David, una vez)
 
-Automatizarlo después con una GitHub Action al crear un tag `v*`
-(`HaaLeo/publish-vscode-extension` publica en los dos registros).
+1. **GitHub**: entra en https://open-vsx.org con tu cuenta de GitHub (`davidcirosierrra`).
+2. **Eclipse**: crea una cuenta en https://accounts.eclipse.org/user/register. En el campo
+   *GitHub Username* pon **exactamente** `davidcirosierrra`, el mismo usuario con el que entras en
+   open-vsx.org.
+3. **Acuerdo de publicación**: en open-vsx.org → avatar → *Settings* → *Log in with Eclipse*. Luego
+   *Show Publisher Agreement*, léelo hasta el final y *Agree*. No es el «Eclipse Contributor
+   Agreement» (ECA): ese es para contribuir código a Eclipse y no sirve aquí.
+4. **Token**: *Settings* → *Access Tokens* → *Generate New Token*. Descripción «GitHub Actions
+   Heft». Si te deja, restríngelo al namespace `davidcirosierrra` y a solo publicar. Cópialo en
+   el momento: no se vuelve a enseñar.
+5. **Namespace** (tiene que coincidir con `publisher` del `package.json`):
+   ```bash
+   npx ovsx create-namespace davidcirosierrra -p <token>
+   ```
+6. **Verificar el namespace** (opcional pero recomendable): crearlo no te hace propietario
+   verificado. Se pide en el repo de Open VSX con una incidencia de *namespace access*. Cursor
+   tiene su propia verificación de publicadores (se pide en su foro) y exige antes la de Open VSX.
 
-## 3. Cambios técnicos en el repo
+## 4. Primera publicación (David)
 
-**`package.json`**
-- [ ] Quitar `"private": true`.
-- [ ] `"license": "MIT"` (o la elegida) y añadir el archivo `LICENSE`.
-- [ ] `"icon": "media/icon.png"`: **PNG** de al menos 128×128 (mejor 256×256). La tienda no admite
-      SVG como icono. `media/heft.svg` se queda para la barra de actividad.
-- [ ] `"displayName"`, `"description"` y `"keywords"` de la sección 4.
-- [ ] `"categories"`: `["Visualization", "Other"]` está bien.
-- [ ] `"author"`, `"homepage"` y `"bugs"` con la URL del repo.
-- [ ] `"galleryBanner": { "color": "#1f1f1f", "theme": "dark" }`.
-- [ ] Quitar `"bin"`: el CLI no va en el `.vsix` y en una extensión no se usa.
-- [ ] `"engines.vscode"`: comprobar la versión de VS Code en la que se basa Cursor
-      (*Help → About*) y no pedir más. Hoy `^1.85.0`.
+1. En GitHub → Settings → Environments → *New environment* `openvsx`, y dentro *Add secret*
+   `OVSX_PAT` con el token. (El entorno permite exigir tu aprobación antes de publicar.)
+2. Comprueba que `package.json` tiene la versión que quieres (`0.1.0`).
+3. GitHub → Releases → *Draft a new release* → tag `v0.1.0` → título `0.1.0` → copia la sección
+   de `CHANGELOG.md` → *Publish release*.
+4. La acción `Publish` pasa los tests, empaqueta, publica en Open VSX y adjunta el `.vsix` a la
+   release. Si algo falla, el registro de la acción lo dice.
+5. Open VSX revisa cada extensión al publicar (secretos, archivos maliciosos conocidos, nombres
+   parecidos a otros). Si la rechaza, el error dice qué comprobación falló.
+6. Comprueba la página en https://open-vsx.org/extension/davidcirosierrra/heft y búscala en Cursor
+   (*Extensions* → «Heft»). Puede tardar un rato en aparecer en Cursor.
 
-**`README.md`**: es la página de la tienda. Hoy es un README de desarrollo; hay que separarlo:
-- [ ] `README.md` para la tienda (sección 5).
-- [ ] Lo de desarrollo, a `CONTRIBUTING.md`.
-- [ ] Capturas nuevas de la v2 (las de `docs/capturas-v1/` son del diseño antiguo y salen la
-      ciudad 3D descartada). Las imágenes tienen que servirse por **https** y no pueden ser SVG.
-      Con el repo público, `vsce` convierte las rutas relativas en URLs de GitHub; si no, ponerlas
-      en un sitio público y usar `--baseImagesUrl`.
-- [ ] Un GIF corto: abrir el panel, pulsar «Hotspots», seleccionar en el treemap.
+**Alternativa sin GitHub Actions**: `npm run package` y
+`npx ovsx publish heft.vsix -p <token>` desde tu equipo.
 
-**Otros archivos**
-- [ ] `CHANGELOG.md` (sección 6). La tienda lo enseña en una pestaña.
-- [ ] `LICENSE`.
-- [ ] `.vscodeignore`: ya solo incluye `dist/`, `media/`, `package.json` y `README.md`; añadir
-      `CHANGELOG.md` y `LICENSE`. Los `.map` de `dist/` (13,8 MB el del worker) ya no entran porque la
-      lista es explícita; que siga así.
-- [ ] `SECURITY.md` no es obligatorio; con una línea basta («escribe a … o abre una incidencia»).
+## 5. Versiones siguientes
 
-**Comprobaciones**
-- [ ] `npx vsce ls` lista solo lo esperado.
-- [ ] `npx vsce package` sin avisos (hoy avisa del tamaño del worker: 3,4 MB, es TypeScript).
-- [ ] Instalar el `.vsix` en un Cursor y un VS Code limpios, sin la carpeta del repo.
-- [ ] Pasar la lista de `prepareextension.md` sobre un repo grande.
+1. Sube `version` en `package.json` y añade la sección en `CHANGELOG.md` (PR normal).
+2. Release con tag `vX.Y.Z` igual a la versión. La acción comprueba que coinciden.
 
-## 4. Textos para el `package.json`
+## 6. Marketplace de Microsoft (opcional, más adelante)
 
-**`displayName`**: `Heft — peso y uso de archivos`
+Para usuarios de VS Code. Hace falta una cuenta de Microsoft, crear el publisher
+`davidcirosierrra` en https://marketplace.visualstudio.com/manage y un token de Azure DevOps con
+permiso *Marketplace (Manage)*. Microsoft está cambiando estos tokens por otro sistema de
+identidad a finales de 2026: mirar la documentación del momento antes de hacerlo. Luego se añade
+un paso `npx vsce publish -i heft.vsix` a `publish.yml` con su secreto.
 
-**`description`** (la tienda corta hacia los 100-150 caracteres):
-> Qué pesa en tu repo y si se usa: tabla de archivos, treemap, recursos sin rastro, último cambio en git y hotspots.
+## 7. Pendiente
 
-En inglés, si se traduce:
-> What's heavy in your repo and whether it's used: file table, treemap, unreferenced assets, git history and hotspots.
-
-**`keywords`** (máx. 30): `treemap`, `file size`, `disk usage`, `unused files`, `orphan`,
-`dead assets`, `hotspots`, `git`, `churn`, `bundle size`, `tamaño`, `huérfanos`, `assets`,
-`monorepo`.
-
-## 5. README de la tienda (borrador)
-
-```markdown
-# Heft
-
-**¿Qué pesa en este repo y se está usando?**
-
-Heft enseña el peso de cada archivo y carpeta, qué recursos ya no referencia nadie y dónde está el
-código grande que más se toca. Pensada para proyectos web con recursos pesados (modelos `.glb`,
-audio, texturas), sirve también en cualquier repo con git.
-
-![Panel de Heft](docs/capturas/panel.png)
-
-## Qué hace
-
-- **Vista «Carpetas»** en la barra lateral: tamaño acumulado y % de cada carpeta, con casillas para
-  acotar el análisis a una o varias carpetas.
-- **Panel con tabla y treemap**: todos los archivos en una tabla ordenable y filtrable, y un
-  treemap enlazado. Área por bytes, √bytes o líneas; color por extensión, uso, antigüedad,
-  commits recientes o frecuencia de cambio.
-- **Uso**: quién referencia cada archivo (imports, rutas en strings, `url()`, `src`/`href`,
-  enlaces de Markdown, `import.meta.glob`) y qué recursos no tienen **ningún rastro**. Para esos,
-  «Ignorar» o «Mover a la papelera» (siempre con confirmación).
-- **Git**: último commit de cada archivo, cambios sin commit y diff.
-- **Hotspots**: un botón cruza líneas y nº de cambios para encontrar el código grande que más
-  se toca.
-
-## Qué no hace
-
-- No es un detector de código muerto: para código, el veredicto «sin importadores» es solo un
-  aviso. Para eso está [Knip](https://knip.dev).
-- No borra nada sin preguntar.
-- No envía nada fuera de tu equipo: todo se calcula en local con `git` y los archivos del
-  proyecto.
-
-## Requisitos
-
-- `git` en el `PATH` para los datos de historial (sin git funciona, sin esas columnas).
-- Cursor o VS Code 1.85 o superior.
-
-## Ajustes
-
-| Ajuste | Por defecto | Para qué |
-|--------|-------------|----------|
-| `heft.publicDir` | `public` | Carpeta contra la que se resuelven rutas absolutas (`/models/x.glb`) |
-| `heft.git.since` | vacío | Limitar el historial en repos grandes, p. ej. `1.year` |
-| `heft.usage.ignore` | `[]` | Archivos que nunca cuentan como «sin rastro» |
-| `heft.usage.entryPoints` | `[]` | Puntos de entrada extra |
-
-## Límites conocidos
-
-- Cada cambio en disco vuelve a analizar el repo entero (en segundo plano). El análisis
-  incremental está en camino.
-- En un workspace con varias carpetas raíz se analiza solo la primera.
-- Un archivo renombrado empieza a contar cambios desde cero.
-- La interfaz está en español.
-```
-
-## 6. `CHANGELOG.md` (borrador)
-
-```markdown
-# Cambios
-
-## 0.1.0 — primera versión pública
-
-- Vista «Carpetas» con tamaños y ámbito por casillas.
-- Panel con tabla y treemap enlazados, divisor ajustable y gráfico ocultable.
-- Uso: referencias entre archivos, recursos sin rastro, mencionados y puntos de entrada.
-- Git: último cambio, cambios sin commit, antigüedad y commits recientes.
-- Hotspots: líneas × frecuencia de cambio.
-- Análisis en segundo plano con progreso.
-```
-
-## 7. Privacidad
-
-La extensión no tiene telemetría ni hace peticiones de red: solo lee archivos y ejecuta `git`
-localmente. Merece decirlo en el README (ya está en el borrador) porque la revisión de Open VSX y
-los usuarios lo miran.
+- [ ] (David) Pasos 2, 3 y 4.
+- [ ] (David) Una captura de la ventana completa de Cursor con la vista «Carpetas» y el panel, y si
+      puedes un GIF corto (abrir panel → *Hotspots* → clic en el treemap). Se guardan en
+      `docs/images/` y se añaden al README.
+- [ ] Nombre visible: «Heft» coincide con el sistema de build de Rush Stack (Microsoft). El
+      identificador `davidcirosierrra.heft` es único; si Open VSX lo rechazara por parecido, se
+      cambia `name`.
