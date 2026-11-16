@@ -1,6 +1,7 @@
 # Preparar y probar Heft en Cursor
 
-Guía para instalar la extensión y comprobar la **fase 1** (vista «Carpetas» y ámbito).
+Guía para instalar la extensión y comprobar las **fases 1 y 2** (vista «Carpetas», ámbito y panel
+con la tabla).
 Funciona igual en VS Code.
 
 ## 1. Requisitos
@@ -15,7 +16,7 @@ Funciona igual en VS Code.
 git clone https://github.com/davidcirosierrra/Heft.git
 cd Heft
 npm install
-npm test                        # 59 tests: núcleo, ámbito, árbol y humo de la extensión
+npm test                        # 84 tests: núcleo, ámbito, árbol, tabla del panel y humo de la extensión
 ```
 
 ## 3. Dos formas de probarla
@@ -52,8 +53,8 @@ Para desinstalar: panel de extensiones → Heft → **Uninstall**, o
    Abre ahí el proyecto que quieras analizar (**File → Open Folder…**).
 4. Tras cambiar código: `Ctrl+R` en la ventana de pruebas para recargar (la tarea previa recompila).
 
-Si F5 no hace nada, ejecuta antes `npm run build:ext` y comprueba que existen `dist/extension.cjs`
-y `dist/worker.cjs`.
+Si F5 no hace nada, ejecuta antes `npm run build:ext` y comprueba que existen `dist/extension.cjs`,
+`dist/worker.cjs` y `dist/webview.js`.
 
 ## 4. Proyecto de prueba
 
@@ -74,6 +75,9 @@ Marca cada punto. Si algo falla, abre **Heft: Mostrar registro** (`Ctrl+Shift+P`
 - [ ] En la barra de estado, abajo a la izquierda: `Heft: Todo el repositorio · N archivos · X MB`.
       Mientras analiza muestra un icono girando y la fase (`leyendo 40/79`, `uso 12/30`…).
 - [ ] Mientras analiza, una barra de progreso fina recorre la parte superior de la vista «Carpetas».
+- [ ] En un repo grande, antes de que aparezca el árbol la vista muestra el texto «Analizando el
+      repositorio (leyendo 1.200/3.006). En repos grandes puede tardar un poco.»; con el árbol ya
+      visible cambia a «Tamaños listos. Falta el uso y el historial de git (…)» y desaparece al acabar.
 - [ ] En un repo grande, el árbol con tamaños aparece antes de que termine el análisis; hasta
       entonces el tooltip de un archivo dice «Analizando uso y git…».
 - [ ] El editor no se queda parado mientras Heft analiza (escribe en un archivo durante el análisis).
@@ -117,16 +121,49 @@ Marca cada punto. Si algo falla, abre **Heft: Mostrar registro** (`Ctrl+Shift+P`
 - [ ] Cambia un ajuste `heft.*` (*Settings → Heft*): se vuelve a analizar.
 - [ ] Botón «refrescar» de la cabecera: vuelve a analizar.
 
-## 6. Limitaciones conocidas de esta fase
+## 6. Qué comprobar (fase 2: panel)
 
-- Todavía **no hay panel** (tabla + treemap): llega en la fase 2. El ámbito de momento solo afecta a
-  la barra de estado y la descripción de la vista.
+**Abrir**
+- [ ] Botón de la tabla en la cabecera de la vista «Carpetas», o `Heft: Abrir panel` en la paleta:
+      se abre una pestaña «Heft».
+- [ ] Pulsarlo otra vez no abre una segunda pestaña: trae la que hay al frente.
+- [ ] Recarga la ventana con un repo grande abierto y abre el panel enseguida: pantalla de espera
+      con spinner, «Analizando el repositorio…», la fase con su avance y una barra. La tabla
+      aparece sola en cuanto hay tamaños, con una línea «Tamaños listos. Falta el uso…» hasta que acaba.
+
+**Tabla**
+- [ ] Una fila por archivo, sin importar la carpeta, ordenada por Nombre A→Z (sin distinguir mayúsculas).
+- [ ] Columnas Nombre, Carpeta (gris) y Tamaño con el % del ámbito.
+- [ ] Clic en una cabecera ordena; otro clic invierte. Tamaño empieza de mayor a menor.
+- [ ] En un repo de miles de archivos el desplazamiento va fluido.
+- [ ] Clic en una fila la selecciona y aparece el botón **Abrir**; con el foco en la tabla, `↑` `↓`,
+      `Re Pág`/`Av Pág`, `Inicio`/`Fin` mueven la selección y `Enter` abre el archivo.
+- [ ] Filtro: `glb`, una carpeta (`src/game`), dos palabras (`game kart`), sin tildes (`camara`).
+      Los totales pasan a «n de m archivos · tamaño».
+- [ ] Los colores siguen el tema: prueba uno claro y uno oscuro.
+
+**Ámbito**
+- [ ] Sin ámbito: chip «Todo el repositorio» y totales del repo entero.
+- [ ] Marca una carpeta en la vista «Carpetas»: aparece su chip, la tabla se queda con sus archivos
+      y los % pasan a ser sobre el ámbito.
+- [ ] La ✕ de un chip quita esa carpeta (y se desmarca su casilla en la vista).
+- [ ] «Cambiar ámbito…» abre el selector de carpetas.
+
+**Estado**
+- [ ] Cambia a otra pestaña y vuelve: se conservan orden, filtro y selección.
+- [ ] Crea o borra un archivo: la tabla se actualiza sola; mientras, arriba dice «Actualizando: …».
+
+## 7. Limitaciones conocidas
+
+- El panel solo tiene la tabla con tamaños: el treemap (fase 3) y las columnas de uso, git y líneas
+  (fases 4 a 6) no están todavía.
+- Al recargar la ventana el panel se cierra; hay que volver a abrirlo.
 - En un workspace con **varias carpetas raíz**, Heft analiza solo la primera (queda anotado en el registro).
 - El árbol siempre muestra el repo entero; el ámbito se ve con las casillas.
 - Cada cambio en disco vuelve a analizar todo el repo (con espera de 1,5 s), en segundo plano y
   cancelando el análisis anterior si seguía en curso. El análisis incremental es trabajo pendiente.
 
-## 7. Si algo falla
+## 8. Si algo falla
 
 | Síntoma | Qué mirar |
 |---------|-----------|
@@ -135,6 +172,7 @@ Marca cada punto. Si algo falla, abre **Heft: Mostrar registro** (`Ctrl+Shift+P`
 | «No se pudo analizar el repositorio» | El mensaje completo está en el registro. Si menciona `worker.cjs`, el `.vsix` está incompleto: vuelve a ejecutar `npm run package`. |
 | No hay datos de git (commits, `●`) | Si `git` no está en el `PATH`, Heft analiza sin git y lo avisa en el registro (`aviso: No se encuentra «git»…`). |
 | `Install from VSIX` falla | Comprueba la versión: Heft pide VS Code ≥ 1.85 (*Help → About*). |
+| El panel se abre en blanco | Falta `dist/webview.js` o `dist/webview.css` en el `.vsix`: vuelve a ejecutar `npm run package`. Mira también *Developer: Open Webview Developer Tools*. |
 | No hay casillas en las carpetas | Versión del editor demasiado antigua: las casillas en vistas existen desde VS Code 1.80. |
 
 Para cualquier fallo, lo más útil es el texto del registro y, si es visual, una captura.

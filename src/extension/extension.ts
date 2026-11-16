@@ -2,13 +2,16 @@ import path from 'node:path';
 import * as vscode from 'vscode';
 import { git } from '../core/git.js';
 import type { FileEntry, HeftIndex, Progress } from '../core/index.js';
-import { fmtMs, fmtSize, rel, USAGE_LABEL } from '../report.js';
+import { fmtMs, fmtSize, pct, rel, USAGE_LABEL } from '../report.js';
+import { HeftPanel, type PanelHost } from './panel.js';
+import type { PanelIndex, PanelStatus, WebviewMessage } from './panel-protocol.js';
 import { CancelledError, workerRunner, type IndexJob, type IndexRunner } from './runner.js';
 import {
   addFolders,
   coveredByAncestor,
   coveringFolder,
   fileInScope,
+  removeFolder,
   sanitizeScope,
   scopeLabel,
   toggleFolder,
@@ -17,8 +20,8 @@ import {
 import { allFolders, buildFolderTree, childrenOf, share, type DirNode, type FolderTree, type TreeNode } from './tree-model.js';
 
 /**
- * Fase 1 (SPEC §5): vista lateral «Carpetas» con tamaños y casillas de ámbito, comandos,
- * menú contextual del explorador y barra de estado. El panel (tabla + treemap) llega en la fase 2.
+ * Fases 1 y 2 (SPEC §5): vista lateral «Carpetas» con tamaños y casillas de ámbito, comandos,
+ * menú contextual del explorador, barra de estado y panel con la tabla (`panel.ts`).
  *
  * El análisis no corre aquí: se lanza en un worker (`runner.ts`, `worker.ts`) para no
  * bloquear el proceso de extensiones. Este archivo no debe importar el núcleo salvo tipos,
@@ -44,7 +47,7 @@ export function deactivate(): void {
   // Todo se libera con context.subscriptions.
 }
 
-class Heft implements vscode.Disposable {
+class Heft implements vscode.Disposable, PanelHost {
   private root: vscode.Uri | undefined;
   private index: HeftIndex | undefined;
   private tree: FolderTree | undefined;
@@ -64,6 +67,7 @@ class Heft implements vscode.Disposable {
   private readonly provider: FoldersProvider;
   private readonly view: vscode.TreeView<TreeNode>;
   private readonly status: vscode.StatusBarItem;
+  private readonly panel: HeftPanel;
   private readonly disposables: vscode.Disposable[] = [];
 
   constructor(
@@ -81,6 +85,7 @@ class Heft implements vscode.Disposable {
     this.status = vscode.window.createStatusBarItem('heft.status', vscode.StatusBarAlignment.Left, 0);
     this.status.name = 'Heft';
     this.status.command = 'heft.pickScope';
+    this.panel = new HeftPanel(context.extensionUri, this);
 
     const cmd = (id: string, fn: (...args: any[]) => unknown): void => {
       this.disposables.push(vscode.commands.registerCommand(id, fn));
@@ -100,10 +105,12 @@ class Heft implements vscode.Disposable {
       if (uri) return vscode.commands.executeCommand('revealInExplorer', uri);
     });
     cmd('heft.showLog', () => this.log.show());
+    cmd('heft.openPanel', () => this.panel.show());
 
     this.disposables.push(
       this.view,
       this.status,
+      this.panel,
       this.view.onDidChangeCheckboxState((e) => this.onCheckboxes(e)),
       vscode.workspace.onDidChangeConfiguration((e) => {
         if (e.affectsConfiguration('heft')) this.schedule('ajustes');
@@ -114,11 +121,13 @@ class Heft implements vscode.Disposable {
 
   async start(): Promise<void> {
     const folders = vscode.workspace.workspaceFolders ?? [];
+    const previous = this.root?.toString();
     this.root = folders[0]?.uri;
     this.stopWatching();
+    // Otra carpeta: el índice de la anterior no vale ni como «anterior mientras se reanaliza».
+    if (previous && previous !== this.root?.toString()) this.clearIndex();
     if (!this.root) {
-      this.index = undefined;
-      this.tree = undefined;
+      this.clearIndex();
       this.render();
       return;
     }
@@ -277,6 +286,50 @@ class Heft implements vscode.Disposable {
     this.index = index;
     this.tree = buildFolderTree(index);
     this.known = new Set(index.files.map((f) => f.path));
+    this.panel.indexChanged();
+  }
+
+  private clearIndex(): void {
+    this.index = undefined;
+    this.tree = undefined;
+    this.known = new Set();
+    this.panel.indexChanged();
+  }
+
+  // ---------------------------------------------------------------- panel
+
+  panelIndex(): PanelIndex | null {
+    if (!this.index || !this.root) return null;
+    return {
+      rootName: path.basename(this.root.fsPath),
+      complete: this.index.complete,
+      files: this.index.files.filter((f) => !f.ignoredByGit).map((f) => ({ path: f.path, size: f.size })),
+    };
+  }
+
+  panelStatus(): PanelStatus {
+    const p = this.building ? this.progress : undefined;
+    return {
+      hasRoot: !!this.root,
+      scope: [...this.scope],
+      building: this.building,
+      progress: this.building ? progressLabel(this.progress) : null,
+      fraction: p && p.total > 0 ? p.done / p.total : null,
+      error: this.error ?? null,
+    };
+  }
+
+  /** Lo que llega del webview no se da por bueno: solo se abren rutas que están en el índice. */
+  onPanelMessage(m: WebviewMessage): void {
+    if (m.type === 'open') {
+      if (this.root && typeof m.path === 'string' && this.known.has(m.path)) {
+        void vscode.commands.executeCommand('vscode.open', vscode.Uri.joinPath(this.root, m.path));
+      }
+    } else if (m.type === 'removeScope') {
+      if (typeof m.folder === 'string') this.setScope(removeFolder(this.scope, m.folder));
+    } else if (m.type === 'clearScope') this.setScope([]);
+    else if (m.type === 'pickScope') void this.pickScope();
+    else if (m.type === 'refresh') void this.rebuild('manual');
   }
 
   // ---------------------------------------------------------------- ámbito
@@ -356,7 +409,8 @@ class Heft implements vscode.Disposable {
   private renderStatus(): void {
     const label = scopeLabel(this.scope);
     this.view.description = this.building ? `${label} · analizando…` : label;
-    this.view.message = this.error ? `No se pudo analizar el repositorio: ${this.error}` : undefined;
+    this.view.message = this.error ? `No se pudo analizar el repositorio: ${this.error}` : this.firstScanMessage();
+    this.panel.statusChanged();
 
     if (!this.root) {
       this.status.hide();
@@ -373,6 +427,18 @@ class Heft implements vscode.Disposable {
     }
     this.status.tooltip = 'Heft: elegir carpetas del ámbito';
     this.status.show();
+  }
+
+  /**
+   * Texto sobre el árbol durante el primer análisis: en un repo grande el árbol tarda en
+   * aparecer y la barra de progreso nativa sola no deja claro que Heft está trabajando.
+   */
+  private firstScanMessage(): string | undefined {
+    if (!this.building || this.index?.complete) return undefined;
+    const step = this.progress ? ` (${progressLabel(this.progress)})` : '';
+    return this.index
+      ? `Tamaños listos. Falta el uso y el historial de git${step}.`
+      : `Analizando el repositorio${step}. En repos grandes puede tardar un poco.`;
   }
 
   dispose(): void {
@@ -479,12 +545,7 @@ function isTreeNode(x: unknown): x is TreeNode {
   return !!x && typeof x === 'object' && 'kind' in x && ((x as TreeNode).kind === 'dir' || (x as TreeNode).kind === 'file');
 }
 
-/** Porcentaje como en el SPEC §2.1: «51 %»; un decimal solo por debajo del 10 %. */
-export function pct(x: number): string {
-  if (x <= 0) return '0 %';
-  if (x < 0.001) return '<0,1 %';
-  return `${(x * 100).toFixed(x >= 0.0995 ? 0 : 1).replace('.', ',')} %`;
-}
+export { pct };
 
 const PHASE_LABEL: Record<Progress['phase'], string> = {
   list: 'listando archivos',

@@ -54,6 +54,12 @@
     ],
     "commands": [
       {
+        "command": "heft.openPanel",
+        "title": "Abrir panel",
+        "category": "Heft",
+        "icon": "$(table)"
+      },
+      {
         "command": "heft.refresh",
         "title": "Refrescar",
         "category": "Heft",
@@ -94,6 +100,11 @@
     ],
     "menus": {
       "view/title": [
+        {
+          "command": "heft.openPanel",
+          "when": "view == heft.folders",
+          "group": "navigation@0"
+        },
         {
           "command": "heft.pickScope",
           "when": "view == heft.folders",
@@ -188,20 +199,25 @@
   "scripts": {
     "build": "npm run build:cli && npm run build:ext",
     "build:cli": "esbuild src/cli.ts --bundle --platform=node --format=esm --target=node20 --external:typescript --outfile=dist/cli.js",
-    "build:ext": "npm run build:host && npm run build:worker",
+    "build:ext": "npm run build:host && npm run build:worker && npm run build:webview",
     "build:host": "esbuild src/extension/extension.ts --bundle --platform=node --format=cjs --target=node20 --external:vscode --minify --sourcemap --outfile=dist/extension.cjs",
     "build:worker": "esbuild src/extension/worker.ts --bundle --platform=node --format=cjs --target=node20 --minify --sourcemap --outfile=dist/worker.cjs",
-    "watch:ext": "npm run build:worker && npm run build:host -- --watch",
+    "build:webview": "esbuild src/webview/main.tsx --bundle --platform=browser --format=iife --target=es2022 --minify --outfile=dist/webview.js",
+    "watch:ext": "npm run build:worker && npm run build:webview && npm run build:host -- --watch",
     "package": "npm run build:ext && vsce package --no-dependencies --skip-license --out heft.vsix",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "heft": "node dist/cli.js"
   },
   "dependencies": {
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "typescript": "5.9.3"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@types/vscode": "1.85.0",
     "@vscode/vsce": "^4.1.1",
     "esbuild": "^0.28.2",

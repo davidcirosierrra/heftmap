@@ -6,8 +6,9 @@ Extensión para Cursor (y VS Code) que responde a una pregunta: **¿qué pesa en
 - Uso: quién referencia cada archivo y qué recursos no tienen rastro de uso.
 - Último cambio en git y **hotspots** (líneas × frecuencia de cambio).
 
-Estado: **fase 1**. Vista lateral «Carpetas» con tamaños y casillas de ámbito, comandos, menú
-contextual del explorador y barra de estado. El panel con tabla y treemap llega en la fase 2.
+Estado: **fase 2**. Vista lateral «Carpetas» con tamaños y casillas de ámbito, comandos, menú
+contextual del explorador, barra de estado y panel con la tabla de archivos (orden, filtro, ámbito).
+El treemap llega en la fase 3.
 Diseño completo en [SPEC.md](SPEC.md); resultados de la fase 0 en [docs/fase-0.md](docs/fase-0.md).
 
 **Instalar y probar en Cursor: [prepareextension.md](prepareextension.md).**
@@ -33,5 +34,8 @@ npm run package   # heft.vsix
 - `src/core/`: núcleo sin dependencia de `vscode` (listado, git, uso).
 - `src/extension/`: la extensión. `scope.ts` y `tree-model.ts` son lógica pura con tests;
   `extension.ts` es la capa de `vscode`. El análisis corre en un worker: `runner.ts` lo lanza y
-  `worker.ts` ejecuta el núcleo (bundle aparte, `dist/worker.cjs`).
+  `worker.ts` ejecuta el núcleo (bundle aparte, `dist/worker.cjs`). `panel.ts` crea el webview del
+  panel y `panel-protocol.ts` define los mensajes que se cruzan con él.
+- `src/webview/`: interfaz del panel (React, bundle de navegador `dist/webview.js`). `model.ts` es
+  la lógica de la tabla (filas, filtro, orden), pura y con tests.
 - `test/fake-vscode.ts`: doble de la API para el test de humo (alias en `vitest.config.ts`).
