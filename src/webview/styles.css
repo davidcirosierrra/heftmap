@@ -113,3 +113,32 @@ button { font: inherit; color: inherit; }
 .spinner.small { width: 12px; height: 12px; border-width: 2px; flex: none; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } }
+
+/* ------------------------------------------------------------ errores */
+.crash { padding: 24px; max-width: 900px; }
+.crash h1 { margin: 0 0 8px; font-size: 1.3em; font-weight: 600; color: var(--vscode-errorForeground); }
+.crash p { margin: 0 0 12px; }
+.actions { display: flex; gap: 8px; margin: 8px 0; }
+.actions button {
+  padding: 4px 14px; cursor: pointer; border-radius: 2px;
+  border: 1px solid var(--vscode-button-border, transparent);
+  color: var(--vscode-button-foreground); background: var(--vscode-button-background);
+}
+.actions button:hover { background: var(--vscode-button-hoverBackground); }
+.actions button.secondary {
+  color: var(--vscode-button-secondaryForeground); background: var(--vscode-button-secondaryBackground);
+}
+.stack {
+  margin: 8px 0; padding: 10px 12px; max-height: 40vh; overflow: auto; white-space: pre-wrap; word-break: break-word;
+  font-family: var(--vscode-editor-font-family, monospace); font-size: var(--vscode-editor-font-size, 12px);
+  background: var(--vscode-textCodeBlock-background, rgba(128, 128, 128, 0.15));
+  border: 1px solid var(--vscode-inputValidation-errorBorder, var(--vscode-errorForeground));
+}
+.runtime-error {
+  padding: 6px 12px;
+  color: var(--vscode-inputValidation-errorForeground, var(--vscode-foreground));
+  background: var(--vscode-inputValidation-errorBackground, rgba(190, 17, 0, 0.25));
+  border-bottom: 1px solid var(--vscode-inputValidation-errorBorder, var(--vscode-errorForeground));
+}
+.runtime-error .line { display: flex; gap: 12px; align-items: baseline; }
+.runtime-error .msg { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -41,4 +41,8 @@ export type WebviewMessage =
   | { type: 'removeScope'; folder: string }
   | { type: 'clearScope' }
   | { type: 'pickScope' }
-  | { type: 'refresh' };
+  | { type: 'refresh' }
+  | { type: 'showLog' }
+  | { type: 'copy'; text: string }
+  /** Fallo dentro del panel: va al registro de Heft. */
+  | { type: 'error'; where: string; message: string; stack?: string };
