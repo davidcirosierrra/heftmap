@@ -296,6 +296,46 @@ describe('panel: ciclo de vida', () => {
     panel().receive.fire({ type: 'ready' });
     expect(last('status').status.scope).toEqual(['public']);
   });
+
+  it('recarga de la ventana con el panel ya abierto: el restaurado sobra y se cierra', async () => {
+    const open = fake.panels.at(-1)!;
+    const before = open.posted.length;
+    await fake.restorePanel('heft.panel');
+    expect(fake.panels).toHaveLength(3);
+    expect(panel().disposed).toBe(true);
+    expect(panel().html).toBe('');
+    expect(open.disposed).toBe(false);
+    // El abierto sigue siendo el panel: es él quien recibe los cambios.
+    void fake.commands.get('heft.clearScope')!();
+    expect(open.posted.length).toBeGreaterThan(before);
+    open.close();
+  });
+
+  it('recarga de la ventana: el editor devuelve el panel y la extensión lo adopta', async () => {
+    expect(fake.serializers.has('heft.panel')).toBe(true);
+    await fake.restorePanel('heft.panel', { filter: 'kart' });
+    expect(fake.panels).toHaveLength(4);
+    expect(panel().disposed).toBe(false);
+    // Llega sin nada: opciones, página con CSP y oyentes se ponen como en uno nuevo.
+    expect(panel().options.enableScripts).toBe(true);
+    expect(panel().options.localResourceRoots.map((u: any) => u.path)).toEqual(['/ext/heft/dist']);
+    expect(panel().html).toContain("default-src 'none'");
+    expect(panel().html).toContain('dist/webview.js');
+    expect(panel().posted).toEqual([]);
+    panel().receive.fire({ type: 'ready' });
+    expect(last('index').index.complete).toBe(true);
+    expect(last('status').status).toMatchObject({ hasRoot: true, scope: [], building: false });
+    // Es el panel de verdad: «Abrir panel» lo trae al frente en vez de crear otro.
+    void fake.commands.get('heft.openPanel')!();
+    expect(fake.panels).toHaveLength(4);
+    expect(panel().revealed).toBe(1);
+  });
+
+  it('la extensión se activa a tiempo de restaurarlo (onWebviewPanel)', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
+    expect(pkg.activationEvents).toContain('onWebviewPanel:heft.panel');
+  });
 });
 
 describe('idioma de la extensión', () => {

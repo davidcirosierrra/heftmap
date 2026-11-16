@@ -10,6 +10,9 @@ export interface PanelHost {
   onPanelMessage(m: WebviewMessage): void;
 }
 
+/** Tipo del webview: lo comparten `createWebviewPanel`, el serializador y `onWebviewPanel:` en package.json. */
+export const PANEL_VIEW_TYPE = 'heft.panel';
+
 /**
  * Panel «Heft» (SPEC §2.2): un único WebviewPanel. Esta clase solo crea el webview y pasa
  * mensajes; la interfaz vive en `src/webview/` (bundle aparte, `dist/webview.js`).
@@ -31,11 +34,35 @@ export class HeftPanel implements vscode.Disposable {
       this.panel.reveal();
       return;
     }
-    const dist = vscode.Uri.joinPath(this.extensionUri, 'dist');
-    const panel = vscode.window.createWebviewPanel('heft.panel', 'Heft', vscode.ViewColumn.Active, {
-      enableScripts: true,
-      localResourceRoots: [dist],
-    });
+    this.attach(
+      vscode.window.createWebviewPanel(PANEL_VIEW_TYPE, 'Heft', vscode.ViewColumn.Active, {
+        enableScripts: true,
+        localResourceRoots: [this.dist],
+      }),
+    );
+  }
+
+  /**
+   * Adopta el panel que el editor devuelve al recargar la ventana (serializador). Llega sin
+   * opciones, sin página y sin oyentes: se le pone todo como a uno nuevo. Los datos no se
+   * guardan: los pide con `ready`, igual que al abrirlo en frío. El estado de la interfaz
+   * (orden, filtro, zoom…) lo conserva el editor con `setState`.
+   */
+  restore(panel: vscode.WebviewPanel): void {
+    // Solo hay un panel: si ya hay otro abierto, el restaurado sobra.
+    if (this.panel) {
+      panel.dispose();
+      return;
+    }
+    panel.webview.options = { enableScripts: true, localResourceRoots: [this.dist] };
+    this.attach(panel);
+  }
+
+  private get dist(): vscode.Uri {
+    return vscode.Uri.joinPath(this.extensionUri, 'dist');
+  }
+
+  private attach(panel: vscode.WebviewPanel): void {
     panel.iconPath = vscode.Uri.joinPath(this.extensionUri, 'media', 'heft.svg');
     panel.webview.onDidReceiveMessage((m: WebviewMessage) => {
       if (m.type === 'ready') {
@@ -52,7 +79,7 @@ export class HeftPanel implements vscode.Disposable {
     });
     this.panel = panel;
     this.ready = false;
-    panel.webview.html = html(panel.webview, dist, this.host.panelStatus().locale ?? 'en');
+    panel.webview.html = html(panel.webview, this.dist, this.host.panelStatus().locale ?? 'en');
   }
 
   /** El índice ha cambiado (pesa: solo se manda cuando cambia de verdad). */

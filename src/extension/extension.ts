@@ -6,7 +6,7 @@ import { i18n, resolveLocale, type I18n, type Locale, type MessageKey } from '..
 import { warningText } from '../i18n/warnings.js';
 import { bar, weightTier, type WeightTier } from './bars.js';
 import { guard, guardSync, HeftLog } from './log.js';
-import { HeftPanel, type PanelHost } from './panel.js';
+import { HeftPanel, PANEL_VIEW_TYPE, type PanelHost } from './panel.js';
 import { toPanelIndex } from './panel-data.js';
 import type { PanelIndex, PanelStatus, WebviewMessage } from './panel-protocol.js';
 import { CancelledError, WorkerExitError, workerRunner, type IndexJob, type IndexRunner } from './runner.js';
@@ -144,6 +144,12 @@ class Heft implements vscode.Disposable, PanelHost {
       this.status,
       this.panel,
       vscode.window.registerFileDecorationProvider(new HeftDecorations()),
+      // Sin esto el editor cierra la pestaña al recargar la ventana (SPEC §9, fase 2).
+      vscode.window.registerWebviewPanelSerializer(PANEL_VIEW_TYPE, {
+        deserializeWebviewPanel: async (restored: vscode.WebviewPanel) => {
+          await on('restore panel', () => this.panel.restore(restored))();
+        },
+      }),
       this.view.onDidChangeCheckboxState(on('checkbox', (e: vscode.TreeCheckboxChangeEvent<TreeNode>) => this.onCheckboxes(e))),
       vscode.workspace.onDidChangeConfiguration(on('settings change', (e: vscode.ConfigurationChangeEvent) => {
         if (e.affectsConfiguration('heft.language')) {
