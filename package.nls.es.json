@@ -22,5 +22,6 @@
   "capabilities.untrusted": "En modo restringido Heftmap no ejecuta git: muestra tamaños y uso, sin historial ni cambios sin commit. Se ignoran los ajustes de Heftmap del workspace.",
   "command.copyReport": "Copiar informe de errores",
   "config.refreshDelay": "Milisegundos que se espera tras un cambio (en disco, en git o en los ajustes) antes de volver a analizar. Entre 250 y 60000.",
-  "config.autoRefresh": "Volver a analizar automáticamente cuando cambian los archivos o git. Si se desactiva, solo se vuelve a analizar con el botón Refrescar (o al cambiar un ajuste)."
+  "config.autoRefresh": "Volver a analizar automáticamente cuando cambian los archivos o git. Si se desactiva, solo se vuelve a analizar con el botón Refrescar (o al cambiar un ajuste).",
+  "config.maxTextFileSize": "Los archivos de texto más grandes que esto (en MB) no se leen: se conoce su tamaño, pero no sus líneas ni su uso. Entre 1 y 50."
 }

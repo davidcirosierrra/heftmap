@@ -24,10 +24,14 @@ export interface HeftSettings {
   refreshDelay: number;
   /** false: los cambios en disco y en git no relanzan el análisis; el botón de refrescar sí. */
   autoRefresh: boolean;
+  /** Texto más grande que esto (MB) no se lee: ni líneas ni uso. */
+  maxTextFileSize: number;
 }
 
 /** Límites de `heftmap.refreshDelay` (ms), los mismos que declara package.json. */
 export const REFRESH_DELAY = { default: 1500, min: 250, max: 60000 } as const;
+/** Límites de `heftmap.maxTextFileSize` (MB). */
+export const MAX_TEXT_FILE_SIZE = { default: 5, min: 1, max: 50 } as const;
 
 /** Lee todos los ajustes; `scope` es la carpeta del workspace (ajustes por carpeta). */
 export function readSettings(scope?: vscode.Uri): HeftSettings {
@@ -40,6 +44,7 @@ export function readSettings(scope?: vscode.Uri): HeftSettings {
     usageEntryPoints: strings(cfg.get('usage.entryPoints')),
     refreshDelay: num(cfg.get('refreshDelay'), REFRESH_DELAY),
     autoRefresh: bool(cfg.get('autoRefresh'), true),
+    maxTextFileSize: num(cfg.get('maxTextFileSize'), MAX_TEXT_FILE_SIZE),
   };
 }
 
@@ -50,6 +55,7 @@ export function toBuildOptions(s: HeftSettings, trusted: boolean): BuildOptions 
     since: s.gitSince,
     ignore: s.usageIgnore,
     entryPoints: s.usageEntryPoints,
+    maxTextBytes: s.maxTextFileSize * 1024 * 1024,
     useGit: trusted,
   };
 }

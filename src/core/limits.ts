@@ -4,7 +4,10 @@
  * ajuste del host (`heftmap.refreshDelay`), no del núcleo.
  */
 
-/** Texto más grande que esto no se lee (ni líneas ni análisis de uso). */
+/**
+ * Texto más grande que esto no se lee (ni líneas ni análisis de uso). Es el valor por defecto:
+ * `BuildOptions.maxTextBytes` lo cambia (ajuste `heftmap.maxTextFileSize`).
+ */
 export const MAX_TEXT_BYTES = 5 * 1024 * 1024;
 
 /** Más configuraciones que esto no se leen: cada una recorre su carpeta en disco. */

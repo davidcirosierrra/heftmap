@@ -71,10 +71,22 @@ describe('refreshDelay y autoRefresh', () => {
   });
 });
 
+describe('maxTextFileSize', () => {
+  it('5 MB por defecto, recortado a 1–50 y pasado al análisis en bytes', () => {
+    expect(readSettings().maxTextFileSize).toBe(5);
+    fake.config.maxTextFileSize = 0.2;
+    expect(readSettings().maxTextFileSize).toBe(1);
+    fake.config.maxTextFileSize = 500;
+    expect(readSettings().maxTextFileSize).toBe(50);
+    fake.config.maxTextFileSize = 12;
+    expect(toBuildOptions(readSettings(), true).maxTextBytes).toBe(12 * 1024 * 1024);
+  });
+});
+
 describe('toBuildOptions', () => {
   it('pasa los ajustes al análisis y la confianza decide si se usa git', () => {
     const s = readSettings();
-    expect(toBuildOptions(s, true)).toEqual({ publicDir: 'public', since: undefined, ignore: [], entryPoints: [], useGit: true });
+    expect(toBuildOptions(s, true)).toEqual({ publicDir: 'public', since: undefined, ignore: [], entryPoints: [], maxTextBytes: 5 * 1024 * 1024, useGit: true });
     expect(toBuildOptions(s, false).useGit).toBe(false);
   });
 });

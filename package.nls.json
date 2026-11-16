@@ -22,5 +22,6 @@
   "capabilities.untrusted": "In Restricted Mode Heftmap does not run git: it shows sizes and usage, without history or uncommitted changes. Workspace settings for Heftmap are ignored.",
   "command.copyReport": "Copy Error Report",
   "config.refreshDelay": "Milliseconds to wait after a change (on disk, in git or in the settings) before analyzing again. Between 250 and 60000.",
-  "config.autoRefresh": "Analyze again automatically when files or git change. When off, only the Refresh button (or a settings change) analyzes again."
+  "config.autoRefresh": "Analyze again automatically when files or git change. When off, only the Refresh button (or a settings change) analyzes again.",
+  "config.maxTextFileSize": "Text files larger than this (in MB) are not read: they keep their size, but get no line count and no usage analysis. Between 1 and 50."
 }

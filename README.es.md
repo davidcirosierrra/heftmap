@@ -47,6 +47,7 @@ audio, texturas), sirve en cualquier repo con git, también en monorepos.
 | `heftmap.usage.entryPoints` | `[]` | Puntos de entrada extra (rutas de un framework, por ejemplo) |
 | `heftmap.refreshDelay` | `1500` | Milisegundos de espera tras un cambio antes de volver a analizar (250–60000) |
 | `heftmap.autoRefresh` | `true` | Volver a analizar automáticamente al cambiar archivos o git; desactivado = solo con Refrescar |
+| `heftmap.maxTextFileSize` | `5` | Los textos de más de este tamaño (MB) no se leen: sin líneas ni uso (1–50) |
 
 ## Monorepos
 
