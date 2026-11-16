@@ -1,5 +1,5 @@
 import { fileInScope, type Scope } from '../extension/scope.js';
-import type { Usage } from '../core/types.js';
+import type { Usage, UsageRule } from '../core/types.js';
 import type { MessageKey } from '../i18n/index.js';
 import type { PanelCommit, PanelFile, PanelRef } from '../extension/panel-protocol.js';
 
@@ -17,6 +17,8 @@ export interface Row {
   size: number;
   /** 'pending' mientras el índice está a medias (primer análisis). */
   usage: RowUsage;
+  /** Regla que decidió `usage` (el «por qué»); sin definir con el índice a medias. */
+  rule?: UsageRule;
   /** Nº de archivos que lo referencian o mencionan, de todo el repo. */
   refsIn: number;
   /** Último commit; null si no tiene (nuevo, fuera de `git.since`, sin git o índice a medias). */
@@ -74,6 +76,7 @@ export function toRows(files: readonly PanelFile[], scope: Scope, ctx: RowContex
       ext: dot > 0 ? name.slice(dot).toLowerCase() : '',
       size: f.size,
       usage: complete ? (f.usage ?? 'not-analyzed') : 'pending',
+      ...(complete && f.usageRule ? { rule: f.usageRule } : {}),
       refsIn: refsIn[i] ?? 0,
       commit: (complete && f.commit !== undefined && ctx.commits?.[f.commit]) || null,
       dirty: complete && !!f.dirty,
