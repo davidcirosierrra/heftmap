@@ -123,7 +123,9 @@ export interface Timings {
 export type Warning =
   | { code: 'no-git' }
   | { code: 'git-history'; detail: string }
-  | { code: 'unresolved-imports'; count: number; examples: string[] };
+  | { code: 'unresolved-imports'; count: number; examples: string[] }
+  /** Imports no relativos sin destino que no son dependencias: `prefixes` = «@/… (120)». */
+  | { code: 'unresolved-aliases'; count: number; prefixes: string[] };
 
 export interface HeftIndex {
   root: string;

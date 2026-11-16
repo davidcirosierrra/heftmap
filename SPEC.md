@@ -183,6 +183,33 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
 - Lockfiles y archivos generados quedan fuera del cálculo (cambian mucho y no dicen nada).
 - Sin git no hay hotspots: el área `Líneas` sigue funcionando, el color `Cambios` se desactiva.
 
+### 3.5 bis Monorepos
+
+Sin esto, en un monorepo casi todo el código salía «sin importadores». Nada depende del gestor de
+paquetes (npm, pnpm, yarn, bun) ni de Nx o Turborepo, ni de que `node_modules` esté instalado.
+
+- **tsconfig de cada archivo**: se leen todos los `tsconfig*.json` y `jsconfig.json` del repo (y sus
+  `references`), no solo el de la raíz. Para cada archivo manda el que lo incluye o, si hay otro
+  más cerca subiendo carpetas, ese (una base en la raíz «incluye» todo el repo, y los tests suelen
+  quedar fuera del `include`). Así cada app resuelve sus propios alias (`@/…`).
+- **Lo que está en el repo es interno**: un import que TypeScript resuelve, a través de un enlace
+  en `node_modules`, a un archivo del índice cuenta como referencia.
+- **Paquetes del repo** (`src/core/workspace.ts`): se leen todos los `package.json`. Un import de
+  `@scope/pkg` o `@scope/pkg/sub` se lleva a su código fuente por `exports` (condiciones `source`,
+  `types`, `import`…, y patrones `./*`), `source`/`types`/`module`/`main`, o `src/index`. Si el
+  destino declarado es compilado (`dist/x.js`), se busca su fuente (`src/x.ts`).
+- **Entradas por paquete**: lo que cada `package.json` declara (`main`, `exports`, `bin`…) es punto
+  de entrada. También el `index.html` de cada app, cuyas rutas absolutas (`/src/main.tsx`) se
+  resuelven desde la carpeta de la app.
+- **Aviso** en el registro: imports sin resolver que no son relativos ni dependencias declaradas,
+  con sus prefijos (`~utils (4)`). Si son alias definidos solo en el bundler (Vite, Metro, Babel),
+  hay que declararlos también en `paths` de un tsconfig.
+- **Límite**: las rutas por convención de un framework (pantallas de Expo Router, `app/` de Next,
+  `routes/` de Remix) no las importa nadie y salen «sin importadores». Es un aviso de baja
+  confianza a propósito; se pueden marcar con `heft.usage.entryPoints`.
+- Comprobado con un monorepo de prueba (`test/monorepo.test.ts`) y sobre `vitejs/vite` (de 582 a
+  367 «sin importadores») y tres ejemplos de Turborepo, donde solo quedan rutas de framework.
+
 ### 3.6 Seguridad
 
 - La carpeta analizada es entrada no fiable. Detalle y revisión en [docs/seguridad.md](docs/seguridad.md).

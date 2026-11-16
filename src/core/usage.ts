@@ -1,8 +1,10 @@
+import { builtinModules } from 'node:module';
 import path from 'node:path';
 import ts from 'typescript';
 import { COMPONENT_EXT, extOf } from './classify.js';
 import { toPosix } from './files.js';
 import type { FileEntry, Phase, Ref, RefKind, Warning } from './types.js';
+import { loadWorkspace, packageNameOf, type Workspace } from './workspace.js';
 
 /**
  * Grafo de uso (SPEC §4.3), en dos pasadas:
@@ -16,6 +18,7 @@ import type { FileEntry, Phase, Ref, RefKind, Warning } from './types.js';
 
 const posix = path.posix;
 const CODE_EXT = new Set(['ts', 'tsx', 'mts', 'cts', 'js', 'jsx', 'mjs', 'cjs']);
+const NODE_BUILTINS = new Set(builtinModules);
 
 export interface UsageInput {
   root: string;
@@ -24,6 +27,8 @@ export interface UsageInput {
   /** Archivos que se leen como origen de referencias. */
   sources: string[];
   publicDir: string;
+  /** Paquetes del repo; si no se pasa, se calcula aquí. */
+  workspace?: Workspace;
   onProgress?: (phase: Phase, done: number, total: number) => void;
 }
 
@@ -38,6 +43,8 @@ export function analyzeUsage(input: UsageInput): UsageResult {
   const seen = new Set<string>();
   const warnings: Warning[] = [];
   const unresolved: string[] = [];
+  /** Imports no relativos que no son ni dependencia ni paquete del repo: alias sin resolver. */
+  const unresolvedAliases = new Map<string, number>();
 
   const add = (from: string, to: string | null, kind: RefKind): void => {
     if (!to || to === from || !files.has(to)) return;
@@ -48,7 +55,8 @@ export function analyzeUsage(input: UsageInput): UsageResult {
   };
 
   const resolve = makeResolver(files, publicDir);
-  const tsc = makeTsResolver(root);
+  const tsc = makeTsResolver(root, files);
+  const workspace = input.workspace ?? loadWorkspace(files, texts);
 
   /**
    * Destino de un import: TypeScript primero; si no lo resuelve (recursos: TS no sigue
@@ -56,8 +64,27 @@ export function analyzeUsage(input: UsageInput): UsageResult {
    */
   const importTarget = (spec: string, from: string): string | null => {
     const viaTs = tsc.resolve(spec, from);
-    if (viaTs !== undefined) return viaTs;
+    if (viaTs) return viaTs;
+    // Paquete del propio repo: aunque no haya `node_modules`, o aunque TypeScript lo resuelva
+    // a su `dist/` (que no está en el índice), se va a su código fuente.
+    const viaWorkspace = workspace.resolve(spec);
+    if (viaWorkspace) return viaWorkspace;
+    if (viaTs === null) return null; // librería externa
     return resolve(spec, from) ?? tsc.alias(spec, from).find((c) => files.has(c)) ?? null;
+  };
+
+  /**
+   * Un import no relativo sin destino que no es una dependencia declarada, ni un módulo de
+   * Node, ni un módulo virtual: casi seguro un alias que Heft no sabe resolver (definido solo
+   * en el bundler) o un paquete del repo cuyo archivo de entrada no se encuentra.
+   */
+  const isUnresolvedAlias = (spec: string, from: string): boolean => {
+    if (spec.startsWith('/') || spec.includes(':') || /^[\w@~#$-]/.test(spec) === false) return false;
+    const name = packageNameOf(spec);
+    if (workspace.packages.has(name)) return workspace.resolve(spec) === null;
+    if (workspace.declared.has(name) || NODE_BUILTINS.has(name)) return false;
+    // Resuelto por TypeScript a una librería de `node_modules`, aunque nadie la declare.
+    return tsc.resolve(spec, from) === undefined;
   };
 
   /** Archivos del índice que casan con los patrones de un `import.meta.glob`. */
@@ -90,7 +117,7 @@ export function analyzeUsage(input: UsageInput): UsageResult {
     const base = posix.basename(from);
 
     if (base === 'package.json') {
-      for (const to of packageJsonRefs(text, resolve)) add(from, to, 'script npm');
+      for (const to of packageJsonRefs(text, resolve, from)) add(from, to, 'script npm');
       continue;
     }
     if (COMPONENT_EXT.has(ext)) {
@@ -107,6 +134,10 @@ export function analyzeUsage(input: UsageInput): UsageResult {
         const to = importTarget(spec, from);
         if (to) add(from, to, 'import');
         else if (spec.startsWith('./') || spec.startsWith('../')) unresolved.push(`${from} → ${spec}`);
+        else if (isUnresolvedAlias(spec, from)) {
+          const prefix = `${spec.split('/')[0]}${spec.includes('/') ? '/…' : ''}`;
+          unresolvedAliases.set(prefix, (unresolvedAliases.get(prefix) ?? 0) + 1);
+        }
       }
       // Strings del AST: sin comentarios (un JSDoc que cita una ruta no es uso).
       const scan = scanCode(text, from);
@@ -160,6 +191,14 @@ export function analyzeUsage(input: UsageInput): UsageResult {
   if (unresolved.length) {
     warnings.push({ code: 'unresolved-imports', count: unresolved.length, examples: unresolved.slice(0, 3) });
   }
+  if (unresolvedAliases.size) {
+    const ranked = [...unresolvedAliases.entries()].sort((a, b) => b[1] - a[1]);
+    warnings.push({
+      code: 'unresolved-aliases',
+      count: ranked.reduce((s, [, n]) => s + n, 0),
+      prefixes: ranked.slice(0, 5).map(([prefix, n]) => `${prefix} (${n})`),
+    });
+  }
   return { refs, warnings };
 }
 
@@ -203,7 +242,12 @@ export function makeResolver(files: Map<string, unknown>, publicDir: string): Re
     const dir = posix.dirname(from);
     const candidates: string[] = [];
     if (spec.startsWith('/')) {
-      candidates.push(...publicDirsFor(dir).map((p) => posix.join(p, spec)), spec.slice(1));
+      // Ruta absoluta: carpeta pública, y después la raíz del proyecto, que en un monorepo es
+      // la carpeta de la app (`apps/admin/index.html` → `/src/main.tsx`): se prueban las
+      // carpetas de alrededor, de la más cercana a la raíz del repo.
+      const ancestors: string[] = [];
+      for (let d = dir === '.' ? '' : dir; d; d = d.includes('/') ? d.slice(0, d.lastIndexOf('/')) : '') ancestors.push(posix.join(d, spec));
+      candidates.push(...publicDirsFor(dir).map((p) => posix.join(p, spec)), ...ancestors, spec.slice(1));
     } else if (spec.startsWith('./') || spec.startsWith('../')) {
       candidates.push(posix.join(dir, spec));
     } else {
@@ -229,8 +273,8 @@ interface TsResolver {
   alias: (spec: string, from: string) => string[];
 }
 
-function makeTsResolver(root: string): TsResolver {
-  const configs = loadTsConfigs(root);
+function makeTsResolver(root: string, files: Map<string, FileEntry>): TsResolver {
+  const configs = loadTsConfigs(root, files);
   const fallback: ts.CompilerOptions = {
     module: ts.ModuleKind.ESNext,
     moduleResolution: ts.ModuleResolutionKind.Bundler,
@@ -241,11 +285,45 @@ function makeTsResolver(root: string): TsResolver {
     jsx: ts.JsxEmit.Preserve,
   };
   const caches = new Map<ts.CompilerOptions, ts.ModuleResolutionCache>();
+  // Qué tsconfig manda en cada archivo (monorepos: cada app o paquete trae el suyo, con sus
+  // alias). 1.º, el que lo incluye; entre varios, el de la carpeta más profunda. 2.º, el más
+  // cercano subiendo carpetas, aunque no lo incluya (tests, scripts fuera de `include`).
+  const byFile = new Map<string, TsConfig>();
+  const byDir = new Map<string, TsConfig[]>();
+  for (const c of configs) {
+    for (const f of c.files) {
+      const prev = byFile.get(f);
+      if (!prev || c.dir.length > prev.dir.length) byFile.set(f, c);
+    }
+    byDir.set(c.dir, [...(byDir.get(c.dir) ?? []), c]);
+  }
+  const nearest = new Map<string, TsConfig | null>();
+  const nearestConfig = (absDir: string): TsConfig | null => {
+    const hit = nearest.get(absDir);
+    if (hit !== undefined) return hit;
+    const here = byDir.get(absDir);
+    // En una carpeta con varios (tsconfig.app.json, tsconfig.node.json), el que define alias.
+    let found: TsConfig | null = here ? (here.find((c) => c.options.paths || c.options.baseUrl) ?? here[0] ?? null) : null;
+    if (!found) {
+      const parent = path.dirname(absDir);
+      found = parent !== absDir && absDir.length > root.length ? nearestConfig(parent) : null;
+    }
+    nearest.set(absDir, found);
+    return found;
+  };
   const optionsFor = (absFile: string): ts.CompilerOptions => {
-    for (const c of configs) if (c.files.has(absFile)) return c.options;
-    return configs[0]?.options ?? fallback;
+    const including = byFile.get(absFile);
+    const near = nearestConfig(path.dirname(absFile));
+    // Una base en la raíz «incluye» todo el repo: si hay una configuración más cerca del
+    // archivo, manda esa aunque no lo liste.
+    const chosen = including && (!near || including.dir.length >= near.dir.length) ? including : near;
+    return chosen?.options ?? fallback;
   };
   const toRel = (abs: string): string => toPosix(path.relative(root, abs));
+  const inIndex = (rel: string): boolean => {
+    const f = files.get(rel);
+    return !!f && !f.ignoredByGit;
+  };
   const alias = (spec: string, from: string): string[] => {
     const clean = spec.replace(/[?#].*$/, '');
     if (!clean || clean.startsWith('.') || clean.startsWith('/')) return [];
@@ -283,24 +361,34 @@ function makeTsResolver(root: string): TsResolver {
     }
     const { resolvedModule } = ts.resolveModuleName(spec, absFrom, options, ts.sys, cache);
     if (!resolvedModule) return undefined;
-    if (resolvedModule.isExternalLibraryImport) return null;
     const rel = toRel(resolvedModule.resolvedFileName);
-    return rel.startsWith('..') ? null : rel;
+    // Un archivo del propio repo es interno aunque se llegue a él por `node_modules` (enlace
+    // de workspace): TypeScript lo marca como librería externa, pero es código nuestro.
+    if (!rel.startsWith('..') && inIndex(rel)) return rel;
+    return resolvedModule.isExternalLibraryImport || rel.startsWith('..') ? null : rel;
   };
   return { resolve, alias };
 }
 
 interface TsConfig {
+  /** Carpeta (absoluta) del archivo de configuración. */
+  dir: string;
   options: ts.CompilerOptions;
   files: Set<string>;
 }
 
-/** tsconfig.json de la raíz y sus `references` (patrón habitual de Vite: app + node). */
-function loadTsConfigs(root: string): TsConfig[] {
+/** Más configuraciones que esto no se leen: cada una recorre su carpeta en disco. */
+const MAX_TSCONFIGS = 300;
+
+/**
+ * Todos los `tsconfig*.json` y `jsconfig.json` del repo (no solo el de la raíz), más los que
+ * estos nombren en `references`. De la raíz hacia dentro.
+ */
+function loadTsConfigs(root: string, files: Map<string, FileEntry>): TsConfig[] {
   const result: TsConfig[] = [];
   const visited = new Set<string>();
   const load = (configPath: string): void => {
-    if (visited.has(configPath) || !ts.sys.fileExists(configPath)) return;
+    if (visited.has(configPath) || visited.size >= MAX_TSCONFIGS || !ts.sys.fileExists(configPath)) return;
     visited.add(configPath);
     const read = ts.readConfigFile(configPath, ts.sys.readFile);
     if (read.error) return;
@@ -311,14 +399,19 @@ function loadTsConfigs(root: string): TsConfig[] {
     options.resolveJsonModule ??= true;
     options.allowImportingTsExtensions ??= true;
     options.noEmit = true;
-    if (parsed.fileNames.length) result.push({ options, files: new Set(parsed.fileNames.map((f) => path.resolve(f))) });
+    // También los de «solución» (sin archivos propios): pueden ser el más cercano de alguien.
+    result.push({ dir: path.dirname(configPath), options, files: new Set(parsed.fileNames.map((f) => path.resolve(f))) });
     for (const ref of parsed.projectReferences ?? []) {
       const p = ref.path.endsWith('.json') ? ref.path : path.join(ref.path, 'tsconfig.json');
       load(path.resolve(path.dirname(configPath), p));
     }
   };
-  load(path.join(root, 'tsconfig.json'));
-  load(path.join(root, 'jsconfig.json'));
+  const found = [...files.values()]
+    .filter((f) => !f.ignoredByGit && /^(?:tsconfig(?:\.[\w-]+)?|jsconfig)\.json$/.test(posix.basename(f.path)) && !/(^|\/)node_modules\//.test(f.path))
+    .map((f) => f.path)
+    // De menos a más anidado y, en cada carpeta, `tsconfig.json` antes que sus variantes.
+    .sort((a, b) => a.split('/').length - b.split('/').length || posix.basename(a).length - posix.basename(b).length || a.localeCompare(b));
+  for (const rel of found) load(path.join(root, rel));
   return result;
 }
 
@@ -463,7 +556,7 @@ export function mdLinks(text: string): string[] {
 }
 
 /** Rutas en los campos de entrada y en los scripts de package.json. */
-function packageJsonRefs(text: string, resolve: Resolver): string[] {
+function packageJsonRefs(text: string, resolve: Resolver, from: string): string[] {
   let pkg: Record<string, unknown>;
   try {
     pkg = JSON.parse(text);
@@ -474,7 +567,8 @@ function packageJsonRefs(text: string, resolve: Resolver): string[] {
   const scripts = pkg.scripts as Record<string, string> | undefined;
   for (const cmd of Object.values(scripts ?? {})) {
     for (const token of String(cmd).split(/[\s=]+/)) {
-      const to = resolve(token.replace(/^['"]|['"]$/g, ''), 'package.json');
+      // Relativo al propio package.json: en un monorepo cada paquete tiene sus scripts.
+      const to = resolve(token.replace(/^['"]|['"]$/g, ''), from);
       if (to) out.push(to);
     }
   }

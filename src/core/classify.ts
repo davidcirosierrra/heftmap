@@ -104,7 +104,9 @@ export function isGenerated(p: string): boolean {
  */
 export function isConventionalEntry(p: string, publicDir: string): boolean {
   const base = path.posix.basename(p).toLowerCase();
-  if (p === 'index.html') return true;
+  // La página de entrada de una app, esté en la raíz o en `apps/x/` (monorepos).
+  if (base === 'index.html') return true;
+  if (/(^|\/)\.storybook\//.test(p)) return true;
   if (/\.config\.[cm]?[jt]s$/.test(base)) return true; // vite.config.ts, eslint.config.js…
   if (/\.(test|spec)\.[cm]?[jt]sx?$/.test(base) || /(^|\/)__tests__\//.test(p)) return true;
   if (/\.stories\.[cm]?[jt]sx?$/.test(base)) return true;
