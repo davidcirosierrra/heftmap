@@ -1,4 +1,5 @@
-import { fmtSize, pct } from '../report.js';
+import { useEffect, useState } from 'react';
+import { fmtSize, pct, rel } from '../report.js';
 import { USAGE_COLOR, usageLabel } from './colors.js';
 import type { Link, Row } from './model.js';
 import { post } from './vscode.js';
@@ -58,6 +59,7 @@ export function Detail(props: {
           </span>
         )}
       </div>
+      <Commit row={row} />
       {row.usage !== 'pending' && (links.usedBy.length > 0 || links.uses.length > 0) && (
         <div className="d-links">
           <Links title="Lo usan" list={links.usedBy} onSelect={props.onSelect} />
@@ -92,5 +94,55 @@ function Links(props: { title: string; list: Link[]; onSelect(path: string, inSc
         </ul>
       )}
     </section>
+  );
+}
+
+/** Último commit del archivo (SPEC §2.2): hash (clic = copiar completo), mensaje, autor, fecha. */
+function Commit({ row }: { row: Row }) {
+  const [copied, setCopied] = useState(false);
+  useEffect(() => setCopied(false), [row.path]);
+  useEffect(() => {
+    if (!copied) return;
+    const t = setTimeout(() => setCopied(false), 1500);
+    return () => clearTimeout(t);
+  }, [copied]);
+
+  const c = row.commit;
+  const diff = row.dirty && !row.untracked && (
+    <button className="secondary" title="Cambios del árbol de trabajo contra el último commit" onClick={() => post({ type: 'diff', path: row.path })}>
+      Ver diff
+    </button>
+  );
+  if (row.untracked) {
+    return (
+      <div className="d-commit">
+        <span className="new">nuevo</span>
+        <span className="d-hint">Archivo nuevo: todavía sin commits.</span>
+      </div>
+    );
+  }
+  if (!c) return diff ? <div className="d-commit">{diff}</div> : null;
+  return (
+    <div className="d-commit">
+      <button
+        className="link hash"
+        title={`${c.hash}\nClic para copiar el hash completo`}
+        onClick={() => {
+          post({ type: 'copy', text: c.hash });
+          setCopied(true);
+        }}
+      >
+        {c.short}
+      </button>
+      {copied && <span className="copied">copiado</span>}
+      <span className="d-subject" title={c.subject}>
+        {c.subject}
+      </span>
+      <span className="d-meta">
+        {c.author} · {rel(c.time)} ({new Date(c.time).toLocaleDateString('es-ES')})
+      </span>
+      {row.dirty && <span className="dirty">● cambios sin commit</span>}
+      {diff}
+    </div>
   );
 }

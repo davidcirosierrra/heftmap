@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { HostMessage, PanelIndex, PanelStatus } from '../extension/panel-protocol.js';
-import { fmtSize, pct } from '../report.js';
+import { fmtSize, pct, rel } from '../report.js';
 import { COLOR_LABEL, USAGE_COLOR, coloring as buildColoring, usageLabel, type ColorMode } from './colors.js';
 import { Detail } from './Detail.js';
 import { DEFAULT_SORT, QUICK_LABEL, SORT_KEYS, filterRows, linksOf, nextSort, quickCounts, quickRows, sortRows, toRows, totalSize, type Quick, type Sort } from './model.js';
@@ -63,7 +63,7 @@ export function App() {
   }, [saved]);
 
   const scope = status?.scope ?? [];
-  const scoped = useMemo(() => toRows(index?.files ?? [], scope, { complete: index?.complete, refs: index?.refs }), [index, scope.join('\n')]);
+  const scoped = useMemo(() => toRows(index?.files ?? [], scope, { complete: index?.complete, refs: index?.refs, commits: index?.commits }), [index, scope.join('\n')]);
   const scopeBytes = useMemo(() => totalSize(scoped), [scoped]);
   const counts = useMemo(() => quickCounts(scoped), [scoped]);
   // Con el índice a medias no hay veredicto de uso: un filtro rápido guardado vaciaría la tabla.
@@ -115,7 +115,7 @@ export function App() {
         </>
       ),
     },
-    { key: 'folder', label: 'Carpeta', width: 'minmax(80px, 2fr)', render: (r) => r.folder },
+    { key: 'folder', label: 'Carpeta', width: 'minmax(90px, 2fr)', render: (r) => r.folder },
     {
       key: 'size',
       label: 'Tamaño',
@@ -137,9 +137,26 @@ export function App() {
         <span title={r.usage === 'no-importers' ? 'Código sin importadores: aviso de baja confianza. Para código muerto, usa Knip.' : undefined}>
           <i className="dot" style={{ background: USAGE_COLOR[r.usage] }} />
           {usageLabel(r.usage)}
-          {r.refsIn > 0 && <span className="share"> · {r.refsIn}</span>}
+          {r.refsIn > 0 && <span className="share">{' '}· {r.refsIn}</span>}
         </span>
       ),
+    },
+    {
+      key: 'changed',
+      label: 'Último cambio',
+      width: '172px',
+      title: 'Fecha y hash del último commit. ● = cambios sin commit',
+      render: (r) =>
+        r.untracked ? (
+          <span className="new">nuevo</span>
+        ) : r.commit ? (
+          <span title={`${r.commit.short} ${r.commit.subject} — ${r.commit.author}`}>
+            {rel(r.commit.time)} <span className="hash">{r.commit.short}</span>
+            {r.dirty && <span className="dirty" title="Cambios sin commit"> ●</span>}
+          </span>
+        ) : (
+          <span className="share">{r.usage === 'pending' ? '…' : '—'}</span>
+        ),
     },
   ];
 
@@ -182,7 +199,7 @@ export function App() {
             key={q}
             className={`pill${quick === q ? ' on' : ''}`}
             aria-pressed={quick === q}
-            disabled={!index.complete && q !== 'all'}
+            disabled={(!index.complete && q !== 'all') || (q === 'dirty' && index.isGit === false)}
             onClick={() => set({ quick: q })}
           >
             {QUICK_LABEL[q]}

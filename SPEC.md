@@ -7,8 +7,7 @@
 
 Nombre: **Heft** (antes «Workspace Files»). Repo `heft`; prefijo de ajustes y comandos `heft.*`.
 
-Estado: **fase 4 hecha**, producto mínimo completo (vista «Carpetas», ámbito, comandos y panel con
-tabla, treemap y uso; instalar y probar
+Estado: **fase 5 hecha** (vista «Carpetas», ámbito, comandos y panel con tabla, treemap, uso y git; instalar y probar
 con [prepareextension.md](prepareextension.md)). Fase 0 en [docs/fase-0.md](docs/fase-0.md). Fecha: 16-11-2026.
 Las capturas son de la v1: valen como referencia visual, con las diferencias de la sección 8.
 
@@ -290,7 +289,17 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
    detalle inferior (dos listas con el tipo y la marca «fuera del ámbito»): sirve igual al
    seleccionar desde el treemap y no complica la lista virtual. Clic en una referencia la
    selecciona; si está fuera del ámbito, la abre. Con el índice a medias el uso sale «Analizando…».
-5. Git: columna «Último cambio», colores «Antigüedad» y «Commits recientes», detalle del commit.
+5. ~~Git: columna «Último cambio», colores «Antigüedad» y «Commits recientes», detalle del commit.~~
+   **Hecha**: columna (fecha relativa + hash corto, `●`, «nuevo»; ordena con lo nuevo primero y lo
+   que no tiene dato al final), filtro rápido «Con cambios sin commit (n)», detalle del commit
+   (clic en el hash copia el completo, mensaje, autor, fecha) y **Ver diff** (`git.openChange`) si
+   hay cambios. Los commits viajan al panel una sola vez cada uno.
+   - «Antigüedad»: hasta 5 tramos por cuantiles de los archivos del ámbito. Un commit que por sí
+     solo llena más de un tramo (el inicial, una importación) se queda con uno para él y los
+     demás tramos se reparten entre el resto; con cuantiles a secas saldría todo de un color.
+   - «Commits recientes»: los 8 últimos entre los que son el último cambio de algún archivo del
+     ámbito (un commit cuyos archivos se han vuelto a tocar todos después no aparece).
+   - Con todas las columnas la tabla tiene ancho mínimo y se desplaza en horizontal si no cabe.
 6. Hotspots: columnas Líneas y Cambios, área «Líneas», color «Cambios», atajo «Hotspots».
 7. Opcionales: integración con Knip para código (verificar su salida JSON), ciudad 3D con Three.js.
 

@@ -326,6 +326,11 @@ class Heft implements vscode.Disposable, PanelHost {
       if (this.root && typeof m.path === 'string' && this.known.has(m.path)) {
         void vscode.commands.executeCommand('revealInExplorer', vscode.Uri.joinPath(this.root, m.path));
       }
+    } else if (m.type === 'diff') {
+      if (this.root && typeof m.path === 'string' && this.known.has(m.path)) {
+        // Comando de la extensión de git integrada: diff del árbol de trabajo contra HEAD.
+        void vscode.commands.executeCommand('git.openChange', vscode.Uri.joinPath(this.root, m.path));
+      }
     } else if (m.type === 'ignoreUsage') {
       if (typeof m.path === 'string' && this.known.has(m.path)) void this.ignoreUsage(m.path);
     } else if (m.type === 'trash') {
