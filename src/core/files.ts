@@ -2,9 +2,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { BINARY_EXT, extOf } from './classify.js';
 import { git } from './git.js';
-
-/** Texto más grande que esto no se lee (ni líneas ni análisis de uso). */
-export const MAX_TEXT_BYTES = 5 * 1024 * 1024;
+import { MAX_TEXT_BYTES } from './limits.js';
 
 const WALK_SKIP = new Set(['.git', 'node_modules', 'dist', 'build', 'out', '.next', '.turbo', 'coverage']);
 
