@@ -273,6 +273,20 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
 - El CLI sigue en castellano: es una herramienta de desarrollo y no va en el `.vsix`.
 - Glosario y formatos en [docs/glosario.md](docs/glosario.md). Pendiente: revisión del euskera.
 
+### 4.4 ter Registro de errores
+
+- Canal *Output → Heft* de tipo log (`createOutputChannel(..., { log: true })`): fecha y nivel en
+  cada línea, nivel ajustable con *Developer: Set Log Level* y guardado en disco por VS Code
+  (*Developer: Open Extension Logs Folder*).
+- Primera línea: versión de Heft, de VS Code, sistema, Node, idioma, confianza y nº de carpetas.
+- Comandos, eventos, mensajes del panel y vista lateral pasan por `guard`/`guardSync`
+  (`src/extension/log.ts`): un fallo queda como `[error] [origen] mensaje` con la traza, y la
+  vista sigue funcionando. El worker manda la traza de sus errores, también de los no capturados.
+- Aviso en pantalla, como mucho uno por minuto, con **Ver el registro** y **Copiar informe**
+  (cabecera + últimas 300 líneas, para pegar en una incidencia). Mismo informe con el comando
+  `Heft: Copiar informe de errores`. Los errores del panel solo se registran: el panel ya enseña
+  su propia pantalla de error.
+
 ### 4.5 Ajustes
 
 | Clave | Por defecto | Descripción |

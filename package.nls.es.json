@@ -19,5 +19,6 @@
   "config.usage.entryPoints": "Puntos de entrada extra además de los detectados automáticamente.",
   "config.language": "Idioma del panel y de la vista lateral de Heft. Los nombres de comandos y ajustes siguen el idioma del editor.",
   "config.language.auto": "El idioma del editor (inglés si no es castellano ni euskera)",
-  "capabilities.untrusted": "En modo restringido Heft no ejecuta git: muestra tamaños y uso, sin historial ni cambios sin commit. Se ignoran los ajustes de Heft del workspace."
+  "capabilities.untrusted": "En modo restringido Heft no ejecuta git: muestra tamaños y uso, sin historial ni cambios sin commit. Se ignoran los ajustes de Heft del workspace.",
+  "command.copyReport": "Copiar informe de errores"
 }

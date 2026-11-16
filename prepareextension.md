@@ -243,6 +243,7 @@ Marca cada punto. Si algo falla, abre **Heft: Mostrar registro** (`Ctrl+Shift+P`
 
 | Síntoma | Qué mirar |
 |---------|-----------|
+| Aviso «Heft: error interno en …» | Es un fallo de Heft. Pulsa **Copiar informe** (o `Heft: Copiar informe de errores`) y pégalo en una incidencia. El registro completo está en *Output → Heft* y en disco: *Developer: Open Extension Logs Folder*. |
 | No aparece el icono de Heft | *Extensions*: ¿está Heft instalada y activada? Recarga la ventana. |
 | La vista sale vacía | ¿Tienes una carpeta abierta? Mira **Heft: Mostrar registro**. |
 | «No se pudo analizar el repositorio» | El mensaje completo está en el registro. Si menciona `worker.cjs`, el `.vsix` está incompleto: vuelve a ejecutar `npm run package`. |

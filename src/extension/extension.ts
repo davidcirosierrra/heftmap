@@ -4,6 +4,7 @@ import { git } from '../core/git.js';
 import type { FileEntry, HeftIndex, Progress } from '../core/index.js';
 import { i18n, resolveLocale, type I18n, type Locale, type MessageKey } from '../i18n/index.js';
 import { warningText } from '../i18n/warnings.js';
+import { guard, guardSync, HeftLog } from './log.js';
 import { HeftPanel, type PanelHost } from './panel.js';
 import { toPanelIndex } from './panel-data.js';
 import type { PanelIndex, PanelStatus, WebviewMessage } from './panel-protocol.js';
@@ -47,10 +48,21 @@ export function activate(
   context: vscode.ExtensionContext,
   runner: IndexRunner = workerRunner(path.join(context.extensionPath, 'dist', 'worker.cjs')),
 ): void {
-  const log = vscode.window.createOutputChannel('Heft');
-  const heft = new Heft(context, log, runner);
-  context.subscriptions.push(log, heft);
-  void heft.start();
+  let heft: Heft | undefined;
+  const log = new HeftLog(() => heft?.I ?? i18n(currentLocale()));
+  context.subscriptions.push(log);
+  log.start(String((context as { extension?: vscode.Extension<unknown> }).extension?.packageJSON?.version ?? 'dev'), {
+    locale: currentLocale(),
+    trusted: vscode.workspace.isTrusted,
+    folders: String(vscode.workspace.workspaceFolders?.length ?? 0),
+  });
+  try {
+    heft = new Heft(context, log, runner);
+    context.subscriptions.push(heft);
+    void guard(log, 'start', () => heft?.start())();
+  } catch (err) {
+    log.error('activate', err, { notify: true });
+  }
 }
 
 export function deactivate(): void {
@@ -86,11 +98,11 @@ class Heft implements vscode.Disposable, PanelHost {
 
   constructor(
     private readonly context: vscode.ExtensionContext,
-    private readonly log: vscode.OutputChannel,
+    private readonly log: HeftLog,
     private readonly runner: IndexRunner,
   ) {
     this.scope = sanitizeScope(context.workspaceState.get(SCOPE_KEY));
-    this.provider = new FoldersProvider(this);
+    this.provider = new FoldersProvider(this, log);
     this.view = vscode.window.createTreeView(VIEW_ID, {
       treeDataProvider: this.provider,
       showCollapseAll: true,
@@ -102,8 +114,9 @@ class Heft implements vscode.Disposable, PanelHost {
     this.panel = new HeftPanel(context.extensionUri, this);
 
     const cmd = (id: string, fn: (...args: any[]) => unknown): void => {
-      this.disposables.push(vscode.commands.registerCommand(id, fn));
+      this.disposables.push(vscode.commands.registerCommand(id, guard(log, `command ${id}`, fn)));
     };
+    const on = <A extends unknown[]>(where: string, fn: (...args: A) => unknown) => guard(log, where, fn);
     cmd('heft.refresh', () => this.rebuild('reason.manual'));
     cmd('heft.clearScope', () => this.setScope([]));
     cmd('heft.pickScope', () => this.pickScope());
@@ -120,13 +133,17 @@ class Heft implements vscode.Disposable, PanelHost {
     });
     cmd('heft.showLog', () => this.log.show());
     cmd('heft.openPanel', () => this.panel.show());
+    cmd('heft.copyReport', async () => {
+      await vscode.env.clipboard.writeText(this.log.report());
+      void vscode.window.showInformationMessage(this.I.t('error.reportCopied'));
+    });
 
     this.disposables.push(
       this.view,
       this.status,
       this.panel,
-      this.view.onDidChangeCheckboxState((e) => this.onCheckboxes(e)),
-      vscode.workspace.onDidChangeConfiguration((e) => {
+      this.view.onDidChangeCheckboxState(on('checkbox', (e: vscode.TreeCheckboxChangeEvent<TreeNode>) => this.onCheckboxes(e))),
+      vscode.workspace.onDidChangeConfiguration(on('settings change', (e: vscode.ConfigurationChangeEvent) => {
         if (e.affectsConfiguration('heft.language')) {
           // Solo cambia cómo se dice: se repinta sin volver a analizar.
           this.I = i18n(currentLocale());
@@ -135,9 +152,9 @@ class Heft implements vscode.Disposable, PanelHost {
           return;
         }
         if (e.affectsConfiguration('heft')) this.schedule('reason.settings');
-      }),
-      vscode.workspace.onDidChangeWorkspaceFolders(() => void this.start()),
-      vscode.workspace.onDidGrantWorkspaceTrust(() => void this.rebuild('reason.trust')),
+      })),
+      vscode.workspace.onDidChangeWorkspaceFolders(on('workspace folders', () => this.start())),
+      vscode.workspace.onDidGrantWorkspaceTrust(on('workspace trust', () => this.rebuild('reason.trust'))),
     );
   }
 
@@ -154,14 +171,14 @@ class Heft implements vscode.Disposable, PanelHost {
       return;
     }
     if (folders.length > 1) {
-      this.log.appendLine(this.I.t('log.multiRoot', { n: folders.length, name: folders[0]?.name ?? '' }));
+      this.log.info(this.I.t('log.multiRoot', { n: folders.length, name: folders[0]?.name ?? '' }));
     }
     const watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(this.root, '**/*'));
     this.watching = [
       watcher,
-      watcher.onDidCreate((uri) => void this.onFs(uri, 'create')),
-      watcher.onDidChange((uri) => void this.onFs(uri, 'change')),
-      watcher.onDidDelete((uri) => void this.onFs(uri, 'delete')),
+      watcher.onDidCreate(guard(this.log, 'file watcher', (uri: vscode.Uri) => this.onFs(uri, 'create'))),
+      watcher.onDidChange(guard(this.log, 'file watcher', (uri: vscode.Uri) => this.onFs(uri, 'change'))),
+      watcher.onDidDelete(guard(this.log, 'file watcher', (uri: vscode.Uri) => this.onFs(uri, 'delete'))),
     ];
     await this.rebuild('reason.start');
   }
@@ -221,7 +238,7 @@ class Heft implements vscode.Disposable, PanelHost {
 
   private schedule(reason: Reason): void {
     clearTimeout(this.timer);
-    this.timer = setTimeout(() => void this.rebuild(reason), REBUILD_DELAY_MS);
+    this.timer = setTimeout(() => void guard(this.log, 'scheduled analysis', () => this.rebuild(reason))(), REBUILD_DELAY_MS);
   }
 
   /**
@@ -281,15 +298,14 @@ class Heft implements vscode.Disposable, PanelHost {
       // Carpetas del ámbito que ya no existen (borradas, renombradas): no tendrían casilla que desmarcar.
       const alive = this.scope.filter((s) => this.tree?.byPath.has(s));
       if (alive.length !== this.scope.length) {
-        this.log.appendLine(`  ${this.I.t('log.scopeGone', { folders: this.scope.filter((s) => !alive.includes(s)).join(', ') })}`);
+        this.log.info(`${this.I.t('log.scopeGone', { folders: this.scope.filter((s) => !alive.includes(s)).join(', ') })}`);
         this.scope = alive;
         void this.context.workspaceState.update(SCOPE_KEY, alive);
       }
       const t = index.timings;
       const I = this.I;
-      this.log.appendLine(
-        `[${I.time(Date.now())}] ` +
-          I.t('log.index', {
+      this.log.info(
+        I.t('log.index', {
             reason: I.t(reason),
             files: I.tp('files', index.files.length),
             commits: I.num(index.commitsRead),
@@ -300,12 +316,13 @@ class Heft implements vscode.Disposable, PanelHost {
             total: I.ms(t.total),
           }),
       );
-      for (const w of index.warnings) this.log.appendLine(`  ${I.t('log.warning', { text: warningText(w, I) })}`);
+      for (const w of index.warnings) this.log.warn(warningText(w, I));
     } catch (err) {
       if (!current() || err instanceof CancelledError) return;
       this.error =
         err instanceof WorkerExitError ? this.I.t('error.workerExit', { code: err.code }) : err instanceof Error ? err.message : String(err);
-      this.log.appendLine(this.I.t('log.indexError', { error: this.error }));
+      // Ya se enseña en la vista y en el panel; el aviso es para saber que el fallo es de Heft.
+      this.log.error(`analysis (${reason})`, err, { notify: true, detail: this.I.t('log.indexError', { error: this.error }) });
     } finally {
       if (current()) {
         this.building = false;
@@ -353,6 +370,14 @@ class Heft implements vscode.Disposable, PanelHost {
 
   /** Lo que llega del webview no se da por bueno: solo se abren rutas que están en el índice. */
   onPanelMessage(m: WebviewMessage): void {
+    try {
+      this.handlePanelMessage(m);
+    } catch (err) {
+      this.log.error(`panel message ${String((m as { type?: unknown })?.type)}`, err, { notify: true });
+    }
+  }
+
+  private handlePanelMessage(m: WebviewMessage): void {
     if (m.type === 'open') {
       if (this.root && typeof m.path === 'string' && this.known.has(m.path)) {
         void vscode.commands.executeCommand('vscode.open', vscode.Uri.joinPath(this.root, m.path));
@@ -379,8 +404,9 @@ class Heft implements vscode.Disposable, PanelHost {
     else if (m.type === 'copy') {
       if (typeof m.text === 'string') void vscode.env.clipboard.writeText(m.text);
     } else if (m.type === 'error') {
-      this.log.appendLine(`[${this.I.time(Date.now())}] ${this.I.t('log.panelError', { where: String(m.where), message: String(m.message) })}`);
-      if (typeof m.stack === 'string') for (const line of m.stack.split('\n').slice(0, 30)) this.log.appendLine(`  ${line.trim()}`);
+      // El panel ya enseña su propia pantalla de error: aquí solo se registra.
+      const err = Object.assign(new Error(String(m.message)), { stack: typeof m.stack === 'string' ? m.stack.split('\n').slice(0, 40).join('\n') : undefined });
+      this.log.error(`panel (${String(m.where)})`, err);
     }
   }
 
@@ -392,7 +418,7 @@ class Heft implements vscode.Disposable, PanelHost {
     if (list.includes(file)) return;
     try {
       await cfg.update('usage.ignore', [...list, file].sort(), vscode.ConfigurationTarget.Workspace);
-      this.log.appendLine(this.I.t('log.ignored', { path: file }));
+      this.log.info(this.I.t('log.ignored', { path: file }));
     } catch (err) {
       void vscode.window.showErrorMessage(this.I.t('ignore.failed', { error: err instanceof Error ? err.message : String(err) }));
     }
@@ -415,7 +441,7 @@ class Heft implements vscode.Disposable, PanelHost {
     if (answer !== action) return;
     try {
       await vscode.workspace.fs.delete(vscode.Uri.joinPath(this.root, file), { useTrash: true });
-      this.log.appendLine(I.t('log.trashed', { path: file, size: I.size(entry.size) }));
+      this.log.info(I.t('log.trashed', { path: file, size: I.size(entry.size) }));
       this.schedule('reason.trash');
     } catch (err) {
       void vscode.window.showErrorMessage(I.t('trash.failed', { path: file, error: err instanceof Error ? err.message : String(err) }));
@@ -541,7 +567,19 @@ class FoldersProvider implements vscode.TreeDataProvider<TreeNode> {
   private readonly emitter = new vscode.EventEmitter<TreeNode | undefined | void>();
   readonly onDidChangeTreeData = this.emitter.event;
 
-  constructor(private readonly heft: Heft) {}
+  constructor(private readonly heft: Heft, log: HeftLog) {
+    // Un fallo aquí dejaría la vista vacía sin explicación: se registra y se sigue.
+    this.getChildren = guardSync(log, 'folders view', this.getChildren.bind(this), () => []);
+    this.getTreeItem = guardSync(log, 'folders view', this.getTreeItem.bind(this), (node: TreeNode) => {
+      let label = '?';
+      try {
+        label = node.kind === 'dir' ? node.name : node.file.path;
+      } catch {
+        // el nodo está roto: se enseña igualmente, sin datos
+      }
+      return new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.None);
+    });
+  }
 
   refresh(): void {
     this.emitter.fire();

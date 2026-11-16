@@ -256,8 +256,11 @@ describe('panel: acciones sobre «sin rastro»', () => {
 describe('panel: errores del webview', () => {
   it('van al registro de Heft, con la traza', () => {
     panel().receive.fire({ type: 'error', where: 'al pintar', message: 'destroy is not a function', stack: 'TypeError: x\n   at App' });
-    expect(fake.log.some((l) => l.includes('Error en el panel (al pintar): destroy is not a function'))).toBe(true);
-    expect(fake.log.at(-1)).toBe('  at App');
+    const entry = fake.log.at(-1)!;
+    expect(entry).toMatch(/^\[error\] \[panel \(al pintar\)\] destroy is not a function/);
+    expect(entry).toContain('at App');
+    // El panel ya enseña su pantalla de error: no hace falta otro aviso.
+    expect(fake.errors).toEqual([]);
   });
 
   it('copiar el error y abrir el registro', () => {

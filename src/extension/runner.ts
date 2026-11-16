@@ -45,7 +45,7 @@ export type WorkerMessage =
   | { type: 'progress'; progress: Progress }
   | { type: 'partial'; index: HeftIndex }
   | { type: 'done'; index: HeftIndex }
-  | { type: 'error'; message: string };
+  | { type: 'error'; message: string; stack?: string };
 
 /**
  * Un worker por análisis: cancelar es terminarlo, sin esperar a que el código síncrono
@@ -62,9 +62,11 @@ export function workerRunner(workerFile: string): IndexRunner {
         if (m.type === 'progress') events.onProgress(m.progress);
         else if (m.type === 'partial') events.onPartial(m.index);
         else if (m.type === 'done') resolve(m.index);
-        else reject(new Error(m.message));
+        else reject(Object.assign(new Error(m.message), m.stack ? { stack: m.stack } : {}));
       });
+      // Excepción sin capturar dentro del worker: llega con su traza.
       worker.on('error', reject);
+      worker.on('messageerror', reject);
       // Si ya se resolvió o rechazó, esto no tiene efecto.
       worker.on('exit', (code) => {
         reject(cancelled ? new CancelledError() : new WorkerExitError(code));

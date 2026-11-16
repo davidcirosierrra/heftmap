@@ -21,7 +21,7 @@ async function main(): Promise<void> {
     });
     post({ type: 'done', index });
   } catch (err) {
-    post({ type: 'error', message: err instanceof Error ? err.message : String(err) });
+    post({ type: 'error', message: err instanceof Error ? err.message : String(err), stack: err instanceof Error ? err.stack : undefined });
   }
 }
 
