@@ -1,5 +1,8 @@
 name: Publish
 
+# DESACTIVADO: fuera de .github/workflows, GitHub no lo ejecuta. Para activarlo, moverlo a
+# .github/workflows/publish.yml (ver docs/publicar.md, «Publicar con GitHub Actions»).
+
 # Al crear una release en GitHub (tag vX.Y.Z) se publica en Open VSX y se adjunta el .vsix.
 # Necesita el secreto OVSX_PAT (token de open-vsx.org, ver docs/publicar.md).
 on:
