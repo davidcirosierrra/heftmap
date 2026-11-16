@@ -21,6 +21,20 @@ export type Usage =
   | 'exception' // el usuario lo marcó como «nunca huérfano»
   | 'ignored-by-git'; // solo con includeIgnored
 
+/**
+ * Regla que decidió el estado de uso (SPEC §3.3): el «por qué» del veredicto. Un mismo estado
+ * puede venir de reglas distintas (p. ej. `entry` declarada o por convención).
+ */
+export type UsageRule =
+  | 'ignored-by-git' // carpeta ignorada por git (pseudo-entrada)
+  | 'ignore-setting' // está en `heftmap.usage.ignore`
+  | 'category' // configuración, documentación, lockfile u otro lenguaje: no se analiza
+  | 'hard-ref' // alguna referencia real (import, ruta…) desde fuera de los scripts de tooling
+  | 'entry-declared' // entrada declarada: package.json, paquete del monorepo o `heftmap.usage.entryPoints`
+  | 'entry-convention' // entrada por convención (index.html, vite.config…)
+  | 'weak-ref' // solo menciones o referencias desde scripts de tooling
+  | 'no-refs'; // nada lo nombra
+
 export type RefKind =
   | 'import'
   | 'ruta en string'
@@ -67,6 +81,8 @@ export interface FileEntry {
   /** Nº de commits que lo tocan (dentro de `since`). */
   changes: number;
   usage: Usage;
+  /** Regla que decidió `usage`; sin definir mientras no hay veredicto (índice a medias). */
+  usageRule?: UsageRule;
   refsIn: Ref[];
   refsOut: Ref[];
 }

@@ -20,6 +20,7 @@ export function toPanelIndex(index: HeftIndex, rootName: string, updatedAt?: num
   const commitAt = new Map<string, number>();
   const files = kept.map((f) => {
     const out: PanelFile = { path: f.path, size: f.size, usage: f.usage };
+    if (f.usageRule) out.usageRule = f.usageRule;
     if (f.lastCommit) {
       let i = commitAt.get(f.lastCommit.hash);
       if (i === undefined) {
