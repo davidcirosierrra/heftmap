@@ -5,6 +5,7 @@ import { i18n, resolveLocale, type I18n, type Locale } from '../i18n/index.js';
 import { warningText } from '../i18n/warnings.js';
 import { Analysis, type Reason } from './analysis.js';
 import { HeftDecorations } from './decorations.js';
+import { addUsageIgnore, readSettings, toBuildOptions } from './settings.js';
 import { FoldersProvider } from './folders-view.js';
 import { guard, HeftLog } from './log.js';
 import { HeftPanel, PANEL_VIEW_TYPE, type PanelHost } from './panel.js';
@@ -38,8 +39,8 @@ const SCOPE_KEY = 'heftmap.scope';
 
 /** Idioma de Heftmap: el ajuste `heftmap.language` o, en «auto», el del editor. */
 export function currentLocale(): Locale {
-  const chosen = vscode.workspace.getConfiguration('heftmap').get<string>('language');
-  return chosen && chosen !== 'auto' ? resolveLocale(chosen) : resolveLocale(vscode.env.language);
+  const chosen = readSettings().language;
+  return chosen !== 'auto' ? resolveLocale(chosen) : resolveLocale(vscode.env.language);
 }
 
 /** `runner` solo se pasa en los tests; el editor llama a `activate(context)`. */
@@ -232,15 +233,8 @@ class Heft implements vscode.Disposable, PanelHost {
   }
 
   private analysisOptions(root: vscode.Uri): BuildOptions {
-    const cfg = vscode.workspace.getConfiguration('heftmap', root);
-    return {
-      publicDir: cfg.get<string>('publicDir') || 'public',
-      since: cfg.get<string>('git.since') || undefined,
-      ignore: cfg.get<string[]>('usage.ignore') ?? [],
-      entryPoints: cfg.get<string[]>('usage.entryPoints') ?? [],
-      // Workspace sin confianza: git podría ejecutar programas que trae el propio repo (SPEC §3.6).
-      useGit: vscode.workspace.isTrusted,
-    };
+    // Workspace sin confianza: git podría ejecutar programas que trae el propio repo (SPEC §3.6).
+    return toBuildOptions(readSettings(root), vscode.workspace.isTrusted);
   }
 
   private onIndex(index: HeftIndex, reason: Reason): void {
@@ -357,12 +351,8 @@ class Heft implements vscode.Disposable, PanelHost {
   /** «Ignorar este archivo»: a `heftmap.usage.ignore` del workspace. El cambio de ajuste reanaliza. */
   private async ignoreUsage(file: string): Promise<void> {
     if (!this.root) return;
-    const cfg = vscode.workspace.getConfiguration('heftmap', this.root);
-    const list = cfg.get<string[]>('usage.ignore') ?? [];
-    if (list.includes(file)) return;
     try {
-      await cfg.update('usage.ignore', [...list, file].sort(), vscode.ConfigurationTarget.Workspace);
-      this.log.info(this.I.t('log.ignored', { path: file }));
+      if (await addUsageIgnore(this.root, file)) this.log.info(this.I.t('log.ignored', { path: file }));
     } catch (err) {
       void vscode.window.showErrorMessage(this.I.t('ignore.failed', { error: err instanceof Error ? err.message : String(err) }));
     }
