@@ -5,7 +5,7 @@ import { setLocale, useI18n } from './locale.js';
 import { COLOR_LABEL, coloring as buildColoring } from './colors.js';
 import { tableColumns } from './columns.js';
 import { Detail } from './Detail.js';
-import { QUICK_LABEL, filterRows, hotspotRows, linksOf, nextSort, quickCounts, quickRows, sortRows, toRows, totalSize, type Quick } from './model.js';
+import { QUICK_LABEL, filterRows, inZoom, zoomRows, hotspotRows, linksOf, nextSort, quickCounts, quickRows, sortRows, toRows, totalSize, type Quick } from './model.js';
 import { SPLIT_DEFAULT, SPLIT_MAX, SPLIT_MIN, useSaved } from './saved.js';
 import { useSplit } from './split.js';
 import { Table } from './Table.js';
@@ -52,10 +52,12 @@ export function App() {
     canHotspots && saved.hot && saved.area === 'lines' && saved.color === 'changes' && saved.sort.key === 'changes' && saved.sort.dir === 'desc';
   const base = useMemo(() => (inHotspots ? hotspotRows(scoped) : scoped), [scoped, inHotspots]);
   const filtered = useMemo(() => filterRows(quickRows(base, quick), saved.filter), [base, quick, saved.filter]);
-  const rows = useMemo(() => sortRows(filtered, saved.sort), [filtered, saved.sort]);
+  const sorted = useMemo(() => sortRows(filtered, saved.sort), [filtered, saved.sort]);
   // Colores sobre el ámbito, no sobre el filtro: escribir en el filtro no debe cambiarlos.
   const coloring = useMemo(() => buildColoring(saved.color, base, I), [saved.color, base, I]);
   const zoom = useMemo(() => effectiveZoom(filtered, saved.zoom), [filtered, saved.zoom]);
+  // La tabla y los totales enseñan lo mismo que el treemap: lo de dentro de la carpeta ampliada.
+  const rows = useMemo(() => zoomRows(sorted, zoom), [sorted, zoom]);
   const selectedRow = useMemo(() => (saved.selected ? scoped.find((r) => r.path === saved.selected) : undefined), [scoped, saved.selected]);
   const links = useMemo(
     () => (index && selectedRow ? linksOf(index.files, index.refs ?? [], selectedRow.path, scope) : { usedBy: [], uses: [] }),
@@ -90,7 +92,7 @@ export function App() {
 
   const columns = tableColumns(I, coloring, scopeBytes);
 
-  const isFiltered = saved.filter.trim() !== '' || quick !== 'all' || inHotspots;
+  const isFiltered = saved.filter.trim() !== '' || quick !== 'all' || inHotspots || zoom !== '';
   return (
     <div className="app">
       <header className="bar">
@@ -152,6 +154,14 @@ export function App() {
         <button className="pill" aria-pressed={saved.chart} title={I.t('bar.chartTip')} onClick={() => set({ chart: !saved.chart })}>
           {I.t(saved.chart ? 'bar.hideChart' : 'bar.showChart')}
         </button>
+        {zoom && (
+          <span className="chip zoom">
+            {I.t('bar.zoom', { folder: zoom })}
+            <button title={I.t('bar.leaveZoom')} aria-label={I.t('bar.leaveZoom')} onClick={() => set({ zoom: '' })}>
+              ✕
+            </button>
+          </span>
+        )}
       </div>
       {/* Siempre presente y de altura fija: si apareciera solo al analizar, la tabla saltaría. */}
       <div className={`statusline${!status.building && status.error ? ' failed' : ''}`} role="status">
@@ -259,7 +269,12 @@ export function App() {
         </section>
         )}
       </div>
-      <Detail row={selectedRow} scopeBytes={scopeBytes} links={links} onSelect={(path, inScope) => (inScope ? set({ selected: path }) : post({ type: 'open', path }))} />
+      <Detail row={selectedRow} scopeBytes={scopeBytes} links={links} onSelect={(path, inScope) => {
+          // Un enlace a un archivo fuera de la carpeta ampliada sale del zoom: si no, la tabla no lo enseñaría.
+          if (inScope) set(inZoom(path, zoom) ? { selected: path } : { selected: path, zoom: '' });
+          else post({ type: 'open', path });
+        }}
+      />
     </div>
   );
 }
