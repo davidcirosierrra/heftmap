@@ -149,6 +149,22 @@ describe('panel: mensajes del webview', () => {
   });
 });
 
+describe('panel: errores del webview', () => {
+  it('van al registro de Heft, con la traza', () => {
+    panel().receive.fire({ type: 'error', where: 'al pintar', message: 'destroy is not a function', stack: 'TypeError: x\n   at App' });
+    expect(fake.log.some((l) => l.includes('Error en el panel (al pintar): destroy is not a function'))).toBe(true);
+    expect(fake.log.at(-1)).toBe('  at App');
+  });
+
+  it('copiar el error y abrir el registro', () => {
+    panel().receive.fire({ type: 'copy', text: 'traza' });
+    expect(fake.clipboard).toBe('traza');
+    const shown = fake.logShown;
+    panel().receive.fire({ type: 'showLog' });
+    expect(fake.logShown).toBe(shown + 1);
+  });
+});
+
 describe('panel: ciclo de vida', () => {
   it('abrirlo otra vez no crea otro: lo trae al frente', () => {
     void fake.commands.get('heft.openPanel')!();

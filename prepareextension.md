@@ -16,7 +16,7 @@ Funciona igual en VS Code.
 git clone https://github.com/davidcirosierrra/Heft.git
 cd Heft
 npm install
-npm test                        # 84 tests: núcleo, ámbito, árbol, tabla del panel y humo de la extensión
+npm test                        # núcleo, ámbito, árbol, panel (lógica y DOM) y humo de la extensión
 ```
 
 ## 3. Dos formas de probarla
@@ -172,6 +172,7 @@ Marca cada punto. Si algo falla, abre **Heft: Mostrar registro** (`Ctrl+Shift+P`
 | «No se pudo analizar el repositorio» | El mensaje completo está en el registro. Si menciona `worker.cjs`, el `.vsix` está incompleto: vuelve a ejecutar `npm run package`. |
 | No hay datos de git (commits, `●`) | Si `git` no está en el `PATH`, Heft analiza sin git y lo avisa en el registro (`aviso: No se encuentra «git»…`). |
 | `Install from VSIX` falla | Comprueba la versión: Heft pide VS Code ≥ 1.85 (*Help → About*). |
+| El panel enseña «El panel de Heft ha fallado» o una banda roja | Es un error del propio panel: pulsa **Copiar el error** (o **Ver el registro**) y pásalo. **Reintentar** vuelve a pintar. |
 | El panel se abre en blanco | Falta `dist/webview.js` o `dist/webview.css` en el `.vsix`: vuelve a ejecutar `npm run package`. Mira también *Developer: Open Webview Developer Tools*. |
 | No hay casillas en las carpetas | Versión del editor demasiado antigua: las casillas en vistas existen desde VS Code 1.80. |
 

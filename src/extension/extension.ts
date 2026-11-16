@@ -330,6 +330,13 @@ class Heft implements vscode.Disposable, PanelHost {
     } else if (m.type === 'clearScope') this.setScope([]);
     else if (m.type === 'pickScope') void this.pickScope();
     else if (m.type === 'refresh') void this.rebuild('manual');
+    else if (m.type === 'showLog') this.log.show();
+    else if (m.type === 'copy') {
+      if (typeof m.text === 'string') void vscode.env.clipboard.writeText(m.text);
+    } else if (m.type === 'error') {
+      this.log.appendLine(`[${new Date().toLocaleTimeString('es-ES')}] Error en el panel (${String(m.where)}): ${String(m.message)}`);
+      if (typeof m.stack === 'string') for (const line of m.stack.split('\n').slice(0, 30)) this.log.appendLine(`  ${line.trim()}`);
+    }
   }
 
   // ---------------------------------------------------------------- ámbito

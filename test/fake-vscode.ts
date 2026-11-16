@@ -123,6 +123,8 @@ export const fake = {
       }
     | undefined,
   status: { text: '', tooltip: '', visible: false },
+  clipboard: '' as string,
+  logShown: 0,
   /** Paneles webview abiertos: lo que la extensión les manda y un emisor para contestarle. */
   panels: [] as {
     viewType: string;
@@ -156,7 +158,7 @@ export const fake = {
 export const window = {
   createOutputChannel: (_name: string) => ({
     appendLine: (s: string) => fake.log.push(s),
-    show: () => undefined,
+    show: () => void fake.logShown++,
     dispose: () => undefined,
   }),
   createTreeView: (_id: string, options: any) => {
@@ -246,6 +248,10 @@ export const window = {
       entry.done = true;
     }
   },
+};
+
+export const env = {
+  clipboard: { writeText: async (s: string) => void (fake.clipboard = s) },
 };
 
 export const commands = {

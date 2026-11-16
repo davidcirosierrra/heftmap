@@ -210,6 +210,11 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
     van en un mensaje de estado aparte. Como el webview se descarga al ocultar la pestaña, no se
     le manda nada hasta que avisa con `ready`.
   - Lo que llega del webview no se da por bueno: solo se abren rutas que están en el índice.
+  - Errores del panel a la vista (`webview/errors.tsx`): un fallo al pintar enseña el mensaje y
+    la traza con **Reintentar**, **Copiar el error** y **Ver el registro** (nunca una pestaña en
+    blanco); uno en ejecución sale en una banda descartable. Los dos se escriben en el registro.
+  - El panel se prueba también con DOM (`test/webview-*.test.ts`, jsdom) con un
+    `acquireVsCodeApi` fiel al real: su `setState` **devuelve** el estado.
 - **`webview/`**: tabla, treemap y detalle. CSP con nonce, recursos con `asWebviewUri`, comunicación
   por `postMessage`, estado (orden, zoom, selección) con `getState/setState`.
 - Índice en memoria:

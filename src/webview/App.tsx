@@ -1,17 +1,10 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import type { HostMessage, PanelIndex, PanelStatus, WebviewMessage } from '../extension/panel-protocol.js';
+import type { HostMessage, PanelIndex, PanelStatus } from '../extension/panel-protocol.js';
 import { fmtSize, pct } from '../report.js';
+import { vscode } from './vscode.js';
 import { DEFAULT_SORT, filterRows, nextSort, sortRows, toRows, totalSize, visibleRange, type Row, type Sort, type SortKey } from './model.js';
 
 /** Fase 2 (SPEC §2.2): barra superior y tabla. El treemap y el detalle llegan en las fases 3 a 5. */
-
-interface VsCodeApi {
-  postMessage(m: WebviewMessage): void;
-  getState(): unknown;
-  setState(s: unknown): void;
-}
-declare function acquireVsCodeApi(): VsCodeApi;
-const vscode = acquireVsCodeApi();
 
 /** Lo que sobrevive a ocultar y volver a mostrar la pestaña. */
 interface Saved {
@@ -55,7 +48,11 @@ export function App() {
     return () => window.removeEventListener('message', onMessage);
   }, []);
 
-  useEffect(() => vscode.setState(saved), [saved]);
+  // Con llaves: `setState` devuelve el estado y React tomaría ese valor por la función de
+  // limpieza del efecto («destroy is not a function» al siguiente cambio: panel en blanco).
+  useEffect(() => {
+    vscode.setState(saved);
+  }, [saved]);
 
   const scope = status?.scope ?? [];
   const scoped = useMemo(() => toRows(index?.files ?? [], scope), [index, scope.join('\n')]);
