@@ -1,21 +1,21 @@
 # Publicar Heft
 
-Qué falta para publicar la extensión y los textos que hay que poner. Fecha: 16-11-2026.
-Hecho: licencia, localización, seguridad y registro de errores. Falta lo marcado con [ ].
+Qué falta para publicar la extensión y los textos que hay que poner. Estado: **borrador**, con
+decisiones pendientes (sección 1). Fecha: 16-11-2026.
 
 Cursor instala desde **Open VSX**, no desde el Marketplace de Microsoft. Para Cursor basta Open VSX;
 el Marketplace solo hace falta si se quiere llegar a usuarios de VS Code.
 
-## 1. Decisiones
+## 1. Decisiones antes de publicar
 
-| Decisión | Elegido |
-|----------|---------|
-| Licencia | **MIT** (`LICENSE`) |
-| Repo | **Público** (lo cambia David en GitHub). Antes, ver la lista de [seguridad.md](seguridad.md#antes-de-hacer-público-el-repo) |
-| Idioma | **Inglés, castellano y euskera** (`heft.language`). Pendiente: revisión del euskera |
-| Dónde | Open VSX primero; el Marketplace de Microsoft cuando esté estable |
-| Versión | `0.1.0` hasta tener el análisis incremental |
-| Nombre visible | Pendiente. «Heft» coincide con el sistema de build de Rush Stack (Microsoft); el identificador `davidcirosierrra.heft` es único |
+| Decisión | Opciones | Propuesta |
+|----------|----------|-----------|
+| Dónde | Solo Open VSX · Open VSX + Marketplace · seguir con `.vsix` propio | Open VSX primero; el Marketplace cuando esté estable |
+| Licencia | MIT · Apache-2.0 · otra. Open VSX exige una licencia; hoy es `UNLICENSED` | MIT |
+| Repo | Público o privado. Si es privado, las imágenes del README no cargan en la tienda y nadie puede abrir incidencias | Público |
+| Idioma | Hoy toda la interfaz está en español. Publicar solo en español limita mucho el alcance; traducir supone usar `vscode.l10n` y `package.nls.json` | Publicar en español con README bilingüe; traducir la interfaz en una versión posterior |
+| Nombre | «Heft» es también el nombre del sistema de build de Rush Stack (Microsoft), con paquetes `@rushstack/heft-*`. El identificador `davidcirosierrra.heft` es único, pero en búsquedas se mezclará | Mantener `heft` como `name` y usar un `displayName` más descriptivo, p. ej. «Heft — peso y uso de archivos» |
+| Versión | `0.1.0` o `1.0.0` | `0.1.0` hasta tener el análisis incremental |
 
 ## 2. Cuentas y pasos (Open VSX)
 
@@ -39,16 +39,15 @@ Automatizarlo después con una GitHub Action al crear un tag `v*`
 ## 3. Cambios técnicos en el repo
 
 **`package.json`**
-- [x] Quitar `"private": true`.
-- [x] `"license": "MIT"` y el archivo `LICENSE`.
+- [ ] Quitar `"private": true`.
+- [ ] `"license": "MIT"` (o la elegida) y añadir el archivo `LICENSE`.
 - [ ] `"icon": "media/icon.png"`: **PNG** de al menos 128×128 (mejor 256×256). La tienda no admite
       SVG como icono. `media/heft.svg` se queda para la barra de actividad.
-- [x] `"displayName"` y `"description"` (en `package.nls*.json`, tres idiomas).
-- [ ] `"keywords"` de la sección 4.
+- [ ] `"displayName"`, `"description"` y `"keywords"` de la sección 4.
 - [ ] `"categories"`: `["Visualization", "Other"]` está bien.
-- [x] `"author"`, `"homepage"` y `"bugs"` con la URL del repo.
+- [ ] `"author"`, `"homepage"` y `"bugs"` con la URL del repo.
 - [ ] `"galleryBanner": { "color": "#1f1f1f", "theme": "dark" }`.
-- [x] Quitar `"bin"`: el CLI no va en el `.vsix` (se sigue usando con `npm run heft`).
+- [ ] Quitar `"bin"`: el CLI no va en el `.vsix` y en una extensión no se usa.
 - [ ] `"engines.vscode"`: comprobar la versión de VS Code en la que se basa Cursor
       (*Help → About*) y no pedir más. Hoy `^1.85.0`.
 
@@ -63,11 +62,11 @@ Automatizarlo después con una GitHub Action al crear un tag `v*`
 
 **Otros archivos**
 - [ ] `CHANGELOG.md` (sección 6). La tienda lo enseña en una pestaña.
-- [x] `LICENSE` y `SECURITY.md`.
-- [x] `.vscodeignore`: incluye `LICENSE`, `SECURITY.md` y los `package.nls*.json`. Falta `CHANGELOG.md`
-      cuando exista. Los `.map` de `dist/` (13,8 MB el del worker) ya no entran porque la
+- [ ] `LICENSE`.
+- [ ] `.vscodeignore`: ya solo incluye `dist/`, `media/`, `package.json` y `README.md`; añadir
+      `CHANGELOG.md` y `LICENSE`. Los `.map` de `dist/` (13,8 MB el del worker) ya no entran porque la
       lista es explícita; que siga así.
-- [x] `SECURITY.md`: avisos por *private vulnerability reporting* de GitHub (hay que activarlo).
+- [ ] `SECURITY.md` no es obligatorio; con una línea basta («escribe a … o abre una incidencia»).
 
 **Comprobaciones**
 - [ ] `npx vsce ls` lista solo lo esperado.
@@ -144,7 +143,7 @@ audio, texturas), sirve también en cualquier repo con git.
   incremental está en camino.
 - En un workspace con varias carpetas raíz se analiza solo la primera.
 - Un archivo renombrado empieza a contar cambios desde cero.
-- Interfaz en inglés, castellano y euskera (ajuste `heft.language`).
+- La interfaz está en español.
 ```
 
 ## 6. `CHANGELOG.md` (borrador)
