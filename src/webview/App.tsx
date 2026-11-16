@@ -76,6 +76,29 @@ export function App() {
   rowsRef.current = rows;
   const exportRows = (): void => post({ type: 'exportTable', paths: rowsRef.current.map((r) => r.path) });
 
+  // Teclado dentro del panel: «/» enfoca el filtro y Escape sale del zoom. No se toca nada
+  // mientras se escribe en un campo (allí Escape es del propio campo).
+  const filterInput = useRef<HTMLInputElement>(null);
+  const zoomRef = useRef({ zoom, leave: () => set({ zoom: '' }) });
+  zoomRef.current = { zoom, leave: () => set({ zoom: '' }) };
+  useEffect(() => {
+    const onKey = (e: globalThis.KeyboardEvent): void => {
+      const t = e.target as HTMLElement | null;
+      const typing = !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
+      if (typing || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === '/' && filterInput.current) {
+        filterInput.current.focus();
+        filterInput.current.select();
+        e.preventDefault();
+      } else if (e.key === 'Escape' && zoomRef.current.zoom) {
+        zoomRef.current.leave();
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   const split = useSplit(setSaved);
 
   if (!status || index === undefined) return <Splash title={I.t('panel.loading')} />;
@@ -130,6 +153,7 @@ export function App() {
           {I.t('export.button')}
         </button>
         <input
+          ref={filterInput}
           className="filter"
           type="search"
           placeholder={I.t('bar.filter')}

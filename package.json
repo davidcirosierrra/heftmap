@@ -335,7 +335,14 @@
           "description": "%config.panel.defaultColor%"
         }
       }
-    }
+    },
+    "keybindings": [
+      {
+        "command": "heftmap.openPanel",
+        "key": "ctrl+shift+alt+h",
+        "mac": "cmd+ctrl+shift+h"
+      }
+    ]
   },
   "scripts": {
     "build": "npm run build:cli && npm run build:ext",
