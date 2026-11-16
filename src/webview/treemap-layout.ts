@@ -1,3 +1,4 @@
+import type { PanelArea } from '../extension/panel-protocol.js';
 import type { MessageKey } from '../i18n/index.js';
 import { hierarchy, treemap, treemapSquarify } from 'd3-hierarchy';
 import type { Row } from './model.js';
@@ -6,7 +7,7 @@ import type { Row } from './model.js';
  * Treemap 2D anidado por carpetas (SPEC §2.2). Lógica pura: de filas a rectángulos.
  * El componente solo pinta lo que sale de aquí.
  */
-export type AreaMode = 'bytes' | 'balanced' | 'lines';
+export type AreaMode = PanelArea;
 
 /** Clave del texto de cada modo (src/i18n). */
 export const AREA_LABEL = {

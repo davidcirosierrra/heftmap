@@ -1,4 +1,4 @@
-import type { PanelCommit } from '../extension/panel-protocol.js';
+import type { PanelColor, PanelCommit } from '../extension/panel-protocol.js';
 import type { I18n, MessageKey } from '../i18n/index.js';
 import type { Row, RowUsage } from './model.js';
 
@@ -6,7 +6,7 @@ import type { Row, RowUsage } from './model.js';
  * Color de cada archivo según el modo activo (SPEC §2.2) y su leyenda. Lógica pura.
  * Cada modo reparte los archivos en grupos (`key`); la leyenda es la lista de grupos.
  */
-export type ColorMode = 'ext' | 'usage' | 'age' | 'recent' | 'changes';
+export type ColorMode = PanelColor;
 
 /** Clave del texto de cada modo (src/i18n). */
 export const COLOR_LABEL = {

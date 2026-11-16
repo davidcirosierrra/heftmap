@@ -26,5 +26,7 @@
   "config.maxTextFileSize": "Los archivos de texto más grandes que esto (en MB) no se leen: se conoce su tamaño, pero no sus líneas ni su uso. Entre 1 y 50.",
   "config.usage.weakSources": "Carpetas de tooling (rutas relativas). Lo que nombran sus archivos cuenta como mención, no como uso: un generador nombra lo que escribe.",
   "config.exclude": "Archivos y carpetas que Heftmap deja fuera del todo (no se listan, no se leen y sus referencias no cuentan), como en .gitignore: «*.snap» o «fixtures» casan en cualquier carpeta; «docs/images» o «src/**/*.gen.ts» son relativos a la raíz; una carpeta se lleva todo lo que contiene.",
-  "config.hotspots.exclude": "Código que no cuenta en los hotspots (copiado de terceros, generado a mano…), con los mismos patrones que heftmap.exclude. Se sigue analizando y saliendo en la tabla."
+  "config.hotspots.exclude": "Código que no cuenta en los hotspots (copiado de terceros, generado a mano…), con los mismos patrones que heftmap.exclude. Se sigue analizando y saliendo en la tabla.",
+  "config.panel.defaultArea": "Área del treemap con la que abre el panel (Bytes, Equilibrado o Líneas). Solo se usa si el panel no tiene estado guardado: lo que elijas en el panel manda.",
+  "config.panel.defaultColor": "Color con el que abre el panel (Extensión, Uso, Antigüedad, Commits recientes o Cambios). Solo se usa si el panel no tiene estado guardado: lo que elijas en el panel manda."
 }

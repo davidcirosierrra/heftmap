@@ -306,6 +306,28 @@
           },
           "default": [],
           "description": "%config.hotspots.exclude%"
+        },
+        "heftmap.panel.defaultArea": {
+          "type": "string",
+          "enum": [
+            "bytes",
+            "balanced",
+            "lines"
+          ],
+          "default": "bytes",
+          "description": "%config.panel.defaultArea%"
+        },
+        "heftmap.panel.defaultColor": {
+          "type": "string",
+          "enum": [
+            "ext",
+            "usage",
+            "age",
+            "recent",
+            "changes"
+          ],
+          "default": "ext",
+          "description": "%config.panel.defaultColor%"
         }
       }
     }

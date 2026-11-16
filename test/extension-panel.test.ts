@@ -85,6 +85,7 @@ describe('primer análisis: aviso sobre el árbol y panel de espera', () => {
       fraction: 5 / 27,
       error: null,
       locale: 'es',
+      defaults: { area: 'bytes', color: 'ext' },
     });
     runs[0]!.events.onProgress({ phase: 'read', done: 27, total: 27 });
     expect(last('status').status).toMatchObject({ progress: 'leyendo 27/27', fraction: 1 });

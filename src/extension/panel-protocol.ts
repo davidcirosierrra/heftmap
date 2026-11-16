@@ -54,6 +54,12 @@ export interface PanelIndex {
   updatedAt?: number;
 }
 
+/** Modos del área del treemap y del color del panel (`AreaMode`, `ColorMode` en el webview). */
+export const PANEL_AREAS = ['bytes', 'balanced', 'lines'] as const;
+export const PANEL_COLORS = ['ext', 'usage', 'age', 'recent', 'changes'] as const;
+export type PanelArea = (typeof PANEL_AREAS)[number];
+export type PanelColor = (typeof PANEL_COLORS)[number];
+
 export interface PanelStatus {
   hasRoot: boolean;
   scope: string[];
@@ -65,6 +71,11 @@ export interface PanelStatus {
   error: string | null;
   /** Idioma de la interfaz: el panel lo sigue si cambia el ajuste `heftmap.language`. */
   locale?: Locale;
+  /**
+   * Área y color con los que abre el panel (`heftmap.panel.defaultArea`/`defaultColor`). Solo
+   * se usan si el panel no tiene estado guardado.
+   */
+  defaults?: { area: PanelArea; color: PanelColor };
 }
 
 export type HostMessage =

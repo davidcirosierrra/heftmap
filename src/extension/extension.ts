@@ -182,6 +182,11 @@ class Heft implements vscode.Disposable, PanelHost {
           this.panel.indexChanged();
           return;
         }
+        if (e.affectsConfiguration('heftmap.panel')) {
+          // Solo vale para un panel sin estado guardado: se manda, sin analizar.
+          this.panel.statusChanged();
+          return;
+        }
         if (e.affectsConfiguration('heftmap.hotspots.exclude')) {
           // Solo cambia qué cuenta como hotspot: se recalcula lo que va al panel, sin analizar.
           this.warnInvalidPatterns('heftmap.hotspots.exclude', pathMatcher(readSettings(this.root).hotspotsExclude).invalid);
@@ -312,6 +317,7 @@ class Heft implements vscode.Disposable, PanelHost {
 
   panelStatus(): PanelStatus {
     const p = this.analysis.building ? this.analysis.progress : undefined;
+    const settings = readSettings(this.root);
     return {
       hasRoot: !!this.root,
       scope: [...this.scope],
@@ -320,6 +326,7 @@ class Heft implements vscode.Disposable, PanelHost {
       fraction: p && p.total > 0 ? p.done / p.total : null,
       error: this.error ?? null,
       locale: this.I.locale,
+      defaults: { area: settings.panelDefaultArea, color: settings.panelDefaultColor },
     };
   }
 

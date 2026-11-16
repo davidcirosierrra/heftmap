@@ -57,6 +57,8 @@ balio du, monorepoetan ere bai.
 | `heftmap.usage.weakSources` | `["scripts", "tools", "bin"]` | Tooling karpetak: izendatzen dutena aipamena da, ez erabilera |
 | `heftmap.exclude` | `[]` | Erabat kanpoan uzten dena, .gitignore-n bezala (`*.snap`, `fixtures`, `docs/images`) |
 | `heftmap.hotspots.exclude` | `[]` | Hotspot-etatik kanpo uzten den kodea, `heftmap.exclude`-ren eredu berberak |
+| `heftmap.panel.defaultArea` | `bytes` | Treemap-aren azalera panela irekitzean: `bytes`, `balanced` edo `lines` |
+| `heftmap.panel.defaultColor` | `ext` | Kolorea panela irekitzean: `ext`, `usage`, `age`, `recent` edo `changes` |
 
 ## Monorepoak
 
