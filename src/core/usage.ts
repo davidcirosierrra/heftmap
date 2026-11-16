@@ -69,7 +69,7 @@ export function analyzeUsage(input: UsageInput): UsageResult {
       const viaAlias = tsc.alias(p, from);
       return viaAlias.length ? viaAlias : [posix.normalize(posix.join(dir, p))];
     };
-    const toRes = (list: string[]): RegExp[] => list.flatMap(expand).map(globToRegExp);
+    const toRes = (list: string[]): RegExp[] => list.flatMap(expand).map(globToRegExp).filter((re): re is RegExp => re !== null);
     const yes = toRes(patterns.filter((p) => !p.startsWith('!')));
     const no = toRes(patterns.filter((p) => p.startsWith('!')).map((p) => p.slice(1)));
     if (!yes.length) return [];
@@ -378,8 +378,22 @@ export function scanCode(text: string, fileName: string): { strings: string[]; g
 }
 
 /** Glob de Vite a expresión regular: `**`, `*`, `?` y `{a,b}`. */
-export function globToRegExp(glob: string): RegExp {
+/** Más comodines que esto en un patrón de `import.meta.glob` no se evalúa (ver abajo). */
+export const MAX_GLOB_STARS = 3;
+export const MAX_GLOB_LENGTH = 300;
+
+/**
+ * Patrón de `import.meta.glob` a expresión regular, o null si no se puede evaluar sin riesgo.
+ * El patrón sale del código del repo analizado: `**\/**\/**\/…` daba una expresión con
+ * retroceso exponencial que colgaba el análisis (ReDoS). Se juntan los `**` seguidos y se
+ * rechazan los patrones con más de MAX_GLOB_STARS `**` o demasiado largos.
+ */
+export function globToRegExp(glob: string): RegExp | null {
+  const g0 = glob.replace(/(?:\*\*\/)+/g, '**/').replace(/\*{3,}/g, '**');
+  if (g0.length > MAX_GLOB_LENGTH || (g0.match(/\*\*/g)?.length ?? 0) > MAX_GLOB_STARS) return null;
+  let depth = 0;
   const body = (g: string): string => {
+    if (++depth > 20) throw new Error('glob demasiado anidado');
     let re = '';
     for (let i = 0; i < g.length; i++) {
       const c = g[i] as string;
@@ -400,7 +414,11 @@ export function globToRegExp(glob: string): RegExp {
     }
     return re;
   };
-  return new RegExp(`^${body(glob)}$`);
+  try {
+    return new RegExp(`^${body(g0)}$`);
+  } catch {
+    return null;
+  }
 }
 
 /** Strings entre comillas con pinta de ruta (HTML, CSS, JSON, otros lenguajes). */
@@ -417,17 +435,19 @@ export function quotedStrings(text: string): string[] {
 
 export function cssUrls(text: string): string[] {
   const out: string[] = [];
-  for (const m of text.matchAll(/url\(\s*(['"]?)([^'")]+)\1\s*\)/g)) if (m[2]) out.push(m[2]);
-  for (const m of text.matchAll(/@import\s+(['"])([^'"]+)\1/g)) if (m[2]) out.push(m[2]);
+  // Repeticiones acotadas y sin saltos de línea: con `[^'")]+` un archivo con miles de `url(`
+  // sin cerrar costaba tiempo cuadrático (ReDoS, ver docs/seguridad.md).
+  for (const m of text.matchAll(/url\(\s*(['"]?)([^'"()\n]{1,2048})\1\s*\)/g)) if (m[2]) out.push(m[2]);
+  for (const m of text.matchAll(/@import\s+(['"])([^'"\n]{1,2048})\1/g)) if (m[2]) out.push(m[2]);
   return out;
 }
 
 export function htmlAttrs(text: string): string[] {
   const out: string[] = [];
-  for (const m of text.matchAll(/\b(?:src|href|poster|data-src|xlink:href)\s*=\s*(['"])([^'"]+)\1/gi)) {
+  for (const m of text.matchAll(/\b(?:src|href|poster|data-src|xlink:href)\s*=\s*(['"])([^'"\n]{1,2048})\1/gi)) {
     if (m[2]) out.push(m[2]);
   }
-  for (const m of text.matchAll(/\bsrcset\s*=\s*(['"])([^'"]+)\1/gi)) {
+  for (const m of text.matchAll(/\bsrcset\s*=\s*(['"])([^'"]{1,8192})\1/gi)) {
     for (const part of (m[2] ?? '').split(',')) {
       const url = part.trim().split(/\s+/)[0];
       if (url) out.push(url);
@@ -438,7 +458,7 @@ export function htmlAttrs(text: string): string[] {
 
 export function mdLinks(text: string): string[] {
   const out: string[] = [];
-  for (const m of text.matchAll(/!?\[[^\]]*\]\(\s*<?([^)\s>]+)>?(?:\s+"[^"]*")?\s*\)/g)) if (m[1]) out.push(m[1]);
+  for (const m of text.matchAll(/!?\[[^[\]\n]{0,1000}\]\(\s*<?([^()[\]\s>]{1,2048})>?(?:\s+"[^"\n]{0,500}")?\s*\)/g)) if (m[1]) out.push(m[1]);
   return out;
 }
 

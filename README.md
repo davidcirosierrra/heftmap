@@ -13,7 +13,8 @@ quién lo referencia, filtros «sin rastro» y acciones. También el último cam
 colores por antigüedad y por commits recientes, detalle del commit) y los hotspots: líneas × cambios,
 con el botón «Hotspots». Lo siguiente es el análisis incremental (plan en la sección 10 del SPEC); la integración con Knip
 queda como opcional.
-La interfaz está en inglés, castellano y euskera (ajuste `heft.language`).
+La interfaz está en inglés, castellano y euskera (ajuste `heft.language`). Seguridad:
+[SECURITY.md](SECURITY.md) y [docs/seguridad.md](docs/seguridad.md).
 Diseño completo en [SPEC.md](SPEC.md); resultados de la fase 0 en [docs/fase-0.md](docs/fase-0.md).
 
 **Instalar y probar en Cursor: [prepareextension.md](prepareextension.md).**

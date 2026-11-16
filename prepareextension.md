@@ -214,6 +214,12 @@ Marca cada punto. Si algo falla, abre **Heft: Mostrar registro** (`Ctrl+Shift+P`
 - [ ] Cambia el idioma del editor (*Configure Display Language*) con el ajuste en `auto`: tras
       reiniciar, todo sigue al editor (inglés si no es castellano ni euskera).
 
+**Modo restringido**
+- [ ] Abre una carpeta y elige «No confío» (o *Workspaces: Manage Workspace Trust* → no confiar):
+      Heft muestra tamaños y uso, la vista dice «Modo restringido: se analiza sin git…» y no hay
+      columnas de git con datos.
+- [ ] Confía en la carpeta: se reanaliza sola y aparecen el historial y los cambios.
+
 **Reparto y estado**
 - [ ] Arrastra la barra entre la tabla y el treemap: cambia el ancho y el treemap se redibuja. Doble
       clic la devuelve a su sitio. Con el foco en ella, `←` `→` también la mueven.

@@ -16,7 +16,10 @@ interface Run {
   resolve: (i: HeftIndex) => void;
 }
 const runs: Run[] = [];
-const manualRunner: IndexRunner = (_root, _opts, events) => {
+const opts: { useGit?: boolean }[] = [];
+const lastOpts = () => opts.at(-1)!;
+const manualRunner: IndexRunner = (_root, runOpts, events) => {
+  opts.push(runOpts);
   const run = { events } as Run;
   let reject!: (e: Error) => void;
   const result = new Promise<HeftIndex>((res, rej) => {
@@ -312,5 +315,29 @@ describe('idioma de la extensión', () => {
     env.language = 'es';
     fake.config['language'] = 'auto';
     fake.configListeners.forEach((fn) => fn({ affectsConfiguration: (k: string) => k === 'heft' || k === 'heft.language' }));
+  });
+});
+
+describe('workspace sin confianza', () => {
+  it('se analiza sin git, la vista lo dice y al confiar se vuelve a analizar con git', async () => {
+    const { workspace } = await import('./fake-vscode.js');
+    const seen: (boolean | undefined)[] = [];
+    const before = runs.length;
+    (workspace as { isTrusted: boolean }).isTrusted = false;
+    void fake.commands.get('heft.refresh')!();
+    await tick();
+    expect(runs).toHaveLength(before + 1);
+    seen.push(lastOpts().useGit);
+    runs.at(-1)!.resolve(full);
+    await tick();
+    expect(fake.treeView!.message).toBe('Modo restringido: se analiza sin git (sin historial ni cambios sin commit). Confía en la carpeta para verlos.');
+    (workspace as { isTrusted: boolean }).isTrusted = true;
+    fake.trustListeners.forEach((fn) => fn());
+    await tick();
+    seen.push(lastOpts().useGit);
+    runs.at(-1)!.resolve(full);
+    await tick();
+    expect(seen).toEqual([false, true]);
+    expect(fake.treeView!.message).toBeUndefined();
   });
 });

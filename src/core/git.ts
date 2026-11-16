@@ -1,16 +1,70 @@
 import { execFile } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, statSync } from 'node:fs';
+import path from 'node:path';
 import { promisify } from 'node:util';
 import type { CommitInfo, Warning } from './types.js';
 
 const exec = promisify(execFile);
 
+/**
+ * Ejecutable de git, buscado a mano en el PATH (docs/seguridad.md):
+ * - Solo carpetas absolutas, y nunca la carpeta analizada ni nada dentro de ella. En Windows,
+ *   lanzar «git» con `cwd` en el repo busca primero `git.exe` en ese `cwd`: un repo con un
+ *   `git.exe` en la raíz ejecutaría código al abrirlo.
+ * - En Windows solo `git.exe`: los `.cmd`/`.bat` pasarían por un intérprete de órdenes.
+ */
+export function findGit(cwd: string, env: NodeJS.ProcessEnv = process.env, platform: NodeJS.Platform = process.platform): string | null {
+  const isWin = platform === 'win32';
+  const p = isWin ? path.win32 : path.posix;
+  const root = p.resolve(cwd);
+  const inside = (dir: string): boolean => {
+    const rel = p.relative(root, dir);
+    return rel === '' || (!rel.startsWith('..') && !p.isAbsolute(rel));
+  };
+  const pathVar = env.PATH ?? env.Path ?? '';
+  for (const raw of pathVar.split(isWin ? ';' : ':')) {
+    const dir = raw.trim().replace(/^"(.*)"$/, '$1');
+    if (!dir || !p.isAbsolute(dir) || inside(p.resolve(dir))) continue;
+    const candidate = p.join(dir, isWin ? 'git.exe' : 'git');
+    try {
+      if (statSync(candidate).isFile()) return candidate;
+    } catch {
+      // no está aquí
+    }
+  }
+  return null;
+}
+
+/**
+ * Configuración forzada en cada llamada, por si el repo analizado trae un `.git/config`
+ * malicioso (descargado, no clonado): ni monitor del sistema de archivos (`core.fsmonitor`
+ * ejecuta un programa en `git status`), ni verificación de firmas en `git log` (ejecuta
+ * `gpg.program`), ni submódulos. Los filtros de `.gitattributes` no se pueden desactivar
+ * así: por eso, en un workspace sin confianza, Heft no ejecuta git (SPEC §3.6).
+ */
+const SAFE_CONFIG = [
+  '-c', 'core.quotePath=false',
+  '-c', 'core.fsmonitor=false',
+  '-c', 'log.showSignature=false',
+  '-c', 'submodule.recurse=false',
+  '-c', 'core.untrackedCache=false',
+];
+
+const gitByCwd = new Map<string, string | null>();
+
 /** Ejecuta git en `cwd` y devuelve stdout. Rutas sin escapar (`core.quotePath=false`). */
 export async function git(cwd: string, args: string[]): Promise<string> {
-  const { stdout } = await exec('git', ['-c', 'core.quotePath=false', ...args], {
+  let bin = gitByCwd.get(cwd);
+  if (bin === undefined) gitByCwd.set(cwd, (bin = findGit(cwd)));
+  if (!bin) throw Object.assign(new Error('git not found in PATH'), { code: 'ENOENT' });
+  const { stdout } = await exec(bin, [...SAFE_CONFIG, ...args], {
     cwd,
     maxBuffer: 512 * 1024 * 1024,
     encoding: 'utf8',
+    windowsHide: true,
+    // Sin preguntas por credenciales y sin bloquear el índice del usuario (`git status` lo
+    // reescribiría para refrescar marcas de tiempo).
+    env: { ...process.env, GIT_TERMINAL_PROMPT: '0', GIT_OPTIONAL_LOCKS: '0' },
   });
   return stdout;
 }
@@ -117,7 +171,7 @@ export async function readStatus(root: string, prefix: string): Promise<{ dirty:
   const untracked = new Set<string>();
   let out: string;
   try {
-    out = await git(root, ['status', '--porcelain=v1', '-z', '--untracked-files=all']);
+    out = await git(root, ['status', '--porcelain=v1', '-z', '--untracked-files=all', '--ignore-submodules=all']);
   } catch {
     return { dirty, untracked };
   }

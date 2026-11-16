@@ -18,5 +18,6 @@
   "config.usage.ignore": "Inoiz umezurtz gisa kontatzen ez diren fitxategiak (bide-izen erlatiboak).",
   "config.usage.entryPoints": "Sarrera-puntu gehigarriak, automatikoki detektatzen direnez gain.",
   "config.language": "Heft-en panelaren eta alboko ikuspegiaren hizkuntza. Komandoen eta ezarpenen izenek editorearen hizkuntza jarraitzen dute.",
-  "config.language.auto": "Editorearen hizkuntza (ingelesa, gaztelania edo euskara ez bada)"
+  "config.language.auto": "Editorearen hizkuntza (ingelesa, gaztelania edo euskara ez bada)",
+  "capabilities.untrusted": "Modu mugatuan Heft-ek ez du git exekutatzen: tamainak eta erabilera erakusten ditu, historiarik eta commit gabeko aldaketarik gabe. Lan-eremuko Heft ezarpenak ez dira kontuan hartzen."
 }

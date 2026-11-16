@@ -72,6 +72,11 @@ export interface FileEntry {
 }
 
 export interface BuildOptions {
+  /**
+   * false: no ejecutar git (workspace sin confianza, SPEC §3.6). Se analiza como una carpeta sin
+   * repo: recorrido del disco, sin historial ni cambios.
+   */
+  useGit?: boolean;
   /** Incluye carpetas ignoradas por git como pseudo-entradas con su peso. */
   includeIgnored?: boolean;
   /** Límite del historial, p. ej. `1.year` (se pasa a `git log --since`). */
