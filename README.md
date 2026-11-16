@@ -1,50 +1,74 @@
-# Heft
+# Heft — what's heavy in your repo, and is it used?
 
-Extensión para Cursor (y VS Code) que responde a una pregunta: **¿qué pesa en este repo y se está usando?**
+Heft shows how much each file and folder weighs, which assets nobody references any more, and
+where the big code that changes most lives. Built for web projects with heavy assets (`.glb`
+models, audio, textures), useful in any git repository, including monorepos.
 
-- Peso de cada archivo y carpeta: tabla, árbol y treemap.
-- Uso: quién referencia cada archivo y qué recursos no tienen rastro de uso.
-- Último cambio en git y **hotspots** (líneas × frecuencia de cambio).
+[Español](README.es.md) · [Euskara](README.eu.md)
 
-Estado: **fases 0 a 6 hechas**. Vista lateral «Carpetas» con tamaños y casillas de ámbito, comandos, menú
-contextual del explorador, barra de estado y panel con la tabla de archivos (orden, filtro, ámbito)
-y el treemap enlazado (área, color por extensión o por uso, zoom), y el uso de cada archivo: estado,
-quién lo referencia, filtros «sin rastro» y acciones. También el último cambio en git (columna,
-colores por antigüedad y por commits recientes, detalle del commit) y los hotspots: líneas × cambios,
-con el botón «Hotspots». Lo siguiente es el análisis incremental (plan en la sección 10 del SPEC); la integración con Knip
-queda como opcional.
-La interfaz está en inglés, castellano y euskera (ajuste `heft.language`). Seguridad:
-[SECURITY.md](SECURITY.md) y [docs/seguridad.md](docs/seguridad.md).
-Diseño completo en [SPEC.md](SPEC.md); resultados de la fase 0 en [docs/fase-0.md](docs/fase-0.md).
+![Hotspots: lines × changes](docs/images/hotspots.png)
 
-**Instalar y probar en Cursor: [prepareextension.md](prepareextension.md).**
+## What it does
 
-## CLI (fase 0)
+- **Folders view** in the side bar: size and share of every folder and file, with a weight bar,
+  colour for the heaviest items and checkboxes to narrow the analysis to some folders.
+- **Panel with a table and a treemap**, linked both ways. Every file in one sortable, filterable
+  table. Treemap area by bytes, √bytes or lines; colour by extension, usage, age, recent commits
+  or how often it changes.
+- **Usage**: who references each file (imports, paths in strings, `url()`, `src`/`href`, Markdown
+  links, `import.meta.glob`) and which assets have **no trace** at all. For those: ignore, or move
+  to the trash (always asks first).
+- **Git**: last commit of every file, uncommitted changes and diff.
+- **Hotspots**: one button crosses lines and number of changes to find large code that keeps
+  changing.
 
-```bash
-npm install
-npm run build
-node dist/cli.js /ruta/al/repo            # informe legible
-node dist/cli.js /ruta/al/repo --json     # índice completo en JSON
-node dist/cli.js /ruta/al/repo --since 1.year
-```
+![Usage: who references each file](docs/images/usage.png)
 
-## Desarrollo
+![Age of the last change, zoomed into a folder](docs/images/age.png)
 
-```bash
-npm test          # vitest (núcleo, lógica de la extensión y humo contra un vscode simulado)
-npm run typecheck # tsc --noEmit
-npm run package   # heft.vsix
-```
+## What it doesn't do
 
-- `src/core/`: núcleo sin dependencia de `vscode` (listado, git, uso).
-- `src/extension/`: la extensión. `scope.ts` y `tree-model.ts` son lógica pura con tests;
-  `extension.ts` es la capa de `vscode`. El análisis corre en un worker: `runner.ts` lo lanza y
-  `worker.ts` ejecuta el núcleo (bundle aparte, `dist/worker.cjs`). `panel.ts` crea el webview del
-  panel y `panel-protocol.ts` define los mensajes que se cruzan con él.
-- `src/webview/`: interfaz del panel (React, bundle de navegador `dist/webview.js`). `model.ts` es
-  la lógica de la tabla (filas, filtro, orden), `treemap-layout.ts` la del treemap y `colors.ts` la
-  de los colores: puras y con tests. Los `test/webview-*.test.ts` con jsdom prueban el panel real.
-- `src/i18n/`: textos en los tres idiomas y formatos (números, tamaños, fechas). Términos fijos en
-  [docs/glosario.md](docs/glosario.md).
-- `test/fake-vscode.ts`: doble de la API para el test de humo (alias en `vitest.config.ts`).
+- It isn't a dead-code detector. For code, «No importers» is a low-confidence hint (framework
+  routes, for example, are never imported). Use [Knip](https://knip.dev) for dead code.
+- It never deletes anything without asking.
+- It sends nothing anywhere: everything is computed locally from your files and `git`. No
+  telemetry, no network requests.
+
+## Requirements
+
+- Cursor, VS Code 1.85 or later, or any editor that installs from Open VSX.
+- `git` in the `PATH` for history and changes. Without git, Heft still shows sizes and usage.
+- In Restricted Mode (untrusted folders) Heft does not run git. See [SECURITY.md](SECURITY.md).
+
+## Settings
+
+| Setting | Default | What for |
+|---------|---------|----------|
+| `heft.language` | `auto` | `en`, `es` or `eu`; `auto` follows the editor |
+| `heft.publicDir` | `public` | Folder that absolute paths (`/models/x.glb`) resolve against |
+| `heft.git.since` | empty | Limit the git history in large repos, e.g. `1.year` |
+| `heft.usage.ignore` | `[]` | Files that never count as orphans |
+| `heft.usage.entryPoints` | `[]` | Extra entry points (framework routes, for example) |
+
+## Monorepos
+
+Each app uses its own `tsconfig.json` (aliases like `@/…`), and packages of the repo imported by
+name (`@scope/pkg`) resolve to their source, with or without `node_modules`. Aliases defined only
+in a bundler config (Vite, Metro, Babel) can't be followed: the log (*Output → Heft*) lists them,
+and declaring them in a tsconfig `paths` fixes it.
+
+## Known limits
+
+- Every change on disk re-analyzes the repo in the background. Incremental analysis is planned.
+- In a multi-root workspace only the first folder is analyzed.
+- A renamed file starts counting changes from zero.
+
+## Problems
+
+*Output → Heft* has the log. If Heft fails it says so and offers **Copy report**: paste it into an
+[issue](https://github.com/davidcirosierrra/Heft/issues). Security problems: see
+[SECURITY.md](SECURITY.md).
+
+## License
+
+[MIT](LICENSE)

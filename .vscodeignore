@@ -8,5 +8,8 @@
 !package.nls.json
 !package.nls.*.json
 !README.md
+!README.es.md
+!README.eu.md
+!CHANGELOG.md
 !LICENSE
 !SECURITY.md

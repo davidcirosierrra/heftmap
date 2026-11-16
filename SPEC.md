@@ -9,7 +9,7 @@ Nombre: **Heft** (antes «Workspace Files»). Repo `heft`; prefijo de ajustes y 
 
 Estado: **fases 0 a 6 hechas** (vista «Carpetas», ámbito, comandos y panel con tabla, treemap, uso,
 git y hotspots; instalar y probar
-con [prepareextension.md](prepareextension.md)). Fase 0 en [docs/fase-0.md](docs/fase-0.md). Fecha: 16-11-2026.
+con [prepareextension.md](prepareextension.md); publicar: [docs/publicar.md](docs/publicar.md)). Fase 0 en [docs/fase-0.md](docs/fase-0.md). Fecha: 16-11-2026.
 Las capturas son de la v1: valen como referencia visual, con las diferencias de la sección 8.
 
 ---
