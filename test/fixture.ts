@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -93,5 +93,98 @@ export function createRepo(files: Record<string, string | Buffer>): string {
   git('init', '-q', '-b', 'main');
   git('add', '-A');
   git('commit', '-q', '-m', 'Inicial');
+  return root;
+}
+
+/**
+ * Monorepo del SPEC §4.3: cada app con su tsconfig y sus alias, paquetes del repo importados por
+ * nombre, con y sin `node_modules`, y un commit.
+ */
+export function createMonorepo(): string {
+  const root = mkdtempSync(path.join(tmpdir(), 'heft-mono-'));
+  const write = (rel: string, content: string | object): void => {
+    const abs = path.join(root, rel);
+    mkdirSync(path.dirname(abs), { recursive: true });
+    writeFileSync(abs, typeof content === 'string' ? content : JSON.stringify(content, null, 2));
+  };
+  write('.gitignore', 'node_modules\ndist\n');
+  // Sin tsconfig.json en la raíz: solo una base que las apps extienden.
+  write('package.json', { name: 'acme', private: true, workspaces: ['apps/*', 'packages/*'], devDependencies: { typescript: '^5.0.0' } });
+  write('tsconfig.base.json', { compilerOptions: { strict: true, module: 'ESNext', moduleResolution: 'Bundler', jsx: 'preserve' } });
+
+  // --- app móvil: alias @/* → src/*
+  write('apps/mobile/package.json', { name: '@acme/mobile', dependencies: { react: '^19.0.0', '@acme/api': 'workspace:*', '@acme/ui': 'workspace:*', '@acme/types': 'workspace:*' } });
+  write('apps/mobile/tsconfig.json', { extends: '../../tsconfig.base.json', compilerOptions: { paths: { '@/*': ['./src/*'], '#kit/*': ['../../packages/kit/src/*.ts'] } }, include: ['src'] });
+  write(
+    'apps/mobile/src/main.tsx',
+    [
+      "import React from 'react'",
+      "import fs from 'node:fs'",
+      "import { useTrip } from '@/hooks/useTrip'",
+      "import { client } from '@acme/api'",
+      "import { Button } from '@acme/ui/Button'",
+      "import type { Trip } from '@acme/types'",
+      "import { theme } from '@acme/theme'",
+      "import { deep } from '@acme/api/internal/deep'",
+      "import { t } from '@acme/kit/i18n'",
+      "import { locale } from '@acme/kit/locale'",
+      "import { format } from '#kit/format'",
+      'export const app = [React, fs, useTrip, client, Button, theme, deep, t, locale, format] as unknown as Trip',
+    ].join('\n'),
+  );
+  write('apps/mobile/src/hooks/useTrip.ts', "import { http } from '@/lib/http'\nimport { x } from '~/aliasDelBundler/x'\nexport const useTrip = () => [http, x]\n");
+  write('apps/mobile/src/lib/http.ts', 'export const http = 1\n');
+  write('apps/mobile/src/huerfano.ts', 'export const nadie = 1\n');
+  // Fuera del `include` del tsconfig: usa el más cercano igualmente.
+  write('apps/mobile/e2e/flow.ts', "import { http } from '@/lib/http'\nexport const flow = http\n");
+
+  // --- app web: mismo alias, otro destino; y baseUrl
+  write('apps/web/package.json', { name: '@acme/web', dependencies: { '@acme/api': 'workspace:*' } });
+  write('apps/web/tsconfig.json', { files: [], references: [{ path: './tsconfig.app.json' }] });
+  write('apps/web/tsconfig.app.json', { extends: '../../tsconfig.base.json', compilerOptions: { baseUrl: 'src', paths: { '@/*': ['../app/*'] } }, include: ['src', 'app'] });
+  write('apps/web/src/index.ts', "import { page } from '@/page'\nimport { Card } from 'components/Card'\nimport { client } from '@acme/api'\nexport default [page, Card, client]\n");
+  write('apps/web/app/page.ts', 'export const page = 1\n');
+  write('apps/web/index.html', '<!doctype html><script type="module" src="/src/index.ts"></script>');
+  write('apps/web/src/components/Card.ts', 'export const Card = 1\n');
+
+  // --- paquetes
+  write('packages/api/package.json', { name: '@acme/api', main: 'dist/index.js', types: 'dist/index.d.ts' });
+  write('packages/api/src/index.ts', "export { client } from './client'\n");
+  write('packages/api/src/client.ts', 'export const client = 1\n');
+  write('packages/api/src/internal/deep.ts', 'export const deep = 1\n');
+  write('packages/ui/package.json', { name: '@acme/ui', exports: { '.': './src/index.ts', './*': { types: './dist/*.d.ts', import: './dist/*.js' } } });
+  write('packages/ui/src/index.ts', "export * from './Button'\n");
+  write('packages/ui/src/Button.tsx', 'export const Button = 1\n');
+  write('packages/types/package.json', { name: '@acme/types' });
+  write('packages/types/src/index.ts', 'export type Trip = { id: string }\n');
+  write('packages/theme/package.json', { name: '@acme/theme', main: 'src/index.ts' });
+  write('packages/theme/src/index.ts', 'export const theme = 1\n');
+  write('packages/cli/package.json', { name: '@acme/cli', bin: { acme: './dist/bin.js' }, scripts: { gen: 'node ./tools-local/gen.mjs' } });
+  write('packages/cli/src/bin.ts', 'export {}\n');
+  write('packages/cli/tools-local/gen.mjs', 'export {}\n');
+
+  // `@acme/kit` compilado (dist/ existe pero git lo ignora) y enlazado en node_modules:
+  // TypeScript resuelve `@acme/kit/i18n` a `packages/kit/dist/i18n/index.d.ts`.
+  write('packages/kit/package.json', {
+    name: '@acme/kit',
+    exports: { './i18n': { types: './dist/i18n/index.d.ts', import: './dist/i18n/index.js' }, './*': './src/*.ts' },
+  });
+  write('packages/kit/src/i18n/index.ts', 'export const t = (k: string) => k\n');
+  // Patrón `./*` → `./src/*.ts` y un import que es una carpeta: `src/locale/index.ts`.
+  write('packages/kit/src/locale/index.ts', 'export const locale = 1\n');
+  write('packages/kit/src/format/index.ts', 'export const format = 1\n');
+  write('packages/kit/dist/i18n/index.d.ts', 'export declare const t: (k: string) => string\n');
+  write('packages/kit/dist/i18n/index.js', 'export const t = (k) => k\n');
+  mkdirSync(path.join(root, 'node_modules/@acme'), { recursive: true });
+  symlinkSync(path.join(root, 'packages/kit'), path.join(root, 'node_modules/@acme/kit'), 'dir');
+
+  // `@acme/theme` instalado como enlace de workspace: TypeScript lo resuelve por node_modules.
+  mkdirSync(path.join(root, 'node_modules/@acme'), { recursive: true });
+  symlinkSync(path.join(root, 'packages/theme'), path.join(root, 'node_modules/@acme/theme'), 'dir');
+
+  const git = (...args: string[]): void => void execFileSync('git', args, { cwd: root, stdio: 'ignore' });
+  git('init', '-q');
+  git('add', '.');
+  git('-c', 'user.name=x', '-c', 'user.email=x@x', 'commit', '-qm', 'uno');
   return root;
 }
