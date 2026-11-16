@@ -28,5 +28,6 @@
   "config.exclude": "Heftmap-ek erabat kanpoan uzten dituen fitxategiak eta karpetak (ez dira zerrendatzen, ez dira irakurtzen eta haien erreferentziak ez dira kontatzen), .gitignore-n bezala: «*.snap» edo «fixtures» edozein karpetatan bat datoz; «docs/images» edo «src/**/*.gen.ts» erroarekiko dira; karpeta batek barruan duen guztia hartzen du.",
   "config.hotspots.exclude": "Hotspot-etan kontatzen ez den kodea (hirugarrenengandik kopiatua, eskuz sortua…), heftmap.exclude-ren eredu berberekin. Aztertzen eta taulan agertzen jarraitzen du.",
   "config.panel.defaultArea": "Panela irekitzean treemap-aren azalera (Byteak, Orekatua edo Lerroak). Panelak egoera gordeta ez duenean bakarrik erabiltzen da: panelean aukeratzen duzunak agintzen du.",
-  "config.panel.defaultColor": "Panela irekitzean kolorea (Luzapena, Erabilera, Antzinatasuna, Azken commitak edo Aldaketak). Panelak egoera gordeta ez duenean bakarrik erabiltzen da: panelean aukeratzen duzunak agintzen du."
+  "config.panel.defaultColor": "Panela irekitzean kolorea (Luzapena, Erabilera, Antzinatasuna, Azken commitak edo Aldaketak). Panelak egoera gordeta ez duenean bakarrik erabiltzen da: panelean aukeratzen duzunak agintzen du.",
+  "command.exportTable": "Kopiatu taula…"
 }

@@ -134,6 +134,11 @@
         "category": "Heftmap"
       },
       {
+        "command": "heftmap.exportTable",
+        "title": "%command.exportTable%",
+        "category": "Heftmap"
+      },
+      {
         "command": "heftmap.showLog",
         "title": "%command.showLog%",
         "category": "Heftmap"
