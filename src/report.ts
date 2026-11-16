@@ -1,3 +1,4 @@
+import { isHotspotCategory } from './core/classify.js';
 import type { FileEntry, HeftIndex, Usage } from './core/index.js';
 import { i18n, type I18n } from './i18n/index.js';
 import { warningText } from './i18n/warnings.js';
@@ -15,7 +16,7 @@ const rel = (time: number): string => ES.rel(time);
 /** Hotspots (SPEC §3.5): código propio, sin generados, ordenado por cambios y luego líneas. */
 export function hotspots(index: HeftIndex, top: number): FileEntry[] {
   return index.files
-    .filter((f) => !f.generated && f.lines != null && f.changes > 0 && ['code', 'style', 'markup'].includes(f.category))
+    .filter((f) => !f.generated && f.lines != null && f.changes > 0 && isHotspotCategory(f.category))
     .sort((a, b) => b.changes - a.changes || (b.lines ?? 0) - (a.lines ?? 0))
     .slice(0, top);
 }

@@ -30,6 +30,8 @@ export interface Row {
   changes: number;
   /** Lockfile o generado: no cuenta para los hotspots. */
   generated: boolean;
+  /** Código fuente escrito a mano: lo único que se ve en el modo hotspots. */
+  code: boolean;
 }
 
 export type RowUsage = Usage | 'pending';
@@ -79,6 +81,7 @@ export function toRows(files: readonly PanelFile[], scope: Scope, ctx: RowContex
       lines: f.lines ?? null,
       changes: complete ? (f.changes ?? 0) : 0,
       generated: !!f.generated,
+      code: !!f.code && !f.generated,
     });
   }
   return rows;
@@ -129,6 +132,11 @@ const QUICK_TEST: Record<Quick, (r: Row) => boolean> = {
   entry: (r) => r.usage === 'entry',
   dirty: (r) => r.dirty,
 };
+
+/** Filas del modo hotspots: solo código escrito a mano. */
+export function hotspotRows(rows: readonly Row[]): Row[] {
+  return rows.filter((r) => r.code);
+}
 
 export function quickRows(rows: readonly Row[], quick: Quick): Row[] {
   return quick === 'all' ? [...rows] : rows.filter(QUICK_TEST[quick]);

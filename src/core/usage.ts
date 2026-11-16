@@ -4,7 +4,7 @@ import ts from 'typescript';
 import { COMPONENT_EXT, extOf } from './classify.js';
 import { toPosix } from './files.js';
 import type { FileEntry, Phase, Ref, RefKind, Warning } from './types.js';
-import { loadWorkspace, packageNameOf, type Workspace } from './workspace.js';
+import { loadWorkspace, packageNameOf, probeFile, type Workspace } from './workspace.js';
 
 /**
  * Grafo de uso (SPEC §4.3), en dos pasadas:
@@ -70,7 +70,19 @@ export function analyzeUsage(input: UsageInput): UsageResult {
     const viaWorkspace = workspace.resolve(spec);
     if (viaWorkspace) return viaWorkspace;
     if (viaTs === null) return null; // librería externa
-    return resolve(spec, from) ?? tsc.alias(spec, from).find((c) => files.has(c)) ?? null;
+    return resolve(spec, from) ?? firstFile(tsc.alias(spec, from));
+  };
+  const inRepo = (p: string): boolean => {
+    const f = files.get(p);
+    return !!f && !f.ignoredByGit;
+  };
+  /** El primer candidato de alias que es un archivo, probando extensiones y `index` (`#ui/x` → `src/x/index.ts`). */
+  const firstFile = (candidates: string[]): string | null => {
+    for (const c of candidates) {
+      const hit = probeFile(inRepo, c);
+      if (hit) return hit;
+    }
+    return null;
   };
 
   /**
@@ -176,12 +188,14 @@ export function analyzeUsage(input: UsageInput): UsageResult {
     onProgress?.('mentions', ++searched, pending.length);
     const base = posix.basename(f.path);
     const stem = base.replace(/\.[^.]+$/, '');
-    const needles = [base];
-    // Raíces de 1-2 letras («a.png», «bg.png») darían menciones falsas por todas partes.
-    // Con 3 ya se cuelan palabras comunes, pero un «mencionado» de más es mejor que un
-    // «sin rastro» falso, que es el que invita a borrar (p. ej. 'wiz' en una lista de logos).
-    if (stem.length >= 3 && stem !== base) needles.push(stem);
-    const re = new RegExp(`(?<![\\w-])(?:${needles.map(escapeRe).join('|')})(?![\\w-])`);
+    // El nombre completo («grass.png») vale en cualquier sitio. La raíz sola («grass») solo
+    // como string entero o tras una barra: `['asphalt', 'grass']` → `/textures/${s}.png`.
+    // Suelta por el texto daba falsos «usa» con palabras comunes (`placeholder="Buscar"`),
+    // y como clave de objeto (`"placeholder": "Buscar"` en un JSON de traducciones) tampoco.
+    // Raíces de 1-2 letras («a.png», «bg.png») se ignoran: casarían en cualquier parte.
+    const parts = [`(?<![\\w-])${escapeRe(base)}(?![\\w-])`];
+    if (stem.length >= 3 && stem !== base) parts.push(`(?<=['"\`/])${escapeRe(stem)}(?=['"\`](?!\\s*:))`);
+    const re = new RegExp(parts.join('|'));
     for (const src of haystack) {
       if (src === f.path) continue;
       if (re.test(texts.get(src) ?? '')) add(src, f.path, 'mención');
@@ -325,7 +339,7 @@ function makeTsResolver(root: string, files: Map<string, FileEntry>): TsResolver
     return !!f && !f.ignoredByGit;
   };
   const alias = (spec: string, from: string): string[] => {
-    const clean = spec.replace(/[?#].*$/, '');
+    const clean = spec.replace(/(?!^)[?#].*$/, '');
     if (!clean || clean.startsWith('.') || clean.startsWith('/')) return [];
     const options = optionsFor(path.join(root, from));
     // `pathsBasePath`: carpeta del tsconfig cuando hay `paths` sin `baseUrl` (campo interno de TS).
@@ -365,7 +379,12 @@ function makeTsResolver(root: string, files: Map<string, FileEntry>): TsResolver
     // Un archivo del propio repo es interno aunque se llegue a él por `node_modules` (enlace
     // de workspace): TypeScript lo marca como librería externa, pero es código nuestro.
     if (!rel.startsWith('..') && inIndex(rel)) return rel;
-    return resolvedModule.isExternalLibraryImport || rel.startsWith('..') ? null : rel;
+    if (rel.startsWith('..')) return null;
+    // Dentro del repo pero fuera del índice: casi siempre el `dist/` compilado de un paquete
+    // del monorepo (ignorado por git, existe tras un build). No es el destino: que lo busquen
+    // el workspace y los alias en el código fuente. Antes se devolvía esta ruta, `add()` la
+    // descartaba y el `src/` quedaba «sin importadores».
+    return resolvedModule.isExternalLibraryImport ? null : undefined;
   };
   return { resolve, alias };
 }

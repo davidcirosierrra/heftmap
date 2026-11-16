@@ -71,6 +71,25 @@ export function exportTargets(exportsField: unknown, subpath: string): string[] 
   return [];
 }
 
+/**
+ * Archivo del índice para una ruta escrita sin extensión, con la del compilado (`x.js`,
+ * `x.d.ts`) o con una que no es la suya: `./src/*.ts` con `*` = `i18n` da `src/i18n.ts`, que
+ * en realidad es la carpeta `src/i18n/index.ts`.
+ */
+export function probeFile(has: (p: string) => boolean, raw: string): string | null {
+  const rel = posix.normalize(raw);
+  if (!rel || rel === '.' || rel.startsWith('../')) return null;
+  if (has(rel)) return rel;
+  const stem = rel.replace(/\.d\.[cm]?ts$|\.[cm]?[jt]sx?$/, '');
+  for (const base of new Set([stem, rel])) {
+    for (const e of EXTS) if (has(`${base}.${e}`)) return `${base}.${e}`;
+  }
+  for (const base of new Set([stem, rel])) {
+    for (const e of EXTS) if (has(`${base}/index.${e}`)) return `${base}/index.${e}`;
+  }
+  return null;
+}
+
 export function loadWorkspace(files: Map<string, { ignoredByGit?: boolean }>, texts: Map<string, string>): Workspace {
   const has = (p: string): boolean => {
     const f = files.get(p);
@@ -102,20 +121,7 @@ export function loadWorkspace(files: Map<string, { ignoredByGit?: boolean }>, te
     if (entry.name && (!prev || dir.split('/').length < prev.dir.split('/').length)) packages.set(entry.name, entry);
   }
 
-  /** Archivo del índice para una ruta sin extensión o con la del compilado. */
-  const probe = (raw: string): string | null => {
-    const rel = posix.normalize(raw);
-    if (!rel || rel === '.' || rel.startsWith('../')) return null;
-    if (has(rel)) return rel;
-    const stem = rel.replace(/\.d\.[cm]?ts$|\.[cm]?jsx?$/, '');
-    for (const base of new Set([stem, rel])) {
-      for (const e of EXTS) if (has(`${base}.${e}`)) return `${base}.${e}`;
-    }
-    for (const base of new Set([stem, rel])) {
-      for (const e of EXTS) if (has(`${base}/index.${e}`)) return `${base}/index.${e}`;
-    }
-    return null;
-  };
+  const probe = (raw: string): string | null => probeFile(has, raw);
 
   /** Un destino declarado y sus equivalentes en el código fuente (`dist/x.js` → `src/x`, `x`). */
   const variants = (target: string): string[] => {
@@ -154,7 +160,7 @@ export function loadWorkspace(files: Map<string, { ignoredByGit?: boolean }>, te
 
   const cache = new Map<string, string | null | undefined>();
   const resolve = (spec: string): string | null | undefined => {
-    const clean = spec.replace(/[?#].*$/, '');
+    const clean = spec.replace(/(?!^)[?#].*$/, '');
     if (cache.has(clean)) return cache.get(clean);
     const name = packageNameOf(clean);
     const p = packages.get(name);

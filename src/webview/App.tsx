@@ -4,7 +4,7 @@ import type { I18n, MessageKey } from '../i18n/index.js';
 import { setLocale, useI18n } from './locale.js';
 import { COLOR_LABEL, USAGE_COLOR, coloring as buildColoring, usageLabel, type ColorMode } from './colors.js';
 import { Detail } from './Detail.js';
-import { DEFAULT_SORT, QUICK_LABEL, SORT_KEYS, filterRows, linksOf, nextSort, quickCounts, quickRows, sortRows, toRows, totalSize, type Quick, type Sort } from './model.js';
+import { DEFAULT_SORT, QUICK_LABEL, SORT_KEYS, filterRows, hotspotRows, linksOf, nextSort, quickCounts, quickRows, sortRows, toRows, totalSize, type Quick, type Sort } from './model.js';
 import { Table, type Column } from './Table.js';
 import { Treemap } from './Treemap.js';
 import { AREA_LABEL, crumbs, effectiveZoom, type AreaMode } from './treemap-layout.js';
@@ -25,6 +25,8 @@ interface Saved {
   split: number;
   /** false: gráficos ocultos, la tabla ocupa todo. */
   chart: boolean;
+  /** Modo hotspots pedido con su botón (solo código). Se sale al cambiar área, color u orden. */
+  hot: boolean;
 }
 
 const SPLIT_MIN = 0.2;
@@ -45,6 +47,7 @@ function loadSaved(): Saved {
     zoom: typeof s.zoom === 'string' ? s.zoom : '',
     split: typeof s.split === 'number' && Number.isFinite(s.split) ? clampSplit(s.split) : SPLIT_DEFAULT,
     chart: s.chart !== false,
+    hot: s.hot === true,
   };
 }
 
@@ -83,10 +86,16 @@ export function App() {
   const counts = useMemo(() => quickCounts(scoped), [scoped]);
   // Con el índice a medias no hay veredicto de uso: un filtro rápido guardado vaciaría la tabla.
   const quick: Quick = index?.complete ? saved.quick : 'all';
-  const filtered = useMemo(() => filterRows(quickRows(scoped, quick), saved.filter), [scoped, quick, saved.filter]);
+  // Hotspots (SPEC §3.5): área Líneas + color Cambios + tabla por Cambios, y solo código: sin
+  // esto el ranking lo copaban package.json y los lockfiles. Necesita git.
+  const canHotspots = !!index?.complete && index.isGit !== false;
+  const inHotspots =
+    canHotspots && saved.hot && saved.area === 'lines' && saved.color === 'changes' && saved.sort.key === 'changes' && saved.sort.dir === 'desc';
+  const base = useMemo(() => (inHotspots ? hotspotRows(scoped) : scoped), [scoped, inHotspots]);
+  const filtered = useMemo(() => filterRows(quickRows(base, quick), saved.filter), [base, quick, saved.filter]);
   const rows = useMemo(() => sortRows(filtered, saved.sort), [filtered, saved.sort]);
   // Colores sobre el ámbito, no sobre el filtro: escribir en el filtro no debe cambiarlos.
-  const coloring = useMemo(() => buildColoring(saved.color, scoped, I), [saved.color, scoped, I]);
+  const coloring = useMemo(() => buildColoring(saved.color, base, I), [saved.color, base, I]);
   const zoom = useMemo(() => effectiveZoom(filtered, saved.zoom), [filtered, saved.zoom]);
   const selectedRow = useMemo(() => (saved.selected ? scoped.find((r) => r.path === saved.selected) : undefined), [scoped, saved.selected]);
   const links = useMemo(
@@ -217,10 +226,7 @@ export function App() {
     },
   ];
 
-  const isFiltered = saved.filter.trim() !== '' || quick !== 'all';
-  // Hotspots (SPEC §3.5): área Líneas + color Cambios + tabla por Cambios. Necesita git.
-  const canHotspots = index.complete && index.isGit !== false;
-  const inHotspots = saved.area === 'lines' && saved.color === 'changes' && saved.sort.key === 'changes' && saved.sort.dir === 'desc';
+  const isFiltered = saved.filter.trim() !== '' || quick !== 'all' || inHotspots;
   return (
     <div className="app">
       <header className="bar">
@@ -273,7 +279,9 @@ export function App() {
           aria-pressed={inHotspots}
           disabled={!canHotspots}
           title={I.t(canHotspots ? 'bar.hotspotsTip' : 'bar.hotspotsNoGit')}
-          onClick={() => set({ area: 'lines', color: 'changes', sort: { key: 'changes', dir: 'desc' }, zoom: '', chart: true })}
+          onClick={() =>
+            set(inHotspots ? { hot: false } : { hot: true, area: 'lines', color: 'changes', sort: { key: 'changes', dir: 'desc' }, zoom: '', chart: true })
+          }
         >
           {I.t('bar.hotspots')}
         </button>

@@ -132,6 +132,15 @@ export function isNotAnalyzedCategory(c: Category): boolean {
   return c === 'config' || c === 'lockfile' || c === 'doc' || c === 'script' || c === 'other';
 }
 
+/**
+ * Lo que entra en los hotspots: código que alguien escribe y mantiene. Fuera quedan
+ * package.json, lockfiles, configuración, JSON de datos y documentación, que también
+ * cambian mucho pero no son deuda técnica.
+ */
+export function isHotspotCategory(c: Category): boolean {
+  return c === 'code' || c === 'style' || c === 'markup';
+}
+
 /** Categorías que se leen como origen de referencias. */
 export function isSourceCategory(c: Category, p: string): boolean {
   if (c === 'lockfile') return false;

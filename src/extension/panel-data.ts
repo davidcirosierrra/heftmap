@@ -1,3 +1,4 @@
+import { isHotspotCategory } from '../core/classify.js';
 import type { HeftIndex } from '../core/index.js';
 import type { PanelCommit, PanelFile, PanelIndex, PanelRef } from './panel-protocol.js';
 
@@ -32,6 +33,7 @@ export function toPanelIndex(index: HeftIndex, rootName: string, updatedAt?: num
     if (f.lines != null) out.lines = f.lines;
     if (f.changes) out.changes = f.changes;
     if (f.generated) out.generated = true;
+    if (isHotspotCategory(f.category)) out.code = true;
     return out;
   });
   return { rootName, complete: index.complete, isGit: index.isGit, files, refs, commits, updatedAt };
