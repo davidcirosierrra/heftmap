@@ -7,7 +7,7 @@ beforeEach(() => fake.reset('/repo'));
 
 describe('readSettings', () => {
   it('sin nada configurado da los valores por defecto', () => {
-    expect(readSettings()).toEqual({
+    expect(readSettings()).toMatchObject({
       language: 'auto',
       publicDir: 'public',
       gitSince: undefined,
@@ -24,7 +24,7 @@ describe('readSettings', () => {
       'usage.ignore': ['a.png'],
       'usage.entryPoints': ['src/x.ts'],
     });
-    expect(readSettings()).toEqual({
+    expect(readSettings()).toMatchObject({
       language: 'eu',
       publicDir: 'static',
       gitSince: '1.year',
@@ -35,13 +35,39 @@ describe('readSettings', () => {
 
   it('un valor del tipo equivocado cuenta como el valor por defecto', () => {
     Object.assign(fake.config, { language: 3, publicDir: '', 'git.since': ['x'], 'usage.ignore': 'a.png', 'usage.entryPoints': ['ok.ts', 7, null] });
-    expect(readSettings()).toEqual({
+    expect(readSettings()).toMatchObject({
       language: 'auto',
       publicDir: 'public',
       gitSince: undefined,
       usageIgnore: [],
       usageEntryPoints: ['ok.ts'],
     });
+  });
+});
+
+describe('refreshDelay y autoRefresh', () => {
+  it('por defecto 1500 ms y automático', () => {
+    expect(readSettings()).toMatchObject({ refreshDelay: 1500, autoRefresh: true });
+  });
+
+  it('el retardo se recorta a 250–60000 y se redondea; si no es número, el de por defecto', () => {
+    const delay = (v: unknown): number => {
+      fake.config.refreshDelay = v;
+      return readSettings().refreshDelay;
+    };
+    expect(delay(3000)).toBe(3000);
+    expect(delay(10)).toBe(250);
+    expect(delay(1e9)).toBe(60000);
+    expect(delay(999.6)).toBe(1000);
+    expect(delay('2000')).toBe(1500);
+    expect(delay(Number.NaN)).toBe(1500);
+  });
+
+  it('autoRefresh solo acepta booleanos', () => {
+    fake.config.autoRefresh = false;
+    expect(readSettings().autoRefresh).toBe(false);
+    fake.config.autoRefresh = 'no';
+    expect(readSettings().autoRefresh).toBe(true);
   });
 });
 

@@ -99,6 +99,10 @@ class Heft implements vscode.Disposable, PanelHost {
       options: (root) => this.analysisOptions(root),
       inIndex: (rel) => this.known.has(rel) || !!this.tree?.byPath.has(rel),
       isGit: () => !!this.index?.isGit,
+      refresh: () => {
+        const s = readSettings(this.root);
+        return { delay: s.refreshDelay, auto: s.autoRefresh };
+      },
       onStart: () => this.render(),
       onLaunched: (done) => {
         // Barra de progreso nativa sobre la vista mientras dure este análisis.

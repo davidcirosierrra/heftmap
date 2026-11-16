@@ -49,6 +49,8 @@ models, audio, textures), useful in any git repository, including monorepos.
 | `heftmap.git.since` | empty | Limit the git history in large repos, e.g. `1.year` |
 | `heftmap.usage.ignore` | `[]` | Files that never count as orphans |
 | `heftmap.usage.entryPoints` | `[]` | Extra entry points (framework routes, for example) |
+| `heftmap.refreshDelay` | `1500` | Milliseconds to wait after a change before analyzing again (250–60000) |
+| `heftmap.autoRefresh` | `true` | Analyze again automatically when files or git change; off = only with Refresh |
 
 ## Monorepos
 

@@ -256,6 +256,18 @@
           },
           "default": [],
           "description": "%config.usage.entryPoints%"
+        },
+        "heftmap.refreshDelay": {
+          "type": "number",
+          "default": 1500,
+          "minimum": 250,
+          "maximum": 60000,
+          "description": "%config.refreshDelay%"
+        },
+        "heftmap.autoRefresh": {
+          "type": "boolean",
+          "default": true,
+          "description": "%config.autoRefresh%"
         }
       }
     }
