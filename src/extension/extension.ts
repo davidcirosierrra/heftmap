@@ -1,18 +1,18 @@
 import path from 'node:path';
 import * as vscode from 'vscode';
 import { git } from '../core/git.js';
-import type { FileEntry, HeftIndex, Progress } from '../core/index.js';
+import type { HeftIndex, Progress } from '../core/index.js';
 import { i18n, resolveLocale, type I18n, type Locale, type MessageKey } from '../i18n/index.js';
 import { warningText } from '../i18n/warnings.js';
-import { bar, weightTier, type WeightTier } from './bars.js';
-import { guard, guardSync, HeftLog } from './log.js';
+import { HeftDecorations } from './decorations.js';
+import { FoldersProvider } from './folders-view.js';
+import { guard, HeftLog } from './log.js';
 import { HeftPanel, PANEL_VIEW_TYPE, type PanelHost } from './panel.js';
 import { toPanelIndex } from './panel-data.js';
 import type { PanelIndex, PanelStatus, WebviewMessage } from './panel-protocol.js';
 import { CancelledError, WorkerExitError, workerRunner, type IndexJob, type IndexRunner } from './runner.js';
 import {
   addFolders,
-  coveredByAncestor,
   coveringFolder,
   fileInScope,
   removeFolder,
@@ -21,11 +21,11 @@ import {
   toggleFolder,
   type Scope,
 } from './scope.js';
-import { allFolders, buildFolderTree, childrenOf, share, type DirNode, type FolderTree, type TreeNode } from './tree-model.js';
+import { allFolders, buildFolderTree, type FolderTree, type TreeNode } from './tree-model.js';
 
 /**
- * Vista lateral «Carpetas», comandos, menú contextual del explorador, barra de estado y panel
- * (`panel.ts`). Los textos salen de src/i18n en el idioma del editor o el de `heftmap.language`.
+ * Comandos, menú contextual del explorador, barra de estado, la vista lateral «Carpetas»
+ * (`folders-view.ts`) y el panel (`panel.ts`). Los textos salen de src/i18n en el idioma del editor o el de `heftmap.language`.
  *
  * El análisis no corre aquí: se lanza en un worker (`runner.ts`, `worker.ts`) para no
  * bloquear el proceso de extensiones. Este archivo no debe importar el núcleo salvo tipos,
@@ -568,15 +568,6 @@ class Heft implements vscode.Disposable, PanelHost {
   }
 
   /**
-   * URI con el que la vista pinta un elemento: el del archivo con `?heft=<tramo>`. Los iconos
-   * del tema salen igual (dependen del nombre), y el color por peso (`HeftDecorations`) solo
-   * se aplica a estos URI: el explorador nativo y las pestañas no se tiñen.
-   */
-  decoratedUri(uri: vscode.Uri | undefined, fraction: number): vscode.Uri | undefined {
-    return uri?.with({ query: `heft=${weightTier(fraction) ?? 'none'}` });
-  }
-
-  /**
    * Texto sobre el árbol durante el primer análisis: en un repo grande el árbol tarda en
    * aparecer y la barra de progreso nativa sola no deja claro que Heftmap está trabajando.
    */
@@ -595,138 +586,7 @@ class Heft implements vscode.Disposable, PanelHost {
   }
 }
 
-class FoldersProvider implements vscode.TreeDataProvider<TreeNode> {
-  private readonly emitter = new vscode.EventEmitter<TreeNode | undefined | void>();
-  readonly onDidChangeTreeData = this.emitter.event;
 
-  constructor(private readonly heft: Heft, log: HeftLog) {
-    // Un fallo aquí dejaría la vista vacía sin explicación: se registra y se sigue.
-    this.getChildren = guardSync(log, 'folders view', this.getChildren.bind(this), () => []);
-    this.getTreeItem = guardSync(log, 'folders view', this.getTreeItem.bind(this), (node: TreeNode) => {
-      let label = '?';
-      try {
-        label = node.kind === 'dir' ? node.name : node.file.path;
-      } catch {
-        // el nodo está roto: se enseña igualmente, sin datos
-      }
-      return new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.None);
-    });
-  }
-
-  refresh(): void {
-    this.emitter.fire();
-  }
-
-  getChildren(node?: TreeNode): TreeNode[] {
-    const tree = this.heft.getTree();
-    if (!tree) return [];
-    if (!node) return childrenOf(tree.root);
-    return node.kind === 'dir' ? childrenOf(node) : [];
-  }
-
-  getParent(node: TreeNode): TreeNode | undefined {
-    const parent = node.parent;
-    return parent && parent.path !== '' ? parent : undefined;
-  }
-
-  getTreeItem(node: TreeNode): vscode.TreeItem {
-    return node.kind === 'dir' ? this.dirItem(node) : this.fileItem(node.file, node.parent);
-  }
-
-  private dirItem(dir: DirNode): vscode.TreeItem {
-    const I = this.heft.I;
-    const scope = this.heft.getScope();
-    const item = new vscode.TreeItem(dir.name, vscode.TreeItemCollapsibleState.Collapsed);
-    item.id = `d:${dir.path}`;
-    item.resourceUri = this.heft.decoratedUri(this.heft.uriOf(dir), share(dir.size, dir.parent?.size ?? 0));
-    item.iconPath = vscode.ThemeIcon.Folder;
-    item.contextValue = 'heftDir';
-    const dirShare = share(dir.size, dir.parent?.size ?? 0);
-    item.description = `${withBar(dirShare)}${I.pct(dirShare)} · ${I.size(dir.size)} · ${I.t('tree.filesShort', { n: I.num(dir.count) })}`;
-
-    const covering = coveringFolder(scope, dir.path);
-    const ancestor = coveredByAncestor(scope, dir.path);
-    item.checkboxState = {
-      state: covering ? vscode.TreeItemCheckboxState.Checked : vscode.TreeItemCheckboxState.Unchecked,
-      tooltip: ancestor ? I.t('tree.inScopeBy', { folder: ancestor }) : I.t(covering ? 'tree.removeFromScope' : 'tree.addToScope'),
-    };
-    // Las rutas van como texto: en Markdown `__tests__` se pintaría en negrita y `[id].tsx` como enlace.
-    const md = new vscode.MarkdownString();
-    md.appendText(`${dir.path}/`);
-    md.appendMarkdown('\n\n');
-    md.appendText(I.t('tree.dirStats', { size: I.size(dir.size), files: I.tp('files', dir.count), pct: I.pct(share(dir.size, dir.parent?.size ?? 0)) }));
-    if (ancestor) {
-      md.appendMarkdown('\n\n');
-      md.appendText(I.t('tree.inScopeBecause', { folder: `«${ancestor}/»` }));
-    }
-    item.tooltip = md;
-    return item;
-  }
-
-  private fileItem(f: FileEntry, parent: DirNode): vscode.TreeItem {
-    const I = this.heft.I;
-    const uri = this.heft.uriOf({ kind: 'file', file: f, parent });
-    const name = f.path.slice(f.path.lastIndexOf('/') + 1);
-    const item = new vscode.TreeItem(name, vscode.TreeItemCollapsibleState.None);
-    item.id = `f:${f.path}`;
-    item.resourceUri = this.heft.decoratedUri(uri, share(f.size, parent.size));
-    item.contextValue = 'heftFile';
-    const fileShare = share(f.size, parent.size);
-    item.description = `${withBar(fileShare)}${I.pct(fileShare)} · ${I.size(f.size)}${f.dirty ? ' ●' : ''}`;
-    if (uri) item.command = { command: 'vscode.open', title: I.t('common.open'), arguments: [uri] };
-
-    const md = new vscode.MarkdownString();
-    md.appendText(f.path);
-    md.appendMarkdown('\n\n');
-    md.appendText(`${I.size(f.size)}${f.lines != null ? ` · ${I.tp('lines', f.lines)}` : ''}`);
-    if (!this.heft.isComplete()) {
-      // Primer análisis a medias: todavía no hay veredicto de uso ni datos de git.
-      md.appendMarkdown('\n\n');
-      md.appendText(I.t('tree.analyzingUsage'));
-      item.tooltip = md;
-      return item;
-    }
-    md.appendText(` · ${I.t(`usage.${f.usage}`)}`);
-    if (f.refsIn.length) md.appendText(` (${I.tp('tree.usedBy', f.refsIn.length)})`);
-    if (f.lastCommit) {
-      const c = f.lastCommit;
-      md.appendMarkdown('\n\n');
-      md.appendText(`${I.t('tree.lastCommit')} `);
-      md.appendMarkdown(`\`${c.short}\` ${escapeMd(c.subject)} — ${escapeMd(c.author)}, `);
-      md.appendText(`${I.rel(c.time)} · ${I.tp('changes', f.changes)}`);
-    } else if (f.untracked) {
-      md.appendMarkdown('\n\n');
-      md.appendText(I.t('tree.newFile'));
-    }
-    if (f.dirty && !f.untracked) {
-      md.appendMarkdown('\n\n');
-      md.appendText(I.t('tree.uncommitted'));
-    }
-    item.tooltip = md;
-    return item;
-  }
-}
-
-/** Barra seguida de espacio, o nada si el elemento no pesa. */
-function withBar(fraction: number): string {
-  const b = bar(fraction);
-  return b ? `${b} ` : '';
-}
-
-/** Color del nombre por peso dentro de la carpeta padre (la barra, en la descripción, no admite color). */
-const TIER_COLOR: Record<WeightTier, string> = {
-  heavy: 'charts.red',
-  large: 'charts.orange',
-  notable: 'charts.yellow',
-};
-
-class HeftDecorations implements vscode.FileDecorationProvider {
-  provideFileDecoration(uri: vscode.Uri): vscode.FileDecoration | undefined {
-    const tier = /(?:^|&)heft=(\w+)/.exec(uri.query)?.[1];
-    if (!tier || !(tier in TIER_COLOR)) return undefined;
-    return new vscode.FileDecoration(undefined, undefined, new vscode.ThemeColor(TIER_COLOR[tier as WeightTier]));
-  }
-}
 
 function isTreeNode(x: unknown): x is TreeNode {
   return !!x && typeof x === 'object' && 'kind' in x && ((x as TreeNode).kind === 'dir' || (x as TreeNode).kind === 'file');
@@ -747,8 +607,4 @@ async function isIgnoredByGit(root: string, rel: string): Promise<boolean> {
   } catch {
     return false;
   }
-}
-
-function escapeMd(s: string): string {
-  return s.replace(/[\\`*_{}[\]()#+\-.!|<>]/g, '\\$&');
 }
