@@ -129,6 +129,7 @@ export const en = {
   'warn.noGit': 'Cannot find «git» in the PATH: analyzing without git (no .gitignore, history or changes)',
   'warn.gitHistory': 'Could not read the git history: {detail}',
   'warn.unresolved': '{n} unresolved relative imports (e.g. {examples})',
+  'warn.aliases': '{n} unresolved imports that are neither relative nor declared dependencies: {prefixes}. If they are aliases, files used only through them show as «No importers»: declare the alias in «paths» of a tsconfig.json.',
 
   // ------------------------------------------------------------------ panel: espera y errores
   'panel.loading': 'Loading…',
@@ -355,6 +356,7 @@ export const es: Messages = {
   'warn.noGit': 'No se encuentra «git» en el PATH: se analiza sin git (sin .gitignore, historial ni cambios)',
   'warn.gitHistory': 'No se pudo leer el historial de git: {detail}',
   'warn.unresolved': '{n} imports relativos sin resolver (p. ej. {examples})',
+  'warn.aliases': '{n} imports sin resolver que no son relativos ni dependencias declaradas: {prefixes}. Si son alias, los archivos que solo se usan así salen como «Sin importadores»: declara el alias en «paths» de un tsconfig.json.',
 
   'panel.loading': 'Cargando…',
   'panel.noFolder': 'Abre una carpeta para ver qué pesa y qué se usa.',
@@ -578,6 +580,7 @@ export const eu: Messages = {
   'warn.noGit': 'Ez da «git» aurkitu PATH-ean: git gabe aztertzen da (.gitignore, historia eta aldaketarik gabe)',
   'warn.gitHistory': 'Ezin izan da git historia irakurri: {detail}',
   'warn.unresolved': '{n} import erlatibo ebatzi gabe (adib. {examples})',
+  'warn.aliases': 'Ebatzi gabeko {n} import, ez erlatiboak ez deklaratutako mendekotasunak: {prefixes}. Aliasak badira, horrela bakarrik erabiltzen diren fitxategiak «Inportatzailerik gabe» agertzen dira: deklaratu aliasa tsconfig.json baten «paths» atalean.',
 
   'panel.loading': 'Kargatzen…',
   'panel.noFolder': 'Ireki karpeta bat zerk pisatzen duen eta zer erabiltzen den ikusteko.',

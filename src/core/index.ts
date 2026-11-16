@@ -4,6 +4,7 @@ import { listFiles, listIgnoredDirs, readFile } from './files.js';
 import { gitInfo, readHistory, readStatus } from './git.js';
 import type { BuildHooks, BuildOptions, FileEntry, HeftIndex, Phase, Usage, Warning } from './types.js';
 import { analyzeUsage, packageEntryPoints } from './usage.js';
+import { loadWorkspace } from './workspace.js';
 
 export * from './types.js';
 
@@ -111,7 +112,8 @@ export async function buildIndex(rootArg: string, opts: BuildOptions = {}, hooks
 
   // 4. Uso
   const sources = [...files.values()].filter((f) => !f.ignoredByGit && isSourceCategory(f.category, f.path)).map((f) => f.path);
-  const usage = analyzeUsage({ root, files, texts, sources, publicDir, onProgress: progress });
+  const workspace = loadWorkspace(files, texts);
+  const usage = analyzeUsage({ root, files, texts, sources, publicDir, workspace, onProgress: progress });
   warnings.push(...usage.warnings);
   for (const r of usage.refs) {
     files.get(r.from)?.refsOut.push(r);
@@ -121,6 +123,8 @@ export async function buildIndex(rootArg: string, opts: BuildOptions = {}, hooks
   const entries = new Set(opts.entryPoints ?? []);
   const pkgText = texts.get('package.json');
   if (pkgText) for (const e of packageEntryPoints(pkgText)) entries.add(e);
+  // Monorepos: la entrada de cada paquete, no solo la del de la raíz.
+  for (const e of workspace.entryPoints()) entries.add(e);
   const ignore = new Set(opts.ignore ?? []);
   for (const f of files.values()) f.usage = usageOf(f, entries, ignore, publicDir);
   const tUsage = performance.now();
