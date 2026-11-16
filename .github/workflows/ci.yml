@@ -1,8 +1,5 @@
 name: CI
 
-# DESACTIVADO: fuera de .github/workflows, GitHub no lo ejecuta. Para activarlo, moverlo a
-# .github/workflows/ci.yml.
-
 on:
   pull_request:
   push:

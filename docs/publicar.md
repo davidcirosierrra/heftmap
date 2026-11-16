@@ -15,9 +15,9 @@ el Marketplace solo hace falta para llegar a usuarios de VS Code (sección 6).
   (`README.es.md`, `README.eu.md`). Lo de desarrollo está en `CONTRIBUTING.md`.
 - Capturas en `docs/images/` (hotspots, uso, antigüedad), hechas con el panel real sobre el repo
   de Vite.
-- GitHub Actions: **desactivado**. `ci.yml` (tests) y `publish.yml` (publicación) están en
-  `docs/workflows/`, fuera de `.github/workflows/`, y GitHub no los ejecuta. Para activarlos,
-  moverlos a `.github/workflows/`.
+- GitHub Actions: la CI (`.github/workflows/ci.yml`: typecheck, tests y empaquetado) está
+  **activa** en cada PR y en cada push a `main`. La publicación sigue **desactivada**:
+  `publish.yml` está en `docs/workflows/`, fuera de `.github/workflows/`, y GitHub no lo ejecuta.
 
 ## 2. Antes de hacer público el repo (David)
 
