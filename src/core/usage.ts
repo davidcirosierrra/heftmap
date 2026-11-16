@@ -3,6 +3,7 @@ import path from 'node:path';
 import ts from 'typescript';
 import { COMPONENT_EXT, extOf } from './classify.js';
 import { toPosix } from './files.js';
+import { MAX_GLOB_LENGTH, MAX_GLOB_STARS, MAX_TSCONFIGS } from './limits.js';
 import type { FileEntry, Phase, Ref, RefKind, Warning } from './types.js';
 import { loadWorkspace, packageNameOf, probeFile, type Workspace } from './workspace.js';
 
@@ -396,9 +397,6 @@ interface TsConfig {
   files: Set<string>;
 }
 
-/** Más configuraciones que esto no se leen: cada una recorre su carpeta en disco. */
-const MAX_TSCONFIGS = 300;
-
 /**
  * Todos los `tsconfig*.json` y `jsconfig.json` del repo (no solo el de la raíz), más los que
  * estos nombren en `references`. De la raíz hacia dentro.
@@ -489,13 +487,8 @@ export function scanCode(text: string, fileName: string): { strings: string[]; g
   return { strings, globs };
 }
 
-/** Glob de Vite a expresión regular: `**`, `*`, `?` y `{a,b}`. */
-/** Más comodines que esto en un patrón de `import.meta.glob` no se evalúa (ver abajo). */
-export const MAX_GLOB_STARS = 3;
-export const MAX_GLOB_LENGTH = 300;
-
 /**
- * Patrón de `import.meta.glob` a expresión regular, o null si no se puede evaluar sin riesgo.
+ * Glob de Vite (`**`, `*`, `?` y `{a,b}`) a expresión regular, o null si no se puede evaluar sin riesgo.
  * El patrón sale del código del repo analizado: `**\/**\/**\/…` daba una expresión con
  * retroceso exponencial que colgaba el análisis (ReDoS). Se juntan los `**` seguidos y se
  * rechazan los patrones con más de MAX_GLOB_STARS `**` o demasiado largos.
