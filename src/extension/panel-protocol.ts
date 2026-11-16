@@ -3,7 +3,7 @@
  * los dos bundles (Node y navegador) y no debe traer código de ninguno.
  */
 
-import type { CommitInfo, RefKind, Usage } from '../core/types.js';
+import type { CommitInfo, RefKind, Usage, UsageRule } from '../core/types.js';
 import type { Locale } from '../i18n/index.js';
 
 /** Lo que el panel necesita de cada archivo. */
@@ -13,6 +13,8 @@ export interface PanelFile {
   size: number;
   /** Estado de uso (SPEC §3.3). Solo vale con el índice completo. */
   usage?: Usage;
+  /** Regla que decidió `usage` (para explicar el veredicto). Solo con el índice completo. */
+  usageRule?: UsageRule;
   /** Posición de su último commit en `commits`; sin definir si no tiene (nuevo o fuera de `git.since`). */
   commit?: number;
   /** Cambios sin commit (árbol de trabajo o staging). */
