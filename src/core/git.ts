@@ -40,7 +40,7 @@ export function findGit(cwd: string, env: NodeJS.ProcessEnv = process.env, platf
  * malicioso (descargado, no clonado): ni monitor del sistema de archivos (`core.fsmonitor`
  * ejecuta un programa en `git status`), ni verificación de firmas en `git log` (ejecuta
  * `gpg.program`), ni submódulos. Los filtros de `.gitattributes` no se pueden desactivar
- * así: por eso, en un workspace sin confianza, Heft no ejecuta git (SPEC §3.6).
+ * así: por eso, en un workspace sin confianza, Heftmap no ejecuta git (SPEC §3.6).
  */
 const SAFE_CONFIG = [
   '-c', 'core.quotePath=false',

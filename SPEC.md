@@ -1,11 +1,11 @@
-# Heft — especificación v2 (auditor de peso y uso)
+# Heftmap — especificación v2 (auditor de peso y uso)
 
 > **Para retomar en otra conversación:** adjunta este archivo (y la carpeta `docs/capturas-v1/`) y di
-> «Seguimos con la extensión Heft según SPEC.md v2».
+> «Seguimos con la extensión Heftmap según SPEC.md v2».
 > Diseño interactivo v2: https://claude.ai/artifact/SM6p8UJHZht4bQe87xk3Ph
 > Diseño v1 (histórico): https://claude.ai/artifact/CHDkw3WS8N5qcDQn5cVtPE
 
-Nombre: **Heft** (antes «Workspace Files»). Repo `heft`; prefijo de ajustes y comandos `heft.*`.
+Nombre: **Heftmap** (antes «Heft» y, antes aún, «Workspace Files»; se renombró por coincidir con Heft de Rush Stack). Id `notime-labs.heftmap`; prefijo de ajustes y comandos `heftmap.*`. El repo de GitHub sigue llamándose `Heft`.
 
 Estado: **fases 0 a 6 hechas** (vista «Carpetas», ámbito, comandos y panel con tabla, treemap, uso,
 git y hotspots; instalar y probar
@@ -63,12 +63,12 @@ Contenedor propio en la barra de actividad. Solo usa lo que el `TreeView` nativo
 - **Casilla nativa** (`TreeItem.checkboxState`) en cada carpeta = pertenece al ámbito. Marcar una
   carpeta incluye sus subcarpetas.
   - La API no permite desactivar una casilla: las subcarpetas de una carpeta marcada salen marcadas
-    (tooltip «En el ámbito por «src/»») y, si se desmarcan, Heft avisa «Quita primero «src/»» y no
+    (tooltip «En el ámbito por «src/»») y, si se desmarcan, Heftmap avisa «Quita primero «src/»» y no
     cambia nada. Se usa `manageCheckboxStateManually` para que el editor no propague solo.
 - Clic en un archivo: lo abre (comportamiento nativo, un solo clic). No hay doble clic.
 - Botones en la cabecera de la vista: `Abrir panel`, `Todo el repositorio`, `Refrescar`.
 
-### 2.2 Panel «Heft» (un único WebviewPanel, React)
+### 2.2 Panel «Heftmap» (un único WebviewPanel, React)
 
 Disposición: barra superior · tabla a la izquierda · treemap a la derecha · detalle abajo.
 
@@ -217,14 +217,14 @@ paquetes (npm, pnpm, yarn, bun) ni de Nx o Turborepo, ni de que `node_modules` e
   hay que declararlos también en `paths` de un tsconfig.
 - **Límite**: las rutas por convención de un framework (pantallas de Expo Router, `app/` de Next,
   `routes/` de Remix) no las importa nadie y salen «sin importadores». Es un aviso de baja
-  confianza a propósito; se pueden marcar con `heft.usage.entryPoints`.
+  confianza a propósito; se pueden marcar con `heftmap.usage.entryPoints`.
 - Comprobado con un monorepo de prueba (`test/monorepo.test.ts`) y sobre `vitejs/vite` (de 582 a
   367 «sin importadores») y tres ejemplos de Turborepo, donde solo quedan rutas de framework.
 
 ### 3.6 Seguridad
 
 - La carpeta analizada es entrada no fiable. Detalle y revisión en [docs/seguridad.md](docs/seguridad.md).
-- **Workspace Trust** (`capabilities.untrustedWorkspaces: limited`): sin confianza, Heft no ejecuta
+- **Workspace Trust** (`capabilities.untrustedWorkspaces: limited`): sin confianza, Heftmap no ejecuta
   git (analiza como carpeta sin repo) e ignora sus ajustes del workspace; la vista lo dice. Al
   confiar, se reanaliza.
 - Git: ejecutable buscado en el `PATH` sin mirar la carpeta analizada; `core.fsmonitor`,
@@ -261,7 +261,7 @@ paquetes (npm, pnpm, yarn, bun) ni de Nx o Turborepo, ni de que `node_modules` e
     reanálisis se mantiene el índice completo anterior hasta tener el nuevo.
   - Durante el primer análisis la vista muestra un texto sobre el árbol (`TreeView.message`) con
     la fase y el avance, y el panel una pantalla de espera con spinner y barra. En un repo grande
-    la barra nativa sola no dejaba claro que Heft estaba trabajando.
+    la barra nativa sola no dejaba claro que Heftmap estaba trabajando.
   - El panel cuelga de los mismos avisos: `panel.ts` crea el webview y pasa mensajes
     (`panel-protocol.ts`). El índice (pesado) solo se manda cuando cambia; ámbito, avance y error
     van en un mensaje de estado aparte. Como el webview se descarga al ocultar la pestaña, no se
@@ -298,20 +298,20 @@ paquetes (npm, pnpm, yarn, bun) ni de Nx o Turborepo, ni de que `node_modules` e
   Recalcular solo el archivo guardado (grafo incremental, plan en §10).
 
 ### 4.4 Comandos y menús
-- Paleta: `Heft: Abrir panel`, `Elegir carpetas del ámbito…` (QuickPick múltiple),
+- Paleta: `Heftmap: Abrir panel`, `Elegir carpetas del ámbito…` (QuickPick múltiple),
   `Todo el repositorio`, `Refrescar`.
 - Menú contextual del explorador sobre carpetas: `Añadir al ámbito` · `Limitar ámbito a esta carpeta`.
 
 ### 4.4 bis Idiomas
 
-- Inglés (base), castellano y euskera. Idioma: el ajuste `heft.language` (`auto` por defecto =
+- Inglés (base), castellano y euskera. Idioma: el ajuste `heftmap.language` (`auto` por defecto =
   idioma del editor; inglés si no es castellano ni euskera). Cambiarlo repinta la vista y el panel
   sin volver a analizar.
 - Textos en `src/i18n/messages.ts`, un diccionario por idioma con el tipo del inglés: si falta o
   sobra una clave, no compila. Un test comprueba además que cada traducción usa los mismos
   marcadores (`{n}`, `{path}`).
 - Comandos, vista y ajustes en `package.nls.json`, `package.nls.es.json` y `package.nls.eu.json`;
-  estos siguen siempre el idioma del editor (limitación de VS Code), no `heft.language`.
+  estos siguen siempre el idioma del editor (limitación de VS Code), no `heftmap.language`.
 - Los avisos del núcleo son datos (`{ code: 'no-git' }`), no frases: se traducen al enseñarlos.
 - Formatos con `Intl`; para euskera, si el motor no trae sus datos (Chromium no los trae), se
   usan los separadores del castellano y se montan a mano el `%` y la fecha.
@@ -320,27 +320,27 @@ paquetes (npm, pnpm, yarn, bun) ni de Nx o Turborepo, ni de que `node_modules` e
 
 ### 4.4 ter Registro de errores
 
-- Canal *Output → Heft* de tipo log (`createOutputChannel(..., { log: true })`): fecha y nivel en
+- Canal *Output → Heftmap* de tipo log (`createOutputChannel(..., { log: true })`): fecha y nivel en
   cada línea, nivel ajustable con *Developer: Set Log Level* y guardado en disco por VS Code
   (*Developer: Open Extension Logs Folder*).
-- Primera línea: versión de Heft, de VS Code, sistema, Node, idioma, confianza y nº de carpetas.
+- Primera línea: versión de Heftmap, de VS Code, sistema, Node, idioma, confianza y nº de carpetas.
 - Comandos, eventos, mensajes del panel y vista lateral pasan por `guard`/`guardSync`
   (`src/extension/log.ts`): un fallo queda como `[error] [origen] mensaje` con la traza, y la
   vista sigue funcionando. El worker manda la traza de sus errores, también de los no capturados.
 - Aviso en pantalla, como mucho uno por minuto, con **Ver el registro** y **Copiar informe**
   (cabecera + últimas 300 líneas, para pegar en una incidencia). Mismo informe con el comando
-  `Heft: Copiar informe de errores`. Los errores del panel solo se registran: el panel ya enseña
+  `Heftmap: Copiar informe de errores`. Los errores del panel solo se registran: el panel ya enseña
   su propia pantalla de error.
 
 ### 4.5 Ajustes
 
 | Clave | Por defecto | Descripción |
 |-------|-------------|-------------|
-| `heft.language` | `auto` | Idioma de la interfaz: `auto` (el del editor), `en`, `es`, `eu` |
-| `heft.publicDir` | `public` | Carpeta contra la que se resuelven las rutas absolutas (`/models/x.glb`) |
-| `heft.git.since` | *(vacío)* | Limitar el historial en repos grandes, p. ej. `1.year` |
-| `heft.usage.ignore` | `[]` | Archivos que nunca se marcan «sin rastro» |
-| `heft.usage.entryPoints` | `[]` | Puntos de entrada extra además de los automáticos |
+| `heftmap.language` | `auto` | Idioma de la interfaz: `auto` (el del editor), `en`, `es`, `eu` |
+| `heftmap.publicDir` | `public` | Carpeta contra la que se resuelven las rutas absolutas (`/models/x.glb`) |
+| `heftmap.git.since` | *(vacío)* | Limitar el historial en repos grandes, p. ej. `1.year` |
+| `heftmap.usage.ignore` | `[]` | Archivos que nunca se marcan «sin rastro» |
+| `heftmap.usage.entryPoints` | `[]` | Puntos de entrada extra además de los automáticos |
 
 ## 5. Fases
 
@@ -358,7 +358,7 @@ paquetes (npm, pnpm, yarn, bun) ni de Nx o Turborepo, ni de que `node_modules` e
    virtual, teclado (↑ ↓, Re/Av Pág, Inicio/Fin, Enter abre) y botón **Abrir** en la fila
    seleccionada. Orden, filtro y selección se guardan con `getState/setState`. Añadido: aviso y
    pantalla de espera del primer análisis (§4.2). Las demás columnas llegan con sus fases (4, 5, 6).
-   El panel se restaura al recargar la ventana (serializador + `onWebviewPanel:heft.panel`): vuelve
+   El panel se restaura al recargar la ventana (serializador + `onWebviewPanel:heftmap.panel`): vuelve
    la pestaña con su orden, filtro, zoom y selección; los datos se piden de nuevo.
 3. ~~Treemap 2D enlazado con la tabla (área, color por extensión, zoom).~~ **Hecha**: treemap
    anidado en SVG (`d3-hierarchy`), área `Bytes` | `Equilibrado`, color por extensión (las 9 que más
@@ -371,7 +371,7 @@ paquetes (npm, pnpm, yarn, bun) ni de Nx o Turborepo, ni de que `node_modules` e
 4. ~~Uso: columna, estados, fila desplegable, color «Uso», acciones sobre «sin rastro».~~ **Hecha**:
    columna Uso (estado + nº de archivos que lo referencian, ordenable de más a menos sospechoso),
    filtros rápidos Todos · Sin rastro (n) · Mencionados (n) · Puntos de entrada (n), color «Uso» y
-   acciones **Ignorar este archivo** (lo añade a `heft.usage.ignore` del workspace) y **Mover a la
+   acciones **Ignorar este archivo** (lo añade a `heftmap.usage.ignore` del workspace) y **Mover a la
    papelera…** (confirmación modal, `useTrash`; la extensión solo acepta archivos que el índice
    da por «sin rastro»). El grafo viaja al panel una arista por referencia, por posición.
    **Cambio respecto al diseño**: «Lo usan» y «Usa» no van en una fila desplegable sino en el
@@ -424,7 +424,7 @@ Ajustes del panel tras probarlo en el editor:
 ## 6. Pendiente de decidir
 
 - Publisher y si se publica en Open VSX o solo `.vsix` para uso propio. Si se publica, comprobar
-  antes que el nombre `heft` está libre.
+  antes que el nombre `heftmap` está libre.
 - Límite de archivos y si el análisis va en un worker (decidir con los datos de la fase 0).
 - Si la vista lateral muestra archivos o solo carpetas.
 - Qué cuenta como «archivo generado» para excluirlo de los hotspots (lista fija o ajuste).
@@ -501,7 +501,7 @@ En un repo pequeño no se nota; en un monorepo, guardar un archivo cuesta lo mis
 | Archivo borrado | Sus referencias de salida; las de entrada (esos orígenes pasan a tener un import sin resolver); si un recurso pierde su última referencia, hay que buscarle menciones |
 | Commit nuevo sobre el mismo historial | Último commit y recuento de cambios de los archivos de esos commits; `●` |
 | Cambio de rama, rebase, amend, reset | Todo el historial (no el uso, salvo los archivos que cambien en disco) |
-| `tsconfig*`/`jsconfig*`, `package.json`, `.gitignore`, ajustes `heft.*`, aparece o desaparece una carpeta pública | Todo: cambian la resolución, los puntos de entrada o la lista de archivos |
+| `tsconfig*`/`jsconfig*`, `package.json`, `.gitignore`, ajustes `heftmap.*`, aparece o desaparece una carpeta pública | Todo: cambian la resolución, los puntos de entrada o la lista de archivos |
 
 ### 10.4 Diseño
 
@@ -528,7 +528,7 @@ En un repo pequeño no se nota; en un monorepo, guardar un archivo cuesta lo mis
 - `git status --porcelain` acotado a las rutas del lote.
 - `HEAD` avanza y el anterior es ancestro (`git merge-base --is-ancestor`): `git log
   viejo..nuevo --name-only` y sumar. En cualquier otro caso, releer el historial entero (solo git).
-- Con `heft.git.since` la ventana se desplaza y los recuentos no se pueden restar: se relee el
+- Con `heftmap.git.since` la ventana se desplaza y los recuentos no se pueden restar: se relee el
   historial en cada cambio de `HEAD` (ya está acotado por `since`).
 
 **Worker y extensión**:
@@ -575,6 +575,6 @@ tiempos.
   rutas conocidas del índice antes de aplicar nada.
 - **Memoria** del worker persistente: acotada al no guardar textos; se mide en I0.
 - **Deriva**: el test de equivalencia es la defensa. En desarrollo, un ajuste oculto
-  (`heft.debug.verifyIncremental`) que tras cada lote lanza el análisis completo y registra las
+  (`heftmap.debug.verifyIncremental`) que tras cada lote lanza el análisis completo y registra las
   diferencias.
 - El incremental no arregla el primer análisis: ese sigue costando lo mismo.

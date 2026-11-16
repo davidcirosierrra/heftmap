@@ -1,6 +1,6 @@
 /**
  * Doble mínimo de la API `vscode` para el test de humo de la extensión. Solo cubre lo que
- * usa Heft y guarda lo necesario para inspeccionarlo desde el test.
+ * usa Heftmap y guarda lo necesario para inspeccionarlo desde el test.
  */
 import path from 'node:path';
 
@@ -172,7 +172,7 @@ export const fake = {
   serializers: new Map<string, { deserializeWebviewPanel(panel: unknown, state: unknown): Promise<void> }>(),
   /** Lo que hace el editor al recargar la ventana: un panel vacío que la extensión adopta. */
   async restorePanel(viewType: string, state?: unknown): Promise<void> {
-    await this.serializers.get(viewType)?.deserializeWebviewPanel(makePanel(viewType, 'Heft', {}), state);
+    await this.serializers.get(viewType)?.deserializeWebviewPanel(makePanel(viewType, 'Heftmap', {}), state);
   },
   state: new Map<string, unknown>(),
   reset(root: string): void {

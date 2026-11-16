@@ -1,7 +1,7 @@
 import { en, es, eu, type MessageKey, type Messages } from './messages.js';
 
 /**
- * Idiomas de Heft: inglés (base), castellano y euskera. Sin dependencia de `vscode`: lo usan
+ * Idiomas de Heftmap: inglés (base), castellano y euskera. Sin dependencia de `vscode`: lo usan
  * la extensión, el panel (navegador) y el CLI.
  */
 export type Locale = 'en' | 'es' | 'eu';
@@ -29,7 +29,7 @@ function intlTag(locale: Locale): string {
   }
 }
 
-/** De la etiqueta del editor («es», «es-419», «eu», «en-US», «gl»…) a un idioma de Heft. */
+/** De la etiqueta del editor («es», «es-419», «eu», «en-US», «gl»…) a un idioma de Heftmap. */
 export function resolveLocale(tag: string | null | undefined): Locale {
   const base = (tag ?? '').toLowerCase().split(/[-_]/)[0];
   return base === 'es' || base === 'eu' ? base : 'en';

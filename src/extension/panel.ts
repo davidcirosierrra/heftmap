@@ -11,10 +11,10 @@ export interface PanelHost {
 }
 
 /** Tipo del webview: lo comparten `createWebviewPanel`, el serializador y `onWebviewPanel:` en package.json. */
-export const PANEL_VIEW_TYPE = 'heft.panel';
+export const PANEL_VIEW_TYPE = 'heftmap.panel';
 
 /**
- * Panel «Heft» (SPEC §2.2): un único WebviewPanel. Esta clase solo crea el webview y pasa
+ * Panel «Heftmap» (SPEC §2.2): un único WebviewPanel. Esta clase solo crea el webview y pasa
  * mensajes; la interfaz vive en `src/webview/` (bundle aparte, `dist/webview.js`).
  *
  * El webview se descarga al ocultarse la pestaña y se vuelve a cargar al mostrarse: por eso
@@ -35,7 +35,7 @@ export class HeftPanel implements vscode.Disposable {
       return;
     }
     this.attach(
-      vscode.window.createWebviewPanel(PANEL_VIEW_TYPE, 'Heft', vscode.ViewColumn.Active, {
+      vscode.window.createWebviewPanel(PANEL_VIEW_TYPE, 'Heftmap', vscode.ViewColumn.Active, {
         enableScripts: true,
         localResourceRoots: [this.dist],
       }),
@@ -114,7 +114,7 @@ function html(webview: vscode.Webview, dist: vscode.Uri, locale: Locale): string
 <meta http-equiv="Content-Security-Policy" content="${csp}">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="${css}">
-<title>Heft</title>
+<title>Heftmap</title>
 </head>
 <body>
 <div id="root"></div>

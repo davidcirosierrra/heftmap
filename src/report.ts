@@ -43,7 +43,7 @@ export function renderReport(index: HeftIndex, top = 10): string {
   const total = files.reduce((s, f) => s + f.size, 0);
   const totalLines = files.reduce((s, f) => s + (f.lines ?? 0), 0);
 
-  out.push(`Heft · ${index.root}`);
+  out.push(`Heftmap · ${index.root}`);
   out.push(
     `${files.length} archivos · ${fmtSize(total)} · ${ES.num(totalLines)} líneas · ` +
       (index.isGit ? `git: ${index.commitsRead} commits leídos, HEAD ${index.head?.slice(0, 7) ?? '—'}` : 'sin git'),

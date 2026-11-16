@@ -30,7 +30,7 @@ describe('panel (DOM): errores', () => {
     // Datos imposibles: un archivo que no es un objeto.
     await p.send({ type: 'index', index: { rootName: 'kart', complete: true, files: [null as never] } });
     quiet.mockRestore();
-    expect(p.$('.crash h1')?.textContent).toBe('El panel de Heft ha fallado');
+    expect(p.$('.crash h1')?.textContent).toBe('El panel de Heftmap ha fallado');
     expect(p.$('.crash .stack')?.textContent).toMatch(/Cannot read properties of null/);
     expect(errorsSent().at(-1)?.where).toBe('al pintar');
   });

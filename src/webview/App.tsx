@@ -10,7 +10,7 @@ import { Treemap } from './Treemap.js';
 import { AREA_LABEL, crumbs, effectiveZoom, type AreaMode } from './treemap-layout.js';
 import { post, vscode } from './vscode.js';
 
-/** Panel «Heft» (SPEC §2.2): barra superior · tabla · treemap · detalle. */
+/** Panel «Heftmap» (SPEC §2.2): barra superior · tabla · treemap · detalle. */
 
 /** Lo que sobrevive a ocultar y volver a mostrar la pestaña. */
 interface Saved {

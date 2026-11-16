@@ -62,7 +62,7 @@ describe('primer análisis: aviso sobre el árbol y panel de espera', () => {
   });
 
   it('el panel se puede abrir ya: página con CSP y nonce, sin datos hasta que avisa', () => {
-    void fake.commands.get('heft.openPanel')!();
+    void fake.commands.get('heftmap.openPanel')!();
     expect(fake.panels).toHaveLength(1);
     expect(panel().options.enableScripts).toBe(true);
     const nonce = /script-src 'nonce-([^']+)'/.exec(panel().html)?.[1];
@@ -154,7 +154,7 @@ describe('primer análisis: aviso sobre el árbol y panel de espera', () => {
   });
 
   it('un reanálisis con datos en pantalla no vuelve a poner el aviso', async () => {
-    void fake.commands.get('heft.refresh')!();
+    void fake.commands.get('heftmap.refresh')!();
     await tick();
     expect(message()).toBeUndefined();
     expect(last('status').status.building).toBe(true);
@@ -196,11 +196,11 @@ describe('panel: mensajes del webview', () => {
 
   it('el ámbito llega al panel y se puede quitar desde sus chips, sin reenviar los archivos', () => {
     const indexMessages = panel().posted.filter((m) => m.type === 'index').length;
-    void fake.commands.get('heft.limitScope')!({ kind: 'dir', path: 'src' });
+    void fake.commands.get('heftmap.limitScope')!({ kind: 'dir', path: 'src' });
     expect(last('status').status.scope).toEqual(['src']);
     panel().receive.fire({ type: 'removeScope', folder: 'src' });
     expect(last('status').status.scope).toEqual([]);
-    expect(fake.state.get('heft.scope')).toEqual([]);
+    expect(fake.state.get('heftmap.scope')).toEqual([]);
     expect(panel().posted.filter((m) => m.type === 'index')).toHaveLength(indexMessages);
   });
 
@@ -214,7 +214,7 @@ describe('panel: mensajes del webview', () => {
 });
 
 describe('panel: acciones sobre «sin rastro»', () => {
-  it('«Ignorar este archivo» lo añade a heft.usage.ignore del workspace', async () => {
+  it('«Ignorar este archivo» lo añade a heftmap.usage.ignore del workspace', async () => {
     panel().receive.fire({ type: 'ignoreUsage', path: 'public/models/trees.glb' });
     await tick();
     expect(fake.configUpdates).toEqual([{ key: 'usage.ignore', value: ['public/models/trees.glb'], target: 2 }]);
@@ -254,7 +254,7 @@ describe('panel: acciones sobre «sin rastro»', () => {
 });
 
 describe('panel: errores del webview', () => {
-  it('van al registro de Heft, con la traza', () => {
+  it('van al registro de Heftmap, con la traza', () => {
     panel().receive.fire({ type: 'error', where: 'al pintar', message: 'destroy is not a function', stack: 'TypeError: x\n   at App' });
     const entry = fake.log.at(-1)!;
     expect(entry).toMatch(/^\[error\] \[panel \(al pintar\)\] destroy is not a function/);
@@ -274,7 +274,7 @@ describe('panel: errores del webview', () => {
 
 describe('panel: ciclo de vida', () => {
   it('abrirlo otra vez no crea otro: lo trae al frente', () => {
-    void fake.commands.get('heft.openPanel')!();
+    void fake.commands.get('heftmap.openPanel')!();
     expect(fake.panels).toHaveLength(1);
     expect(panel().revealed).toBe(1);
   });
@@ -289,9 +289,9 @@ describe('panel: ciclo de vida', () => {
     const closed = panel();
     closed.close();
     const before = closed.posted.length;
-    void fake.commands.get('heft.limitScope')!({ kind: 'dir', path: 'public' });
+    void fake.commands.get('heftmap.limitScope')!({ kind: 'dir', path: 'public' });
     expect(closed.posted).toHaveLength(before);
-    void fake.commands.get('heft.openPanel')!();
+    void fake.commands.get('heftmap.openPanel')!();
     expect(fake.panels).toHaveLength(2);
     panel().receive.fire({ type: 'ready' });
     expect(last('status').status.scope).toEqual(['public']);
@@ -300,20 +300,20 @@ describe('panel: ciclo de vida', () => {
   it('recarga de la ventana con el panel ya abierto: el restaurado sobra y se cierra', async () => {
     const open = fake.panels.at(-1)!;
     const before = open.posted.length;
-    await fake.restorePanel('heft.panel');
+    await fake.restorePanel('heftmap.panel');
     expect(fake.panels).toHaveLength(3);
     expect(panel().disposed).toBe(true);
     expect(panel().html).toBe('');
     expect(open.disposed).toBe(false);
     // El abierto sigue siendo el panel: es él quien recibe los cambios.
-    void fake.commands.get('heft.clearScope')!();
+    void fake.commands.get('heftmap.clearScope')!();
     expect(open.posted.length).toBeGreaterThan(before);
     open.close();
   });
 
   it('recarga de la ventana: el editor devuelve el panel y la extensión lo adopta', async () => {
-    expect(fake.serializers.has('heft.panel')).toBe(true);
-    await fake.restorePanel('heft.panel', { filter: 'kart' });
+    expect(fake.serializers.has('heftmap.panel')).toBe(true);
+    await fake.restorePanel('heftmap.panel', { filter: 'kart' });
     expect(fake.panels).toHaveLength(4);
     expect(panel().disposed).toBe(false);
     // Llega sin nada: opciones, página con CSP y oyentes se ponen como en uno nuevo.
@@ -326,7 +326,7 @@ describe('panel: ciclo de vida', () => {
     expect(last('index').index.complete).toBe(true);
     expect(last('status').status).toMatchObject({ hasRoot: true, scope: [], building: false });
     // Es el panel de verdad: «Abrir panel» lo trae al frente en vez de crear otro.
-    void fake.commands.get('heft.openPanel')!();
+    void fake.commands.get('heftmap.openPanel')!();
     expect(fake.panels).toHaveLength(4);
     expect(panel().revealed).toBe(1);
   });
@@ -334,30 +334,30 @@ describe('panel: ciclo de vida', () => {
   it('la extensión se activa a tiempo de restaurarlo (onWebviewPanel)', async () => {
     const { readFile } = await import('node:fs/promises');
     const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
-    expect(pkg.activationEvents).toContain('onWebviewPanel:heft.panel');
+    expect(pkg.activationEvents).toContain('onWebviewPanel:heftmap.panel');
   });
 });
 
 describe('idioma de la extensión', () => {
-  it('sigue al editor y el ajuste heft.language manda; cambiarlo repinta sin reanalizar', async () => {
+  it('sigue al editor y el ajuste heftmap.language manda; cambiarlo repinta sin reanalizar', async () => {
     const { env } = await import('./fake-vscode.js');
     const before = runs.length;
     // Editor en inglés, ajuste en «auto».
     env.language = 'en';
     fake.config['language'] = 'auto';
-    fake.configListeners.forEach((fn) => fn({ affectsConfiguration: (k: string) => k === 'heft' || k === 'heft.language' }));
-    expect(fake.status.text).toMatch(/^\$\(layers\) Heft: (Whole repository|public) · \d+ files · /);
+    fake.configListeners.forEach((fn) => fn({ affectsConfiguration: (k: string) => k === 'heftmap' || k === 'heftmap.language' }));
+    expect(fake.status.text).toMatch(/^\$\(layers\) Heftmap: (Whole repository|public) · \d+ files · /);
     expect(last('status').status.locale).toBe('en');
     // El ajuste fuerza euskera aunque el editor esté en inglés.
     fake.config['language'] = 'eu';
-    fake.configListeners.forEach((fn) => fn({ affectsConfiguration: (k: string) => k === 'heft' || k === 'heft.language' }));
-    expect(fake.status.text).toMatch(/^\$\(layers\) Heft: (Biltegi osoa|public) · \d+ fitxategi · /);
+    fake.configListeners.forEach((fn) => fn({ affectsConfiguration: (k: string) => k === 'heftmap' || k === 'heftmap.language' }));
+    expect(fake.status.text).toMatch(/^\$\(layers\) Heftmap: (Biltegi osoa|public) · \d+ fitxategi · /);
     expect(last('status').status.locale).toBe('eu');
     await tick();
     expect(runs).toHaveLength(before);
     env.language = 'es';
     fake.config['language'] = 'auto';
-    fake.configListeners.forEach((fn) => fn({ affectsConfiguration: (k: string) => k === 'heft' || k === 'heft.language' }));
+    fake.configListeners.forEach((fn) => fn({ affectsConfiguration: (k: string) => k === 'heftmap' || k === 'heftmap.language' }));
   });
 });
 
@@ -367,7 +367,7 @@ describe('workspace sin confianza', () => {
     const seen: (boolean | undefined)[] = [];
     const before = runs.length;
     (workspace as { isTrusted: boolean }).isTrusted = false;
-    void fake.commands.get('heft.refresh')!();
+    void fake.commands.get('heftmap.refresh')!();
     await tick();
     expect(runs).toHaveLength(before + 1);
     seen.push(lastOpts().useGit);

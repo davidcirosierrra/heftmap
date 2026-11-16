@@ -36,8 +36,8 @@ jobs:
       - run: npm run package
       - name: Publicar en Open VSX
         # --trusted-publishing: falla si no hay token OIDC, en vez de buscar otro método.
-        run: npx --yes ovsx@latest publish heft.vsix --trusted-publishing
+        run: npx --yes ovsx@latest publish heftmap.vsix --trusted-publishing
       - name: Adjuntar el .vsix a la release
-        run: gh release upload "${GITHUB_REF_NAME}" heft.vsix --clobber
+        run: gh release upload "${GITHUB_REF_NAME}" heftmap.vsix --clobber
         env:
           GH_TOKEN: ${{ github.token }}

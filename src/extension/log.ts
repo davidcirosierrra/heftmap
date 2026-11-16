@@ -2,11 +2,11 @@ import * as vscode from 'vscode';
 import type { I18n } from '../i18n/index.js';
 
 /**
- * Registro de Heft (*Output → Heft*). Canal de tipo log: cada línea lleva fecha y nivel, se
+ * Registro de Heftmap (*Output → Heftmap*). Canal de tipo log: cada línea lleva fecha y nivel, se
  * guarda en los archivos de log de VS Code y respeta *Developer: Set Log Level*.
  *
  * Los errores llevan dónde pasaron y la traza, y avisan una vez (como mucho cada minuto) con
- * botones para abrir el registro o copiar un informe: así se sabe que es Heft la que falla y se
+ * botones para abrir el registro o copiar un informe: así se sabe que es Heftmap la que falla y se
  * puede abrir una incidencia con lo necesario.
  */
 const NOTIFY_EVERY_MS = 60_000;
@@ -21,13 +21,13 @@ export class HeftLog implements vscode.Disposable {
   errors = 0;
 
   constructor(private readonly i18n: () => I18n) {
-    this.channel = vscode.window.createOutputChannel('Heft', { log: true });
+    this.channel = vscode.window.createOutputChannel('Heftmap', { log: true });
   }
 
   /** Versión, editor, sistema e idioma: lo primero que hace falta para entender un fallo. */
   start(version: string, extra: Record<string, string | boolean>): void {
     const info = {
-      heft: version,
+      heftmap: version,
       vscode: vscode.version,
       app: vscode.env.appName,
       platform: `${process.platform} ${process.arch}`,
@@ -37,7 +37,7 @@ export class HeftLog implements vscode.Disposable {
     this.header = Object.entries(info)
       .map(([k, v]) => `${k}=${v}`)
       .join(' · ');
-    this.info(`Heft ${version} · ${this.header}`);
+    this.info(`Heftmap ${version} · ${this.header}`);
   }
 
   info(message: string): void {
@@ -72,7 +72,7 @@ export class HeftLog implements vscode.Disposable {
 
   /** Texto para pegar en una incidencia: cabecera y últimas líneas del registro. */
   report(): string {
-    return ['Heft — error report', this.header, '', ...this.recent].join('\n');
+    return ['Heftmap — error report', this.header, '', ...this.recent].join('\n');
   }
 
   private keep(level: string, text: string): void {

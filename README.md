@@ -1,6 +1,6 @@
-# Heft — what's heavy in your repo, and is it used?
+# Heftmap — what's heavy in your repo, and is it used?
 
-Heft shows how much each file and folder weighs, which assets nobody references any more, and
+Heftmap shows how much each file and folder weighs, which assets nobody references any more, and
 where the big code that changes most lives. Built for web projects with heavy assets (`.glb`
 models, audio, textures), useful in any git repository, including monorepos.
 
@@ -37,24 +37,24 @@ models, audio, textures), useful in any git repository, including monorepos.
 ## Requirements
 
 - Cursor, VS Code 1.85 or later, or any editor that installs from Open VSX.
-- `git` in the `PATH` for history and changes. Without git, Heft still shows sizes and usage.
-- In Restricted Mode (untrusted folders) Heft does not run git. See [SECURITY.md](SECURITY.md).
+- `git` in the `PATH` for history and changes. Without git, Heftmap still shows sizes and usage.
+- In Restricted Mode (untrusted folders) Heftmap does not run git. See [SECURITY.md](SECURITY.md).
 
 ## Settings
 
 | Setting | Default | What for |
 |---------|---------|----------|
-| `heft.language` | `auto` | `en`, `es` or `eu`; `auto` follows the editor |
-| `heft.publicDir` | `public` | Folder that absolute paths (`/models/x.glb`) resolve against |
-| `heft.git.since` | empty | Limit the git history in large repos, e.g. `1.year` |
-| `heft.usage.ignore` | `[]` | Files that never count as orphans |
-| `heft.usage.entryPoints` | `[]` | Extra entry points (framework routes, for example) |
+| `heftmap.language` | `auto` | `en`, `es` or `eu`; `auto` follows the editor |
+| `heftmap.publicDir` | `public` | Folder that absolute paths (`/models/x.glb`) resolve against |
+| `heftmap.git.since` | empty | Limit the git history in large repos, e.g. `1.year` |
+| `heftmap.usage.ignore` | `[]` | Files that never count as orphans |
+| `heftmap.usage.entryPoints` | `[]` | Extra entry points (framework routes, for example) |
 
 ## Monorepos
 
 Each app uses its own `tsconfig.json` (aliases like `@/…`), and packages of the repo imported by
 name (`@scope/pkg`) resolve to their source, with or without `node_modules`. Aliases defined only
-in a bundler config (Vite, Metro, Babel) can't be followed: the log (*Output → Heft*) lists them,
+in a bundler config (Vite, Metro, Babel) can't be followed: the log (*Output → Heftmap*) lists them,
 and declaring them in a tsconfig `paths` fixes it.
 
 ## Known limits
@@ -65,7 +65,7 @@ and declaring them in a tsconfig `paths` fixes it.
 
 ## Problems
 
-*Output → Heft* has the log. If Heft fails it says so and offers **Copy report**: paste it into an
+*Output → Heftmap* has the log. If Heftmap fails it says so and offers **Copy report**: paste it into an
 [issue](https://github.com/davidcirosierrra/Heft/issues). Security problems: see
 [SECURITY.md](SECURITY.md).
 

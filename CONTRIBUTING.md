@@ -1,6 +1,6 @@
-# Desarrollo de Heft
+# Desarrollo de Heftmap
 
-Cómo está hecho Heft y cómo trabajar en él. La descripción para usuarios está en
+Cómo está hecho Heftmap y cómo trabajar en él. La descripción para usuarios está en
 [README.md](README.md) (inglés), [README.es.md](README.es.md) y [README.eu.md](README.eu.md).
 
 - Peso de cada archivo y carpeta: tabla, árbol y treemap.
@@ -14,7 +14,7 @@ quién lo referencia, filtros «sin rastro» y acciones. También el último cam
 colores por antigüedad y por commits recientes, detalle del commit) y los hotspots: líneas × cambios,
 con el botón «Hotspots». Lo siguiente es el análisis incremental (plan en la sección 10 del SPEC); la integración con Knip
 queda como opcional.
-La interfaz está en inglés, castellano y euskera (ajuste `heft.language`). Seguridad:
+La interfaz está en inglés, castellano y euskera (ajuste `heftmap.language`). Seguridad:
 [SECURITY.md](SECURITY.md) y [docs/seguridad.md](docs/seguridad.md).
 Diseño completo en [SPEC.md](SPEC.md); resultados de la fase 0 en [docs/fase-0.md](docs/fase-0.md).
 
@@ -35,7 +35,7 @@ node dist/cli.js /ruta/al/repo --since 1.year
 ```bash
 npm test          # vitest (núcleo, lógica de la extensión y humo contra un vscode simulado)
 npm run typecheck # tsc --noEmit
-npm run package   # heft.vsix
+npm run package   # heftmap.vsix
 ```
 
 - `src/core/`: núcleo sin dependencia de `vscode` (listado, git, uso).
