@@ -51,8 +51,15 @@ Dos piezas, cada una con la tecnología que de verdad puede pintarla.
 Contenedor propio en la barra de actividad. Solo usa lo que el `TreeView` nativo permite:
 
 - Árbol de carpetas y archivos ordenado de mayor a menor tamaño.
-- `description` de cada elemento: tamaño acumulado · % dentro de su carpeta padre · nº de archivos
-  (ej. `15,3 MB · 51 % · 3 arch.`). Sin barras: el TreeView no las admite.
+- `description` de cada elemento: barra de peso · % dentro de su carpeta padre · tamaño acumulado ·
+  nº de archivos (ej. `█████▏ 51 % · 15,3 MB · 3 arch.`). El TreeView no deja dibujar: la barra son
+  bloques de Unicode (`▏▎▍▌▋▊▉█`), 10 celdas de 8 pasos (`src/extension/bars.ts`). Se descartó una
+  tarta en el icono: obligaba a quitar los iconos del tema de archivos.
+- La descripción no admite color. El **nombre** se colorea por peso dentro de la carpeta padre:
+  ≥ 50 % `charts.red`, ≥ 20 % `charts.orange`, ≥ 10 % `charts.yellow`. Se hace con un
+  `FileDecorationProvider` que solo actúa sobre los URI de la vista (llevan `?heft=<tramo>`), así
+  el explorador nativo y las pestañas no se tiñen; los iconos del tema salen igual.
+- Junto al título de la vista: ámbito · tamaño total · nº de archivos.
 - **Casilla nativa** (`TreeItem.checkboxState`) en cada carpeta = pertenece al ámbito. Marcar una
   carpeta incluye sus subcarpetas.
   - La API no permite desactivar una casilla: las subcarpetas de una carpeta marcada salen marcadas

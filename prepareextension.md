@@ -85,7 +85,11 @@ Marca cada punto. Si algo falla, abre **Heft: Mostrar registro** (`Ctrl+Shift+P`
 
 **Vista «Carpetas»**
 - [ ] Carpetas y archivos ordenados de mayor a menor tamaño.
-- [ ] Cada carpeta muestra `tamaño · % de su carpeta padre · nº de archivos` (ej. `15,3 MB · 51 % · 3 arch.`).
+- [ ] Cada elemento muestra una barra de peso, el % de su carpeta padre, el tamaño y, en carpetas, el
+      nº de archivos (ej. `█████▏ 51 % · 15,3 MB · 3 arch.`). Los iconos del tema siguen ahí.
+- [ ] El nombre de lo que más pesa en cada carpeta sale en color (rojo ≥ 50 %, naranja ≥ 20 %,
+      amarillo ≥ 10 %). En el explorador nativo y en las pestañas, esos archivos **no** cambian de color.
+- [ ] Junto al título de la vista: `Todo el repositorio · 3,2 MB · 74 archivos` (o el ámbito elegido).
 - [ ] Iconos de carpeta y de archivo según tu tema de iconos.
 - [ ] Un clic en un archivo lo abre.
 - [ ] Al pasar el ratón por una carpeta `__tests__` o un archivo `[id].tsx`: la ruta se lee tal cual.

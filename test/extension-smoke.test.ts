@@ -52,10 +52,23 @@ describe('extensión (humo)', () => {
     expect(fake.treeView!.options.manageCheckboxStateManually).toBe(true);
   });
 
+  it('el nombre se colorea por peso solo en la vista de Heft, no en el explorador', () => {
+    const top = items();
+    const pub = top[0]!.item;
+    expect(pub.resourceUri!.query).toBe('heft=heavy');
+    const deco = fake.decorations!.provideFileDecoration(pub.resourceUri as never);
+    expect(deco?.color?.id).toBe('charts.red');
+    // El mismo archivo sin la marca (explorador, pestañas): sin color.
+    expect(fake.decorations!.provideFileDecoration(Uri.file(pub.resourceUri!.fsPath) as never)).toBeUndefined();
+    const light = top.find((x) => x.item.resourceUri?.query === 'heft=none');
+    expect(light).toBeDefined();
+    expect(fake.decorations!.provideFileDecoration(light!.item.resourceUri as never)).toBeUndefined();
+  });
+
   it('pinta carpetas de mayor a menor con tamaño, % y nº de archivos', () => {
     const top = items();
     expect(top[0]!.item.label).toBe('public');
-    expect(top[0]!.item.description).toMatch(/^\d+,\d MB · \d+(,\d)? % · 10 arch\.$/);
+    expect(top[0]!.item.description).toMatch(/^█+\S* \d+(,\d)? % · \d+,\d MB · 10 arch\.$/);
     const models = find('models', top[0]!.node);
     expect(models.item.checkboxState?.state).toBe(TreeItemCheckboxState.Unchecked);
   });
@@ -73,7 +86,7 @@ describe('extensión (humo)', () => {
   it('marcar una casilla cambia el ámbito, la descripción y la barra de estado', () => {
     check(find('src').node, true);
     expect(fake.state.get('heft.scope')).toEqual(['src']);
-    expect(fake.treeView!.description).toBe('src');
+    expect(fake.treeView!.description).toBe('src · 13 KB · 12 archivos');
     expect(fake.status.text).toMatch(/Heft: src · 12 archivos · \d+ KB/);
     // Las subcarpetas salen marcadas por el ancestro
     const game = find('game', find('src').node);
@@ -102,6 +115,6 @@ describe('extensión (humo)', () => {
     expect(fake.state.get('heft.scope')).toEqual(['docs', 'src/game']);
     await fake.commands.get('heft.clearScope')!();
     expect(fake.state.get('heft.scope')).toEqual([]);
-    expect(fake.treeView!.description).toBe('Todo el repositorio');
+    expect(fake.treeView!.description).toMatch(/^Todo el repositorio · \d+ MB · 30 archivos$/);
   });
 });
