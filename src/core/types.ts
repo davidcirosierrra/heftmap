@@ -110,6 +110,11 @@ export interface BuildOptions {
    * como uso (un generador nombra lo que escribe). Por defecto DEFAULT_WEAK_SOURCES.
    */
   weakSources?: string[];
+  /**
+   * Patrones de lo que no se analiza en absoluto (ajuste `heftmap.exclude`): ni se lista, ni se
+   * lee, ni sus referencias cuentan. Semántica de `pathMatcher` en glob.ts.
+   */
+  exclude?: string[];
 }
 
 /** Fase del análisis, en orden. `mentions` es la segunda pasada del uso. */
@@ -148,7 +153,9 @@ export type Warning =
   | { code: 'git-history'; detail: string }
   | { code: 'unresolved-imports'; count: number; examples: string[] }
   /** Imports no relativos sin destino que no son dependencias: `prefixes` = «@/… (120)». */
-  | { code: 'unresolved-aliases'; count: number; prefixes: string[] };
+  | { code: 'unresolved-aliases'; count: number; prefixes: string[] }
+  /** Patrones de `exclude` que no se pueden evaluar sin riesgo: se ignoran. */
+  | { code: 'invalid-exclude'; patterns: string[] };
 
 export interface HeftIndex {
   root: string;

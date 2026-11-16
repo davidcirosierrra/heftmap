@@ -55,6 +55,7 @@ balio du, monorepoetan ere bai.
 | `heftmap.autoRefresh` | `true` | Berriro aztertu bere kabuz fitxategiak edo git aldatzean; desaktibatuta = Freskatu-rekin bakarrik |
 | `heftmap.maxTextFileSize` | `5` | Tamaina hau (MB) baino handiagoak diren testuak ez dira irakurtzen: lerrorik eta erabilerarik gabe (1–50) |
 | `heftmap.usage.weakSources` | `["scripts", "tools", "bin"]` | Tooling karpetak: izendatzen dutena aipamena da, ez erabilera |
+| `heftmap.exclude` | `[]` | Erabat kanpoan uzten dena, .gitignore-n bezala (`*.snap`, `fixtures`, `docs/images`) |
 
 ## Monorepoak
 

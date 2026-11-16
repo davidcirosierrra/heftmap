@@ -61,7 +61,8 @@
         "heftmap.git.since",
         "heftmap.usage.ignore",
         "heftmap.usage.entryPoints",
-        "heftmap.usage.weakSources"
+        "heftmap.usage.weakSources",
+        "heftmap.exclude"
       ]
     }
   },
@@ -288,6 +289,14 @@
             "bin"
           ],
           "description": "%config.usage.weakSources%"
+        },
+        "heftmap.exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "%config.exclude%"
         }
       }
     }

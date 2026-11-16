@@ -1,7 +1,7 @@
 import path from 'node:path';
 import ts from 'typescript';
 import { toPosix } from '../files.js';
-import { MAX_GLOB_LENGTH, MAX_GLOB_STARS, MAX_TSCONFIGS } from '../limits.js';
+import { MAX_TSCONFIGS } from '../limits.js';
 import type { FileEntry } from '../types.js';
 
 /** Resolución de rutas (SPEC §4.3): rutas escritas a mano, módulos con el tsconfig y globs de Vite. */
@@ -220,45 +220,5 @@ function loadTsConfigs(root: string, files: Map<string, FileEntry>): TsConfig[] 
   return result;
 }
 
-/**
- * Glob de Vite (`**`, `*`, `?` y `{a,b}`) a expresión regular, o null si no se puede evaluar sin riesgo.
- * El patrón sale del código del repo analizado: `**\/**\/**\/…` daba una expresión con
- * retroceso exponencial que colgaba el análisis (ReDoS). Se juntan los `**` seguidos y se
- * rechazan los patrones con más de MAX_GLOB_STARS `**` o demasiado largos.
- */
-export function globToRegExp(glob: string): RegExp | null {
-  const g0 = glob.replace(/(?:\*\*\/)+/g, '**/').replace(/\*{3,}/g, '**');
-  if (g0.length > MAX_GLOB_LENGTH || (g0.match(/\*\*/g)?.length ?? 0) > MAX_GLOB_STARS) return null;
-  let depth = 0;
-  const body = (g: string): string => {
-    if (++depth > 20) throw new Error('glob demasiado anidado');
-    let re = '';
-    for (let i = 0; i < g.length; i++) {
-      const c = g[i] as string;
-      if (c === '*') {
-        if (g[i + 1] === '*') {
-          i++;
-          if (g[i + 1] === '/') {
-            i++;
-            re += '(?:.*/)?';
-          } else re += '.*';
-        } else re += '[^/]*';
-      } else if (c === '?') re += '[^/]';
-      else if (c === '{' && g.indexOf('}', i) > i) {
-        const end = g.indexOf('}', i);
-        re += `(?:${g.slice(i + 1, end).split(',').map(body).join('|')})`;
-        i = end;
-      } else re += escapeRe(c);
-    }
-    return re;
-  };
-  try {
-    return new RegExp(`^${body(g0)}$`);
-  } catch {
-    return null;
-  }
-}
-
-export function escapeRe(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
+// Los globs viven en ../glob.ts (también los usa `heftmap.exclude`); se reexportan por compatibilidad.
+export { escapeRe, globToRegExp } from '../glob.js';

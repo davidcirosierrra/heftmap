@@ -49,6 +49,7 @@ audio, texturas), sirve en cualquier repo con git, también en monorepos.
 | `heftmap.autoRefresh` | `true` | Volver a analizar automáticamente al cambiar archivos o git; desactivado = solo con Refrescar |
 | `heftmap.maxTextFileSize` | `5` | Los textos de más de este tamaño (MB) no se leen: sin líneas ni uso (1–50) |
 | `heftmap.usage.weakSources` | `["scripts", "tools", "bin"]` | Carpetas de tooling: lo que nombran cuenta como mención, no como uso |
+| `heftmap.exclude` | `[]` | Lo que se deja fuera del todo, como en .gitignore (`*.snap`, `fixtures`, `docs/images`) |
 
 ## Monorepos
 

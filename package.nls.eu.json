@@ -24,5 +24,6 @@
   "config.refreshDelay": "Aldaketa baten ondoren (diskoan, git-en edo ezarpenetan) berriro aztertu aurretik itxaroten diren milisegundoak. 250 eta 60000 artean.",
   "config.autoRefresh": "Berriro aztertu bere kabuz fitxategiak edo git aldatzean. Desaktibatuta, Freskatu botoiak (edo ezarpen-aldaketa batek) bakarrik aztertzen du berriro.",
   "config.maxTextFileSize": "Hau baino handiagoak diren testu-fitxategiak (MBtan) ez dira irakurtzen: tamaina ezagutzen da, baina ez lerroak ezta erabilera ere. 1 eta 50 artean.",
-  "config.usage.weakSources": "Tooling karpetak (bide-izen erlatiboak). Haien fitxategiek izendatzen dutena aipamen gisa kontatzen da, ez erabilera gisa: sorgailu batek idazten duena izendatzen du."
+  "config.usage.weakSources": "Tooling karpetak (bide-izen erlatiboak). Haien fitxategiek izendatzen dutena aipamen gisa kontatzen da, ez erabilera gisa: sorgailu batek idazten duena izendatzen du.",
+  "config.exclude": "Heftmap-ek erabat kanpoan uzten dituen fitxategiak eta karpetak (ez dira zerrendatzen, ez dira irakurtzen eta haien erreferentziak ez dira kontatzen), .gitignore-n bezala: «*.snap» edo «fixtures» edozein karpetatan bat datoz; «docs/images» edo «src/**/*.gen.ts» erroarekiko dira; karpeta batek barruan duen guztia hartzen du."
 }

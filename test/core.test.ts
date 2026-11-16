@@ -175,3 +175,39 @@ describe('weakSources (ajuste heftmap.usage.weakSources)', () => {
     expect(await usageWith(['src/comp'], 'src/components/HUD.tsx')).toBe('referenced');
   });
 });
+
+describe('exclude (ajuste heftmap.exclude)', () => {
+  let dir: string;
+  beforeAll(() => {
+    dir = createKartGame();
+  });
+  afterAll(() => rmSync(dir, { recursive: true, force: true }));
+  const paths = (i: HeftIndex): string[] => i.files.map((f) => f.path);
+
+  it('sin `/` casa en cualquier carpeta; una carpeta se lleva su contenido', async () => {
+    const i = await buildIndex(dir, { exclude: ['*.mp3', 'textures'] });
+    expect(paths(i).some((p) => p.endsWith('.mp3'))).toBe(false);
+    expect(paths(i).some((p) => p.startsWith('public/textures/'))).toBe(false);
+    expect(paths(i)).toContain('public/models/kart.glb');
+  });
+
+  it('con `/` es relativo a la raíz; `./` y `/` final dan igual', async () => {
+    const i = await buildIndex(dir, { exclude: ['./src/game/', 'public/models/*.glb'] });
+    expect(paths(i).some((p) => p.startsWith('src/game/'))).toBe(false);
+    expect(paths(i).some((p) => p.startsWith('public/models/'))).toBe(false);
+    expect(paths(i)).toContain('src/main.tsx');
+  });
+
+  it('las referencias de lo excluido no cuentan', async () => {
+    // Track.ts era quien usaba circuit.glb y sky.png.
+    const i = await buildIndex(dir, { exclude: ['src/game/Track.ts'] });
+    expect(i.files.find((f) => f.path === 'public/models/circuit.glb')?.usage).toBe('none');
+  });
+
+  it('un patrón peligroso se ignora con un aviso', async () => {
+    const bad = 'a/**/b/**/c/**/d/**/x';
+    const i = await buildIndex(dir, { exclude: [bad, '*.mp3'] });
+    expect(i.warnings).toContainEqual({ code: 'invalid-exclude', patterns: [bad] });
+    expect(paths(i).some((p) => p.endsWith('.mp3'))).toBe(false);
+  });
+});

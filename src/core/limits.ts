@@ -15,7 +15,7 @@ export const MAX_TSCONFIGS = 300;
 
 /**
  * Patrones de `import.meta.glob`: con más comodines `**` que MAX_GLOB_STARS, o más largos que
- * MAX_GLOB_LENGTH, no se evalúan (ver `globToRegExp` en `usage/resolve.ts`).
+ * MAX_GLOB_LENGTH, no se evalúan (ver `globToRegExp` en `glob.ts`).
  */
 export const MAX_GLOB_STARS = 3;
 export const MAX_GLOB_LENGTH = 300;
