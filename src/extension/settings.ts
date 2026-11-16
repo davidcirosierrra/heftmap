@@ -28,6 +28,8 @@ export interface HeftSettings {
   maxTextFileSize: number;
   /** Carpetas de tooling: lo que nombran cuenta como mención. undefined = las del núcleo. */
   usageWeakSources: string[] | undefined;
+  /** Patrones de lo que no se analiza en absoluto (estilo .gitignore). */
+  exclude: string[];
 }
 
 /** Límites de `heftmap.refreshDelay` (ms), los mismos que declara package.json. */
@@ -49,6 +51,7 @@ export function readSettings(scope?: vscode.Uri): HeftSettings {
     maxTextFileSize: num(cfg.get('maxTextFileSize'), MAX_TEXT_FILE_SIZE),
     // Una lista vacía vale (ninguna carpeta de tooling); otra cosa, el valor por defecto.
     usageWeakSources: Array.isArray(cfg.get('usage.weakSources')) ? strings(cfg.get('usage.weakSources')) : undefined,
+    exclude: strings(cfg.get('exclude')),
   };
 }
 
@@ -61,6 +64,7 @@ export function toBuildOptions(s: HeftSettings, trusted: boolean): BuildOptions 
     entryPoints: s.usageEntryPoints,
     maxTextBytes: s.maxTextFileSize * 1024 * 1024,
     weakSources: s.usageWeakSources,
+    exclude: s.exclude,
     useGit: trusted,
   };
 }

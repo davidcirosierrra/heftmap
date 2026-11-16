@@ -2,6 +2,7 @@ import path from 'node:path';
 import { categorize, extOf, isConventionalEntry, isGenerated, isNotAnalyzedCategory, isSourceCategory } from './classify.js';
 import { listFiles, listIgnoredDirs, readFile } from './files.js';
 import { gitInfo, readHistory, readStatus } from './git.js';
+import { pathMatcher } from './glob.js';
 import { DEFAULT_WEAK_SOURCES } from './limits.js';
 import type { BuildHooks, BuildOptions, FileEntry, HeftIndex, Phase, Usage, UsageRule, Warning } from './types.js';
 import { analyzeUsage, packageEntryPoints } from './usage.js';
@@ -21,7 +22,9 @@ export async function buildIndex(rootArg: string, opts: BuildOptions = {}, hooks
   progress('list', 0, 0);
   const info = opts.useGit === false ? { isGit: false, prefix: '', head: null } : await gitInfo(root);
   if (info.warning) warnings.push(info.warning);
-  const paths = await listFiles(root, info.isGit);
+  const exclude = pathMatcher(opts.exclude ?? []);
+  if (exclude.invalid.length) warnings.push({ code: 'invalid-exclude', patterns: exclude.invalid });
+  const paths = (await listFiles(root, info.isGit)).filter((p) => !exclude.matches(p));
   const tList = performance.now();
 
   // 2. Lectura: tamaño, líneas y contenido de texto
@@ -54,6 +57,7 @@ export async function buildIndex(rootArg: string, opts: BuildOptions = {}, hooks
   });
   if (opts.includeIgnored && info.isGit) {
     for (const d of await listIgnoredDirs(root)) {
+      if (exclude.matches(d.path)) continue;
       files.set(d.path, {
         path: d.path,
         size: d.size,

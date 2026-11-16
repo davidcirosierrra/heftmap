@@ -95,10 +95,18 @@ describe('usage.weakSources', () => {
   });
 });
 
+describe('exclude', () => {
+  it('lista de patrones; lo que no es texto se descarta', () => {
+    expect(readSettings().exclude).toEqual([]);
+    fake.config.exclude = ['dist', 7, '**/*.snap'];
+    expect(toBuildOptions(readSettings(), true).exclude).toEqual(['dist', '**/*.snap']);
+  });
+});
+
 describe('toBuildOptions', () => {
   it('pasa los ajustes al análisis y la confianza decide si se usa git', () => {
     const s = readSettings();
-    expect(toBuildOptions(s, true)).toEqual({ publicDir: 'public', since: undefined, ignore: [], entryPoints: [], maxTextBytes: 5 * 1024 * 1024, useGit: true });
+    expect(toBuildOptions(s, true)).toEqual({ publicDir: 'public', since: undefined, ignore: [], entryPoints: [], maxTextBytes: 5 * 1024 * 1024, exclude: [], useGit: true });
     expect(toBuildOptions(s, false).useGit).toBe(false);
   });
 });

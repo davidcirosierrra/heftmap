@@ -5,7 +5,8 @@ import { COMPONENT_EXT, extOf } from '../classify.js';
 import type { FileEntry, Phase, Ref, RefKind, Warning } from '../types.js';
 import { loadWorkspace, packageNameOf, probeFile, type Workspace } from '../workspace.js';
 import { cssUrls, htmlAttrs, mdLinks, packageJsonRefs, quotedStrings, scanCode, tsImports } from './extract.js';
-import { escapeRe, globToRegExp, makeResolver, makeTsResolver } from './resolve.js';
+import { escapeRe, globToRegExp } from '../glob.js';
+import { makeResolver, makeTsResolver } from './resolve.js';
 
 /**
  * Grafo de uso (SPEC §4.3), en dos pasadas:

@@ -10,6 +10,8 @@ export function warningText(w: Warning, I: I18n): string {
       return I.t('warn.gitHistory', { detail: w.detail });
     case 'unresolved-aliases':
       return I.t('warn.aliases', { n: I.num(w.count), prefixes: w.prefixes.join(', ') });
+    case 'invalid-exclude':
+      return I.t('warn.exclude', { patterns: w.patterns.map((p) => `«${p}»`).join(', ') });
     case 'unresolved-imports':
       return I.t('warn.unresolved', { n: I.num(w.count), examples: w.examples.join(', ') });
   }
