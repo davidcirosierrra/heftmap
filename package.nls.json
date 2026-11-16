@@ -23,5 +23,6 @@
   "command.copyReport": "Copy Error Report",
   "config.refreshDelay": "Milliseconds to wait after a change (on disk, in git or in the settings) before analyzing again. Between 250 and 60000.",
   "config.autoRefresh": "Analyze again automatically when files or git change. When off, only the Refresh button (or a settings change) analyzes again.",
-  "config.maxTextFileSize": "Text files larger than this (in MB) are not read: they keep their size, but get no line count and no usage analysis. Between 1 and 50."
+  "config.maxTextFileSize": "Text files larger than this (in MB) are not read: they keep their size, but get no line count and no usage analysis. Between 1 and 50.",
+  "config.usage.weakSources": "Tooling folders (relative paths). What files inside them name counts as a mention, not as use: a generator names what it writes."
 }

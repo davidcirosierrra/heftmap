@@ -60,7 +60,8 @@
         "heftmap.publicDir",
         "heftmap.git.since",
         "heftmap.usage.ignore",
-        "heftmap.usage.entryPoints"
+        "heftmap.usage.entryPoints",
+        "heftmap.usage.weakSources"
       ]
     }
   },
@@ -275,6 +276,18 @@
           "minimum": 1,
           "maximum": 50,
           "description": "%config.maxTextFileSize%"
+        },
+        "heftmap.usage.weakSources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "scripts",
+            "tools",
+            "bin"
+          ],
+          "description": "%config.usage.weakSources%"
         }
       }
     }

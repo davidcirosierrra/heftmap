@@ -2,6 +2,7 @@ import path from 'node:path';
 import { categorize, extOf, isConventionalEntry, isGenerated, isNotAnalyzedCategory, isSourceCategory } from './classify.js';
 import { listFiles, listIgnoredDirs, readFile } from './files.js';
 import { gitInfo, readHistory, readStatus } from './git.js';
+import { DEFAULT_WEAK_SOURCES } from './limits.js';
 import type { BuildHooks, BuildOptions, FileEntry, HeftIndex, Phase, Usage, UsageRule, Warning } from './types.js';
 import { analyzeUsage, packageEntryPoints } from './usage.js';
 import { loadWorkspace } from './workspace.js';
@@ -126,8 +127,9 @@ export async function buildIndex(rootArg: string, opts: BuildOptions = {}, hooks
   // Monorepos: la entrada de cada paquete, no solo la del de la raíz.
   for (const e of workspace.entryPoints()) entries.add(e);
   const ignore = new Set(opts.ignore ?? []);
+  const weak = weakSourceTest(opts.weakSources ?? DEFAULT_WEAK_SOURCES);
   for (const f of files.values()) {
-    const verdict = usageOf(f, entries, ignore, publicDir);
+    const verdict = usageOf(f, entries, ignore, publicDir, weak);
     f.usage = verdict.usage;
     f.usageRule = verdict.rule;
   }
@@ -152,7 +154,13 @@ export async function buildIndex(rootArg: string, opts: BuildOptions = {}, hooks
 }
 
 /** Estado de uso (SPEC §3.3) y la regla que lo decidió. El orden importa: la primera regla que encaja gana. */
-function usageOf(f: FileEntry, entries: Set<string>, ignore: Set<string>, publicDir: string): { usage: Usage; rule: UsageRule } {
+function usageOf(
+  f: FileEntry,
+  entries: Set<string>,
+  ignore: Set<string>,
+  publicDir: string,
+  isWeakSource: (from: string) => boolean,
+): { usage: Usage; rule: UsageRule } {
   if (f.ignoredByGit) return { usage: 'ignored-by-git', rule: 'ignored-by-git' };
   if (ignore.has(f.path)) return { usage: 'exception', rule: 'ignore-setting' };
   if (isNotAnalyzedCategory(f.category)) return { usage: 'not-analyzed', rule: 'category' };
@@ -166,11 +174,13 @@ function usageOf(f: FileEntry, entries: Set<string>, ignore: Set<string>, public
 
 /**
  * Referencias que no demuestran uso: scripts de tooling (un generador nombra lo que
- * escribe). Cuentan como mención. Los enlaces de Markdown ya se filtran en usage/index.ts
- * (solo hacia recursos y documentos), así que una imagen del README sí cuenta.
+ * escribe). Cuentan como mención. Son los scripts de otros lenguajes y lo que hay dentro de
+ * las carpetas de tooling (`weakSources`). Los enlaces de Markdown ya se filtran en
+ * usage/index.ts (solo hacia recursos y documentos), así que una imagen del README sí cuenta.
  */
-function isWeakSource(from: string): boolean {
-  return categorize(from) === 'script' || /^(scripts|tools|bin)\//.test(from);
+function weakSourceTest(folders: readonly string[]): (from: string) => boolean {
+  const prefixes = folders.map((f) => f.replace(/^\.?\/+|\/+$/g, '')).filter((f) => f !== '' && f !== '.').map((f) => `${f}/`);
+  return (from) => categorize(from) === 'script' || prefixes.some((p) => from.startsWith(p));
 }
 
 function sortByPath(list: FileEntry[]): FileEntry[] {

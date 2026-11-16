@@ -19,3 +19,6 @@ export const MAX_TSCONFIGS = 300;
  */
 export const MAX_GLOB_STARS = 3;
 export const MAX_GLOB_LENGTH = 300;
+
+/** Carpetas de tooling por defecto (`BuildOptions.weakSources`, ajuste `heftmap.usage.weakSources`). */
+export const DEFAULT_WEAK_SOURCES: readonly string[] = ['scripts', 'tools', 'bin'];
