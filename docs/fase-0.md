@@ -59,6 +59,8 @@ y actualizar de forma incremental (SPEC §4.3), sin worker de momento.
 - La lista de «mencionado en» puede ser enorme con nombres genéricos: en la UI, mostrar los 3 primeros.
 - ~~`import.meta.glob` de Vite no se interpreta~~: resuelto en la revisión posterior a la fase 1,
   junto con los JSON de configuración y los alias hacia recursos (SPEC §3.3).
-- El análisis de uso es síncrono: en un repo de miles de archivos bloquea el proceso de extensiones
-  1–2 s por análisis. Pendiente: worker o análisis incremental.
+- ~~El análisis de uso es síncrono y bloquea el proceso de extensiones~~: ahora corre en un worker
+  (SPEC §4.2). En un repo sintético de 3.301 archivos, el análisis de uso bloqueaba ~0,5 s el hilo;
+  con el worker el bloqueo máximo medido es de 9 ms. El worker tarda ~0,4 s más en total (cargar
+  TypeScript en cada análisis). Sigue pendiente el análisis incremental.
 - Paths de Windows: sin probar.

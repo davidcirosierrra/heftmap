@@ -106,6 +106,8 @@ export const fake = {
   /** Eventos del FileSystemWatcher, para dispararlos desde el test. */
   fs: { create: new EventEmitter<Uri>(), change: new EventEmitter<Uri>(), delete: new EventEmitter<Uri>() },
   watchers: 0,
+  /** Llamadas a withProgress: dónde se pinta y si la tarea ya terminó. */
+  progress: [] as { location: unknown; done: boolean }[],
   folderListeners: [] as (() => unknown)[],
   treeView: undefined as
     | {
@@ -127,6 +129,7 @@ export const fake = {
     this.log = [];
     this.fs = { create: new EventEmitter<Uri>(), change: new EventEmitter<Uri>(), delete: new EventEmitter<Uri>() };
     this.watchers = 0;
+    this.progress = [];
     this.folderListeners = [];
     this.treeView = undefined;
     this.state.clear();
@@ -174,6 +177,15 @@ export const window = {
     return undefined;
   },
   showQuickPick: async (items: any[]) => fake.quickPickAnswer?.(items),
+  withProgress: async <T>(options: { location: unknown }, task: () => Promise<T>): Promise<T> => {
+    fake.progress.push({ location: options.location, done: false });
+    const entry = fake.progress.at(-1)!;
+    try {
+      return await task();
+    } finally {
+      entry.done = true;
+    }
+  },
 };
 
 export const commands = {

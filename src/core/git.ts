@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { promisify } from 'node:util';
 import type { CommitInfo } from './types.js';
 
@@ -36,7 +37,8 @@ export async function gitInfo(root: string): Promise<GitInfo> {
     return { isGit: true, prefix, head };
   } catch (err) {
     // Sin el ejecutable no se puede saber si es un repo: se avisa en vez de callar.
-    if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+    // (ENOENT también sale si la carpeta no existe; ese caso falla después, al listar.)
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT' && existsSync(root)) {
       return {
         isGit: false,
         prefix: '',

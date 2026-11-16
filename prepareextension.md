@@ -15,7 +15,7 @@ Funciona igual en VS Code.
 git clone https://github.com/davidcirosierrra/Heft.git
 cd Heft
 npm install
-npm test                        # 48 tests: núcleo, ámbito, árbol y humo de la extensión
+npm test                        # 59 tests: núcleo, ámbito, árbol y humo de la extensión
 ```
 
 ## 3. Dos formas de probarla
@@ -52,7 +52,8 @@ Para desinstalar: panel de extensiones → Heft → **Uninstall**, o
    Abre ahí el proyecto que quieras analizar (**File → Open Folder…**).
 4. Tras cambiar código: `Ctrl+R` en la ventana de pruebas para recargar (la tarea previa recompila).
 
-Si F5 no hace nada, ejecuta antes `npm run build:ext` y comprueba que existe `dist/extension.cjs`.
+Si F5 no hace nada, ejecuta antes `npm run build:ext` y comprueba que existen `dist/extension.cjs`
+y `dist/worker.cjs`.
 
 ## 4. Proyecto de prueba
 
@@ -71,7 +72,11 @@ Marca cada punto. Si algo falla, abre **Heft: Mostrar registro** (`Ctrl+Shift+P`
 **Arranque**
 - [ ] Aparece un icono nuevo en la barra de actividad (un cuadrado dividido, tipo treemap).
 - [ ] En la barra de estado, abajo a la izquierda: `Heft: Todo el repositorio · N archivos · X MB`.
-      Mientras analiza muestra un icono girando.
+      Mientras analiza muestra un icono girando y la fase (`leyendo 40/79`, `uso 12/30`…).
+- [ ] Mientras analiza, una barra de progreso fina recorre la parte superior de la vista «Carpetas».
+- [ ] En un repo grande, el árbol con tamaños aparece antes de que termine el análisis; hasta
+      entonces el tooltip de un archivo dice «Analizando uso y git…».
+- [ ] El editor no se queda parado mientras Heft analiza (escribe en un archivo durante el análisis).
 - [ ] En el registro (*Output → Heft*) sale una línea `Índice (inicio)` con los tiempos.
 
 **Vista «Carpetas»**
@@ -118,8 +123,8 @@ Marca cada punto. Si algo falla, abre **Heft: Mostrar registro** (`Ctrl+Shift+P`
   la barra de estado y la descripción de la vista.
 - En un workspace con **varias carpetas raíz**, Heft analiza solo la primera (queda anotado en el registro).
 - El árbol siempre muestra el repo entero; el ámbito se ve con las casillas.
-- Cada cambio en disco vuelve a analizar todo el repo (con espera de 1,5 s). En repos grandes
-  (miles de archivos) tarda un par de segundos; el análisis incremental es trabajo pendiente.
+- Cada cambio en disco vuelve a analizar todo el repo (con espera de 1,5 s), en segundo plano y
+  cancelando el análisis anterior si seguía en curso. El análisis incremental es trabajo pendiente.
 
 ## 7. Si algo falla
 
@@ -127,7 +132,7 @@ Marca cada punto. Si algo falla, abre **Heft: Mostrar registro** (`Ctrl+Shift+P`
 |---------|-----------|
 | No aparece el icono de Heft | *Extensions*: ¿está Heft instalada y activada? Recarga la ventana. |
 | La vista sale vacía | ¿Tienes una carpeta abierta? Mira **Heft: Mostrar registro**. |
-| «No se pudo analizar el repositorio» | El mensaje completo está en el registro. |
+| «No se pudo analizar el repositorio» | El mensaje completo está en el registro. Si menciona `worker.cjs`, el `.vsix` está incompleto: vuelve a ejecutar `npm run package`. |
 | No hay datos de git (commits, `●`) | Si `git` no está en el `PATH`, Heft analiza sin git y lo avisa en el registro (`aviso: No se encuentra «git»…`). |
 | `Install from VSIX` falla | Comprueba la versión: Heft pide VS Code ≥ 1.85 (*Help → About*). |
 | No hay casillas en las carpetas | Versión del editor demasiado antigua: las casillas en vistas existen desde VS Code 1.80. |

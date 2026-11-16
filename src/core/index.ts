@@ -2,19 +2,21 @@ import path from 'node:path';
 import { categorize, extOf, isConventionalEntry, isGenerated, isNotAnalyzedCategory, isSourceCategory } from './classify.js';
 import { listFiles, listIgnoredDirs, readFile } from './files.js';
 import { gitInfo, readHistory, readStatus } from './git.js';
-import type { BuildOptions, FileEntry, HeftIndex, Usage } from './types.js';
+import type { BuildHooks, BuildOptions, FileEntry, HeftIndex, Phase, Usage } from './types.js';
 import { analyzeUsage, packageEntryPoints } from './usage.js';
 
 export * from './types.js';
 
 /** Construye el índice completo de un repo: archivos, git, uso y hotspots. */
-export async function buildIndex(rootArg: string, opts: BuildOptions = {}): Promise<HeftIndex> {
+export async function buildIndex(rootArg: string, opts: BuildOptions = {}, hooks: BuildHooks = {}): Promise<HeftIndex> {
   const root = path.resolve(rootArg);
   const publicDir = (opts.publicDir ?? 'public').replace(/^\/+|\/+$/g, '');
   const t0 = performance.now();
   const warnings: string[] = [];
+  const progress = throttledProgress(hooks);
 
   // 1. Listado
+  progress('list', 0, 0);
   const info = await gitInfo(root);
   if (info.warning) warnings.push(info.warning);
   const paths = await listFiles(root, info.isGit);
@@ -23,8 +25,11 @@ export async function buildIndex(rootArg: string, opts: BuildOptions = {}): Prom
   // 2. Lectura: tamaño, líneas y contenido de texto
   const files = new Map<string, FileEntry>();
   const texts = new Map<string, string>();
+  let read = 0;
+  progress('read', 0, paths.length);
   await mapLimit(paths, 32, async (rel) => {
     const r = await readFile(root, rel);
+    progress('read', ++read, paths.length);
     if (!r) return; // borrado del disco pero aún en el índice de git
     files.set(rel, {
       path: rel,
@@ -39,7 +44,7 @@ export async function buildIndex(rootArg: string, opts: BuildOptions = {}): Prom
       dirty: false,
       lastCommit: null,
       changes: 0,
-      usage: 'none',
+      usage: 'not-analyzed',
       refsIn: [],
       refsOut: [],
     });
@@ -68,9 +73,23 @@ export async function buildIndex(rootArg: string, opts: BuildOptions = {}): Prom
   }
   const tRead = performance.now();
 
+  // Tamaños listos: quien pinte puede enseñar ya el árbol mientras siguen git y el uso.
+  // Copia de las entradas: las originales se siguen rellenando.
+  hooks.onPartial?.({
+    root,
+    complete: false,
+    isGit: info.isGit,
+    head: info.head,
+    commitsRead: 0,
+    files: sortByPath([...files.values()].map((f) => ({ ...f, refsIn: [], refsOut: [] }))),
+    timings: { list: tList - t0, read: tRead - tList, git: 0, usage: 0, total: tRead - t0 },
+    warnings: [...warnings],
+  });
+
   // 3. Git: último commit, nº de cambios, estado
   let commitsRead = 0;
   if (info.isGit) {
+    progress('git', 0, 0);
     const [{ history, commits, warning }, status] = await Promise.all([
       readHistory(root, opts.since),
       readStatus(root, info.prefix),
@@ -92,7 +111,7 @@ export async function buildIndex(rootArg: string, opts: BuildOptions = {}): Prom
 
   // 4. Uso
   const sources = [...files.values()].filter((f) => !f.ignoredByGit && isSourceCategory(f.category, f.path)).map((f) => f.path);
-  const usage = analyzeUsage({ root, files, texts, sources, publicDir });
+  const usage = analyzeUsage({ root, files, texts, sources, publicDir, onProgress: progress });
   warnings.push(...usage.warnings);
   for (const r of usage.refs) {
     files.get(r.from)?.refsOut.push(r);
@@ -106,13 +125,13 @@ export async function buildIndex(rootArg: string, opts: BuildOptions = {}): Prom
   for (const f of files.values()) f.usage = usageOf(f, entries, ignore, publicDir);
   const tUsage = performance.now();
 
-  const sorted = [...files.values()].sort((a, b) => a.path.localeCompare(b.path, 'es', { sensitivity: 'base' }));
   return {
     root,
+    complete: true,
     isGit: info.isGit,
     head: info.head,
     commitsRead,
-    files: sorted,
+    files: sortByPath([...files.values()]),
     timings: {
       list: tList - t0,
       read: tRead - tList,
@@ -143,6 +162,27 @@ function usageOf(f: FileEntry, entries: Set<string>, ignore: Set<string>, public
  */
 function isWeakSource(from: string): boolean {
   return categorize(from) === 'script' || /^(scripts|tools|bin)\//.test(from);
+}
+
+function sortByPath(list: FileEntry[]): FileEntry[] {
+  return list.sort((a, b) => a.path.localeCompare(b.path, 'es', { sensitivity: 'base' }));
+}
+
+/**
+ * Avisos de progreso sin inundar a quien escucha (el worker los manda por mensaje):
+ * siempre el primero y el último de cada fase; entre medias, como mucho uno cada 50 ms.
+ */
+function throttledProgress(hooks: BuildHooks): (phase: Phase, done: number, total: number) => void {
+  let lastPhase: Phase | undefined;
+  let lastAt = 0;
+  return (phase, done, total) => {
+    if (!hooks.onProgress) return;
+    const now = performance.now();
+    if (phase === lastPhase && done < total && now - lastAt < 50) return;
+    lastPhase = phase;
+    lastAt = now;
+    hooks.onProgress({ phase, done, total });
+  };
 }
 
 async function mapLimit<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
