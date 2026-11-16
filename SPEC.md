@@ -358,7 +358,8 @@ paquetes (npm, pnpm, yarn, bun) ni de Nx o Turborepo, ni de que `node_modules` e
    virtual, teclado (↑ ↓, Re/Av Pág, Inicio/Fin, Enter abre) y botón **Abrir** en la fila
    seleccionada. Orden, filtro y selección se guardan con `getState/setState`. Añadido: aviso y
    pantalla de espera del primer análisis (§4.2). Las demás columnas llegan con sus fases (4, 5, 6).
-   Pendiente: el panel no se restaura al recargar la ventana (haría falta un serializador).
+   El panel se restaura al recargar la ventana (serializador + `onWebviewPanel:heft.panel`): vuelve
+   la pestaña con su orden, filtro, zoom y selección; los datos se piden de nuevo.
 3. ~~Treemap 2D enlazado con la tabla (área, color por extensión, zoom).~~ **Hecha**: treemap
    anidado en SVG (`d3-hierarchy`), área `Bytes` | `Equilibrado`, color por extensión (las 9 que más
    pesan; el resto «otros»), leyenda que resalta un grupo, zoom por clic en la cabecera de una

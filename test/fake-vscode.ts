@@ -168,6 +168,12 @@ export const fake = {
     disposed: boolean;
     close(): void;
   }[],
+  /** Serializadores de paneles, por tipo de webview. */
+  serializers: new Map<string, { deserializeWebviewPanel(panel: unknown, state: unknown): Promise<void> }>(),
+  /** Lo que hace el editor al recargar la ventana: un panel vacío que la extensión adopta. */
+  async restorePanel(viewType: string, state?: unknown): Promise<void> {
+    await this.serializers.get(viewType)?.deserializeWebviewPanel(makePanel(viewType, 'Heft', {}), state);
+  },
   state: new Map<string, unknown>(),
   reset(root: string): void {
     this.root = root;
@@ -184,6 +190,7 @@ export const fake = {
     this.trustListeners = [];
     this.treeView = undefined;
     this.panels = [];
+    this.serializers.clear();
     this.warnings = [];
     this.warningAnswer = undefined;
     this.errors = [];
@@ -193,6 +200,57 @@ export const fake = {
     this.state.clear();
   },
 };
+
+/** Un panel webview y su registro en `fake.panels`. */
+function makePanel(viewType: string, title: string, options: any) {
+  const receive = new EventEmitter<any>();
+  const onDispose = new EventEmitter<void>();
+  const record = {
+    viewType,
+    title,
+    options,
+    html: '',
+    posted: [] as any[],
+    receive,
+    revealed: 0,
+    disposed: false,
+    close: () => panel.dispose(),
+  };
+  const panel = {
+    iconPath: undefined as unknown,
+    webview: {
+      cspSource: 'vscode-webview://fake',
+      asWebviewUri: (u: Uri) => u,
+      set options(v: any) {
+        record.options = v;
+      },
+      get options() {
+        return record.options;
+      },
+      set html(v: string) {
+        record.html = v;
+      },
+      get html() {
+        return record.html;
+      },
+      postMessage: async (m: unknown) => {
+        // Como el real: lo que cruza es una copia serializada.
+        record.posted.push(JSON.parse(JSON.stringify(m)));
+        return true;
+      },
+      onDidReceiveMessage: receive.event,
+    },
+    onDidDispose: onDispose.event,
+    reveal: () => void record.revealed++,
+    dispose: () => {
+      if (record.disposed) return;
+      record.disposed = true;
+      onDispose.fire();
+    },
+  };
+  fake.panels.push(record);
+  return panel;
+}
 
 export const window = {
   createOutputChannel: (_name: string, _opts?: unknown) => ({
@@ -239,48 +297,10 @@ export const window = {
     fake.infos.push(msg);
     return undefined;
   },
-  createWebviewPanel: (viewType: string, title: string, _column: unknown, options: any) => {
-    const receive = new EventEmitter<any>();
-    const onDispose = new EventEmitter<void>();
-    const record = {
-      viewType,
-      title,
-      options,
-      html: '',
-      posted: [] as any[],
-      receive,
-      revealed: 0,
-      disposed: false,
-      close: () => panel.dispose(),
-    };
-    const panel = {
-      iconPath: undefined as unknown,
-      webview: {
-        cspSource: 'vscode-webview://fake',
-        asWebviewUri: (u: Uri) => u,
-        set html(v: string) {
-          record.html = v;
-        },
-        get html() {
-          return record.html;
-        },
-        postMessage: async (m: unknown) => {
-          // Como el real: lo que cruza es una copia serializada.
-          record.posted.push(JSON.parse(JSON.stringify(m)));
-          return true;
-        },
-        onDidReceiveMessage: receive.event,
-      },
-      onDidDispose: onDispose.event,
-      reveal: () => void record.revealed++,
-      dispose: () => {
-        if (record.disposed) return;
-        record.disposed = true;
-        onDispose.fire();
-      },
-    };
-    fake.panels.push(record);
-    return panel;
+  createWebviewPanel: (viewType: string, title: string, _column: unknown, options: any) => makePanel(viewType, title, options),
+  registerWebviewPanelSerializer: (viewType: string, serializer: { deserializeWebviewPanel(panel: unknown, state: unknown): Promise<void> }) => {
+    fake.serializers.set(viewType, serializer);
+    return disposable;
   },
   registerFileDecorationProvider: (provider: { provideFileDecoration(uri: Uri): FileDecoration | undefined }) => {
     fake.decorations = provider;

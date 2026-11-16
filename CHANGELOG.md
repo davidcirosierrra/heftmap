@@ -4,6 +4,7 @@
 
 - Folders view in the side bar: size, share, weight bar and colour per item; scope by checkboxes.
 - Panel with a table and a treemap, linked both ways; adjustable split; chart can be hidden.
+- The panel comes back when the window reloads, with its sort, filter, zoom and selection.
 - Usage: references between files, assets with no trace, mentioned files and entry points;
   ignore or move to the trash (with confirmation).
 - Git: last change, uncommitted changes, age and recent-commit colours, diff.
