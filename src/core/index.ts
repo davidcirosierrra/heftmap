@@ -161,7 +161,7 @@ function usageOf(f: FileEntry, entries: Set<string>, ignore: Set<string>, public
 
 /**
  * Referencias que no demuestran uso: scripts de tooling (un generador nombra lo que
- * escribe). Cuentan como mención. Los enlaces de Markdown ya se filtran en usage.ts
+ * escribe). Cuentan como mención. Los enlaces de Markdown ya se filtran en usage/index.ts
  * (solo hacia recursos y documentos), así que una imagen del README sí cuenta.
  */
 function isWeakSource(from: string): boolean {
