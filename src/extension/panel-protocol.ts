@@ -25,6 +25,8 @@ export interface PanelFile {
   changes?: number;
   /** Lockfile o generado: fuera del cálculo de hotspots (SPEC §3.5). */
   generated?: boolean;
+  /** Código fuente (TS/JS, componentes, CSS, HTML): lo único que cuenta en los hotspots. */
+  code?: boolean;
 }
 
 /** Un commit que es el último cambio de algún archivo. */

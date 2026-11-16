@@ -157,7 +157,10 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
   - Las rutas absolutas (`/x.png`) se resuelven contra la carpeta pública más cercana subiendo desde
     el archivo (`public/`, `docs/public/`, `packages/app/public/`).
   - YAML/TOML y las carpetas con punto (`.github/`, `.vscode/`) son configuración.
-  - Las menciones buscan el nombre completo y la raíz si tiene 3 letras o más.
+  - Las menciones buscan el nombre completo en cualquier sitio, y la raíz (3 letras o más) solo
+    como string entero o tras una barra (`['grass']`, `'/img/hero'`), nunca como clave de objeto.
+    Suelta por el texto daba falsos «mencionado» con palabras comunes (`placeholder="…"`).
+    Límite conocido: un string con el mismo nombre que no es una ruta (`type="search"`) cuenta.
 - Reglas añadidas tras la revisión de código de las fases 0 y 1:
   - Un JSON en la raíz, o con nombre de herramienta (`biome.json`, `components.json`,
     `renovate.json`, `*.config.json`…), es configuración, no un recurso «sin rastro». El manifest
@@ -176,7 +179,10 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
 ### 3.5 Hotspots
 - Vista típica: área `Líneas` + color `Cambios`. Grande e intenso = candidato a dividir o revisar;
   grande y gris = código estable.
-- Atajo **«Hotspots»** en la barra superior: aplica esa combinación y ordena la tabla por Cambios.
+- Atajo **«Hotspots»** en la barra superior: aplica esa combinación, ordena la tabla por Cambios
+  y deja **solo código fuente** (TS/JS y componentes, CSS, HTML). Sin ese recorte el ranking lo
+  copaban `package.json`, lockfiles, JSON de traducciones y documentación. Otro clic, o cambiar
+  área, color u orden, sale del modo.
 - «Cambios» cuenta commits, no líneas modificadas. Con `git.since` es «cambios en ese periodo».
 - **No se siguen los renombrados**: un archivo renombrado empieza a contar desde cero. Decisión
   consciente para no encarecer el comando de git.
@@ -197,7 +203,12 @@ paquetes (npm, pnpm, yarn, bun) ni de Nx o Turborepo, ni de que `node_modules` e
 - **Paquetes del repo** (`src/core/workspace.ts`): se leen todos los `package.json`. Un import de
   `@scope/pkg` o `@scope/pkg/sub` se lleva a su código fuente por `exports` (condiciones `source`,
   `types`, `import`…, y patrones `./*`), `source`/`types`/`module`/`main`, o `src/index`. Si el
-  destino declarado es compilado (`dist/x.js`), se busca su fuente (`src/x.ts`).
+  destino declarado es compilado (`dist/x.js`), se busca su fuente (`src/x.ts`). Si TypeScript
+  llega al `dist/` compilado (ignorado por git, existe tras un build), tampoco vale como destino:
+  se busca el fuente igual.
+- Un destino de patrón (`./src/*.ts` en `exports` o en `paths`) que en realidad es una carpeta
+  se prueba también como `src/x/index.ts`. Los alias que empiezan por `#` (`#ui/*`, *subpath
+  imports* de Node) se resuelven como los demás.
 - **Entradas por paquete**: lo que cada `package.json` declara (`main`, `exports`, `bin`…) es punto
   de entrada. También el `index.html` de cada app, cuyas rutas absolutas (`/src/main.tsx`) se
   resuelven desde la carpeta de la app.
@@ -413,8 +424,6 @@ Ajustes del panel tras probarlo en el editor:
 
 - Publisher y si se publica en Open VSX o solo `.vsix` para uso propio. Si se publica, comprobar
   antes que el nombre `heft` está libre.
-- Umbral de la búsqueda de menciones: nombres muy cortos o genéricos (`icon.png`) darán falsos
-  «mencionado».
 - Límite de archivos y si el análisis va en un worker (decidir con los datos de la fase 0).
 - Si la vista lateral muestra archivos o solo carpetas.
 - Qué cuenta como «archivo generado» para excluirlo de los hotspots (lista fija o ajuste).

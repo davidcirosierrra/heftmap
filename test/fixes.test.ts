@@ -134,3 +134,40 @@ describe('avisos de git', () => {
     }
   });
 });
+
+describe('menciones: palabras comunes', () => {
+  let repo: string;
+  let idx: HeftIndex;
+  const usageOf = (p: string) => idx.files.find((f) => f.path === p)?.usage;
+  beforeAll(async () => {
+    repo = createRepo({
+      'index.html': '<script type="module" src="/src/main.tsx"></script>\n',
+      'src/main.tsx': [
+        `export const Search = () => <input placeholder="Buscar" type="search" />`,
+        `const ICONS = ['github', 'gitlab']`,
+        `export const icons = ICONS.map((n) => \`/icons/\${n}.svg\`)`,
+        `export const banner = '/img/hero'`,
+      ].join('\n'),
+      'src/locales/es.json': JSON.stringify({ placeholder: 'Buscar', search: 'Buscar' }),
+      'public/img/placeholder.png': png,
+      'public/img/hero.webp': png,
+      'public/icons/github.svg': '<svg/>',
+      'public/icons/gitlab.svg': '<svg/>',
+      'docs/notas.txt': 'El banner.png se cambió.',
+      'public/img/banner.png': png,
+    });
+    idx = await buildIndex(repo);
+  });
+  afterAll(() => rmSync(repo, { recursive: true, force: true }));
+
+  it('el nombre sin extensión suelto en el texto, o como clave de un JSON, no es una mención', () => {
+    expect(usageOf('public/img/placeholder.png')).toBe('none');
+  });
+
+  it('sí cuenta como string entero, tras una barra, o con el nombre completo', () => {
+    expect(usageOf('public/icons/github.svg')).toBe('mentioned');
+    expect(usageOf('public/icons/gitlab.svg')).toBe('mentioned');
+    expect(usageOf('public/img/hero.webp')).toBe('mentioned');
+    expect(usageOf('public/img/banner.png')).toBe('mentioned');
+  });
+});

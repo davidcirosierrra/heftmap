@@ -9,8 +9,8 @@ const commits: PanelCommit[] = [
 ];
 const files: PanelFile[] = [
   { path: 'README.md', size: 300, usage: 'not-analyzed', commit: 0, lines: 12, changes: 1 },
-  { path: 'src/main.tsx', size: 120, usage: 'entry', dirty: true, untracked: true, lines: 5 },
-  { path: 'src/game/Kart.ts', size: 900, usage: 'referenced', commit: 0, dirty: true, lines: 1746, changes: 19 },
+  { path: 'src/main.tsx', size: 120, usage: 'entry', dirty: true, untracked: true, lines: 5, code: true },
+  { path: 'src/game/Kart.ts', size: 900, usage: 'referenced', commit: 0, dirty: true, lines: 1746, changes: 19, code: true },
   { path: 'public/models/kart.glb', size: 4000, usage: 'none', commit: 0, changes: 2 },
 ];
 const refs: PanelRef[] = [[1, 2, 'import']];
@@ -217,20 +217,31 @@ describe('panel (DOM): uso', () => {
     expect([cell('main.tsx', 'lines'), cell('main.tsx', 'changes')]).toEqual(['5', '']);
   });
 
-  it('atajo «Hotspots»: área Líneas, color Cambios y tabla por Cambios', async () => {
+  it('atajo «Hotspots»: área Líneas, color Cambios, tabla por Cambios y solo código', async () => {
     const hot = pill('Hotspots')!;
     expect(hot.getAttribute('aria-pressed')).toBe('false');
     await p.click(hot);
-    expect(p.state).toMatchObject({ area: 'lines', color: 'changes', sort: { key: 'changes', dir: 'desc' } });
-    expect(names()).toEqual(['Kart.ts', 'kart.glb', 'README.md', 'main.tsx']);
-    // En «Líneas» el binario no se dibuja.
-    expect(p.$$('.tm-file')).toHaveLength(3);
-    expect(p.text('.leg')).toEqual(['19 o más cambios', '2–18', '1 cambio', 'Sin cambios registrados']);
+    expect(p.state).toMatchObject({ hot: true, area: 'lines', color: 'changes', sort: { key: 'changes', dir: 'desc' } });
+    // Ni el README ni el binario: los hotspots son código.
+    expect(names()).toEqual(['Kart.ts', 'main.tsx']);
+    expect(p.$('.totals')?.textContent).toMatch(/^2 de 4 archivos/);
+    expect(p.$$('.tm-file')).toHaveLength(2);
+    expect(p.text('.leg')).toEqual(['19 o más cambios', 'Sin cambios registrados']);
     expect(pill('Hotspots')!.getAttribute('aria-pressed')).toBe('true');
     expect(p.$('.tm-dir title')?.textContent).toContain('líneas');
+    // Cambiar el orden saca del modo: vuelven todos los archivos.
     await p.click(p.$('.head .cell.lines'));
     expect(pill('Hotspots')!.getAttribute('aria-pressed')).toBe('false');
+    expect(names()).toHaveLength(4);
     expect(names()[0]).toBe('Kart.ts');
+  });
+
+  it('«Hotspots» otra vez: sale del modo', async () => {
+    await p.click(pill('Hotspots')!);
+    expect(names()).toEqual(['Kart.ts', 'main.tsx']);
+    await p.click(pill('Hotspots')!);
+    expect(p.state).toMatchObject({ hot: false });
+    expect(names()).toHaveLength(4);
   });
 
   it('el detalle lleva líneas y cambios', async () => {

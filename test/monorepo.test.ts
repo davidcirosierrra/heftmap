@@ -34,7 +34,7 @@ beforeAll(async () => {
 
   // --- app móvil: alias @/* → src/*
   write('apps/mobile/package.json', { name: '@acme/mobile', dependencies: { react: '^19.0.0', '@acme/api': 'workspace:*', '@acme/ui': 'workspace:*', '@acme/types': 'workspace:*' } });
-  write('apps/mobile/tsconfig.json', { extends: '../../tsconfig.base.json', compilerOptions: { paths: { '@/*': ['./src/*'] } }, include: ['src'] });
+  write('apps/mobile/tsconfig.json', { extends: '../../tsconfig.base.json', compilerOptions: { paths: { '@/*': ['./src/*'], '#kit/*': ['../../packages/kit/src/*.ts'] } }, include: ['src'] });
   write(
     'apps/mobile/src/main.tsx',
     [
@@ -46,7 +46,10 @@ beforeAll(async () => {
       "import type { Trip } from '@acme/types'",
       "import { theme } from '@acme/theme'",
       "import { deep } from '@acme/api/internal/deep'",
-      'export const app = [React, fs, useTrip, client, Button, theme, deep] as unknown as Trip',
+      "import { t } from '@acme/kit/i18n'",
+      "import { locale } from '@acme/kit/locale'",
+      "import { format } from '#kit/format'",
+      'export const app = [React, fs, useTrip, client, Button, theme, deep, t, locale, format] as unknown as Trip',
     ].join('\n'),
   );
   write('apps/mobile/src/hooks/useTrip.ts', "import { http } from '@/lib/http'\nimport { x } from '~/aliasDelBundler/x'\nexport const useTrip = () => [http, x]\n");
@@ -79,6 +82,21 @@ beforeAll(async () => {
   write('packages/cli/package.json', { name: '@acme/cli', bin: { acme: './dist/bin.js' }, scripts: { gen: 'node ./tools-local/gen.mjs' } });
   write('packages/cli/src/bin.ts', 'export {}\n');
   write('packages/cli/tools-local/gen.mjs', 'export {}\n');
+
+  // `@acme/kit` compilado (dist/ existe pero git lo ignora) y enlazado en node_modules:
+  // TypeScript resuelve `@acme/kit/i18n` a `packages/kit/dist/i18n/index.d.ts`.
+  write('packages/kit/package.json', {
+    name: '@acme/kit',
+    exports: { './i18n': { types: './dist/i18n/index.d.ts', import: './dist/i18n/index.js' }, './*': './src/*.ts' },
+  });
+  write('packages/kit/src/i18n/index.ts', 'export const t = (k: string) => k\n');
+  // Patrón `./*` → `./src/*.ts` y un import que es una carpeta: `src/locale/index.ts`.
+  write('packages/kit/src/locale/index.ts', 'export const locale = 1\n');
+  write('packages/kit/src/format/index.ts', 'export const format = 1\n');
+  write('packages/kit/dist/i18n/index.d.ts', 'export declare const t: (k: string) => string\n');
+  write('packages/kit/dist/i18n/index.js', 'export const t = (k) => k\n');
+  mkdirSync(path.join(root, 'node_modules/@acme'), { recursive: true });
+  symlinkSync(path.join(root, 'packages/kit'), path.join(root, 'node_modules/@acme/kit'), 'dir');
 
   // `@acme/theme` instalado como enlace de workspace: TypeScript lo resuelve por node_modules.
   mkdirSync(path.join(root, 'node_modules/@acme'), { recursive: true });
@@ -136,6 +154,16 @@ describe('monorepo: paquetes del repo', () => {
   it('con el enlace en node_modules: es código del repo, no una librería externa', () => {
     expect(importers('packages/theme/src/index.ts')).toEqual(['apps/mobile/src/main.tsx']);
     expect(index.files.some((f) => f.path.startsWith('node_modules/') && !f.ignoredByGit)).toBe(false);
+  });
+
+  it('con el paquete compilado: TypeScript llega a dist/ (ignorado) y se va al fuente', () => {
+    expect(importers('packages/kit/src/i18n/index.ts')).toEqual(['apps/mobile/src/main.tsx']);
+    expect(file('packages/kit/src/i18n/index.ts').usage).toBe('referenced');
+  });
+
+  it('un patrón `./src/*.ts` (de `exports` o de `paths`) también llega a una carpeta con index', () => {
+    expect(importers('packages/kit/src/locale/index.ts')).toEqual(['apps/mobile/src/main.tsx']);
+    expect(importers('packages/kit/src/format/index.ts')).toEqual(['apps/mobile/src/main.tsx']);
   });
 
   it('la entrada declarada de un paquete es punto de entrada, también `bin` hacia dist/', () => {
