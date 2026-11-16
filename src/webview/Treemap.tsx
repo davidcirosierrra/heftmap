@@ -1,5 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { fmtSize } from '../report.js';
+import { useI18n } from './locale.js';
 import { textOn, type Coloring } from './colors.js';
 import type { Row } from './model.js';
 import { fitText, HEADER_HEIGHT, layoutTreemap, type AreaMode } from './treemap-layout.js';
@@ -20,6 +20,7 @@ export function Treemap(props: {
   layoutKey?: unknown;
 }) {
   const { rows, coloring, selected, highlight, area } = props;
+  const I = useI18n();
   const box = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
 
@@ -58,11 +59,11 @@ export function Treemap(props: {
       cells.map((c) => {
         if (c.kind === 'dir') {
           if (!c.header) return null;
-          const amount = area === 'lines' ? `${c.lines.toLocaleString('es-ES')} lín.` : fmtSize(c.size);
+          const amount = area === 'lines' ? I.t('tm.linesShort', { n: I.num(c.lines) }) : I.size(c.size);
           const label = fitText(`${c.name}  ${amount}`, c.w - 8) || fitText(c.name, c.w - 8);
           return (
             <g key={`d:${c.path}`} className="tm-dir" onClick={() => handlers.current.onZoom(c.path)}>
-              <title>{`${c.path}/ · ${fmtSize(c.size)}${area === 'lines' ? ` · ${c.lines.toLocaleString('es-ES')} líneas` : ''} · ${c.count} archivos. Clic para ampliar`}</title>
+              <title>{I.t('tm.dirTip', { path: c.path, size: I.size(c.size), lines: area === 'lines' ? ` · ${I.tp('lines', c.lines)}` : '', files: I.tp('files', c.count) })}</title>
               <rect x={c.x} y={c.y} width={c.w} height={HEADER_HEIGHT - 1} />
               <text x={c.x + 4} y={c.y + 13}>
                 {label}
@@ -81,7 +82,7 @@ export function Treemap(props: {
             onClick={() => handlers.current.onSelect(c.path)}
             onDoubleClick={() => handlers.current.onOpen(c.path)}
           >
-            <title>{`${c.path} · ${fmtSize(c.size)}${row.lines != null ? ` · ${row.lines.toLocaleString('es-ES')} líneas` : ''}${row.changes ? ` · ${row.changes} ${row.changes === 1 ? 'cambio' : 'cambios'}` : ''}`}</title>
+            <title>{`${c.path} · ${I.size(c.size)}${row.lines != null ? ` · ${I.tp('lines', row.lines)}` : ''}${row.changes ? ` · ${I.tp('changes', row.changes)}` : ''}`}</title>
             <rect x={c.x} y={c.y} width={c.w} height={c.h} fill={fill} />
             {label && (
               <text x={c.x + 3} y={c.y + 12} fill={textOn(fill)}>
@@ -91,16 +92,16 @@ export function Treemap(props: {
           </g>
         );
       }),
-    [cells, coloring, highlight, area],
+    [cells, coloring, highlight, area, I],
   );
   const picked = selected ? cells.find((c) => c.kind === 'file' && c.path === selected) : undefined;
 
   return (
     <div className="treemap" ref={box}>
       {cells.length === 0 ? (
-        size.width > 0 && <p className="empty">{area === 'lines' ? 'Ningún archivo de texto con este ámbito y filtro: en «Líneas» los binarios no se dibujan.' : 'Nada que dibujar con este ámbito y filtro.'}</p>
+        size.width > 0 && <p className="empty">{I.t(area === 'lines' ? 'tm.nothingLines' : 'tm.nothing')}</p>
       ) : (
-        <svg width={size.width} height={size.height} role="img" aria-label="Treemap de archivos por tamaño">
+        <svg width={size.width} height={size.height} role="img" aria-label={I.t('tm.aria')}>
           {drawn}
           {picked && <rect className="tm-selected" x={picked.x + 1} y={picked.y + 1} width={Math.max(0, picked.w - 2)} height={Math.max(0, picked.h - 2)} />}
         </svg>

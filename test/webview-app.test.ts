@@ -207,7 +207,7 @@ describe('panel (DOM): uso', () => {
     await p.choose(p.$$('.select select')[1], 'recent');
     expect(p.text('.leg')).toEqual(['Nuevo (sin commit)', 'e41d0b7 Añade el kart']);
     await p.choose(p.$$('.select select')[1], 'age');
-    expect(p.text('.leg')).toEqual(['Nuevo (sin commit)', 'hasta hace 3 d']);
+    expect(p.text('.leg')).toEqual(['Nuevo (sin commit)', 'hoy – hace 3 d']);
   });
 
   it('columnas Líneas y Cambios: vacías en binarios y en archivos sin commits', () => {

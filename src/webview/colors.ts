@@ -1,5 +1,5 @@
 import type { PanelCommit } from '../extension/panel-protocol.js';
-import { rel, USAGE_LABEL } from '../report.js';
+import type { I18n, MessageKey } from '../i18n/index.js';
 import type { Row, RowUsage } from './model.js';
 
 /**
@@ -8,13 +8,14 @@ import type { Row, RowUsage } from './model.js';
  */
 export type ColorMode = 'ext' | 'usage' | 'age' | 'recent' | 'changes';
 
-export const COLOR_LABEL: Record<ColorMode, string> = {
-  ext: 'Extensión',
-  usage: 'Uso',
-  age: 'Antigüedad',
-  recent: 'Commits recientes',
-  changes: 'Cambios',
-};
+/** Clave del texto de cada modo (src/i18n). */
+export const COLOR_LABEL = {
+  ext: 'color.ext',
+  usage: 'color.usage',
+  age: 'color.age',
+  recent: 'color.recent',
+  changes: 'color.changes',
+} as const satisfies Record<ColorMode, MessageKey>;
 
 export interface LegendItem {
   key: string;
@@ -37,7 +38,9 @@ export interface Coloring {
  */
 export const CATEGORICAL = ['#4e79a7', '#f28e2b', '#59a14f', '#e15759', '#b07aa1', '#76b7b2', '#edc948', '#ff9da7', '#9c755f'];
 export const NEUTRAL = '#8a8a8a';
+/** Claves internas de grupo (no se enseñan: la leyenda lleva su texto traducido). */
 const OTHER = '(otros)';
+const NO_EXT = '(sin extensión)';
 
 /** Negro o blanco, lo que mejor se lea sobre `hex` (luminancia relativa WCAG). */
 export function textOn(hex: string): string {
@@ -63,8 +66,8 @@ function groupLegend(rows: readonly Row[], keyOf: (r: Row) => string): Map<strin
 }
 
 /** Las extensiones que más pesan tienen color propio; el resto va a «otros». */
-function byExt(rows: readonly Row[]): Coloring {
-  const extOf = (r: Row): string => r.ext || '(sin extensión)';
+function byExt(rows: readonly Row[], I: I18n): Coloring {
+  const extOf = (r: Row): string => r.ext || NO_EXT;
   const groups = groupLegend(rows, extOf);
   const ranked = [...groups.entries()].sort((a, b) => b[1].size - a[1].size || a[0].localeCompare(b[0]));
   const color = new Map<string, string>();
@@ -73,12 +76,12 @@ function byExt(rows: readonly Row[]): Coloring {
 
   const legend: LegendItem[] = ranked
     .slice(0, CATEGORICAL.length)
-    .map(([ext, g]) => ({ key: ext, label: ext, color: color.get(ext) as string, ...g }));
+    .map(([ext, g]) => ({ key: ext, label: ext === NO_EXT ? I.t('legend.noExt') : ext, color: color.get(ext) as string, ...g }));
   const rest = ranked.slice(CATEGORICAL.length);
   if (rest.length) {
     legend.push({
       key: OTHER,
-      label: `otros (${rest.length})`,
+      label: I.t('legend.others', { n: I.num(rest.length) }),
       color: NEUTRAL,
       count: rest.reduce((s, [, g]) => s + g.count, 0),
       size: rest.reduce((s, [, g]) => s + g.size, 0),
@@ -111,11 +114,11 @@ export const USAGE_COLOR: Record<RowUsage, string> = {
   pending: '#6e6e6e',
 };
 
-export const usageLabel = (u: RowUsage): string => (u === 'pending' ? 'Analizando…' : USAGE_LABEL[u]);
+export const usageLabel = (u: RowUsage, I: I18n): string => I.t(`usage.${u}`);
 
-function byUsage(rows: readonly Row[]): Coloring {
+function byUsage(rows: readonly Row[], I: I18n): Coloring {
   const order: RowUsage[] = ['none', 'no-importers', 'mentioned', 'referenced', 'entry', 'exception', 'not-analyzed', 'ignored-by-git', 'pending'];
-  return fixedGroups('usage', rows, (r) => r.usage, order.map((u) => ({ key: u, label: usageLabel(u), color: USAGE_COLOR[u] })));
+  return fixedGroups('usage', rows, (r) => r.usage, order.map((u) => ({ key: u, label: usageLabel(u, I), color: USAGE_COLOR[u] })));
 }
 
 /** De reciente (cálido) a antiguo (frío). */
@@ -199,7 +202,7 @@ export function quantileFloors(values: readonly number[], n: number): number[] {
 }
 
 /** Antigüedad (SPEC §2.2): 5 tramos por cuantiles del propio repo, no por fechas fijas. */
-function byAge(rows: readonly Row[], now: number): Coloring {
+function byAge(rows: readonly Row[], I: I18n, now: number): Coloring {
   const floors = quantileFloors(rows.filter((r) => r.commit && !r.untracked).map((r) => (r.commit as PanelCommit).time), AGE_COLORS.length);
   const keyOf = (r: Row): string => {
     if (r.untracked) return NEW;
@@ -209,34 +212,34 @@ function byAge(rows: readonly Row[], now: number): Coloring {
   };
   const groups = floors.map((floor, i) => {
     const newest = i === 0 ? null : (floors[i - 1] as number);
-    const from = rel(floor, now);
-    // Primer tramo: «hasta hace 2 sem»; los demás: «hace 2 sem – hace 3 meses».
-    const to = newest === null ? null : rel(newest, now);
-    const label = to === null ? (from === 'hoy' ? 'hoy' : `hasta ${from}`) : to === from ? from : `${to} – ${from}`;
+    const from = I.rel(floor, now);
+    // El tramo más reciente llega hasta hoy: «hoy – hace 2 sem»; los demás, «hace 2 sem – hace 3 meses».
+    const to = I.rel(newest ?? now, now);
+    const label = to === from ? from : I.t('legend.range', { to, from });
     // Con menos de 5 tramos se reparten los colores de punta a punta.
     const color = AGE_COLORS[floors.length === 1 ? 0 : Math.round((i * (AGE_COLORS.length - 1)) / (floors.length - 1))] as string;
     return { key: `t${i}`, label, color };
   });
   return fixedGroups('age', rows, keyOf, [
-    { key: NEW, label: 'Nuevo (sin commit)', color: '#b07aa1' },
+    { key: NEW, label: I.t('legend.new'), color: '#b07aa1' },
     ...groups,
-    { key: NO_DATA, label: 'Sin dato de git', color: NEUTRAL },
+    { key: NO_DATA, label: I.t('legend.noGit'), color: NEUTRAL },
   ]);
 }
 
 export const RECENT_COMMITS = 8;
 
 /** Commits recientes (SPEC §2.2 y §3.4): color solo para los últimos 8; el resto en gris. */
-function byRecent(rows: readonly Row[]): Coloring {
+function byRecent(rows: readonly Row[], I: I18n): Coloring {
   const seen = new Map<string, PanelCommit>();
   for (const r of rows) if (r.commit) seen.set(r.commit.hash, r.commit);
   const latest = [...seen.values()].sort((a, b) => b.time - a.time).slice(0, RECENT_COMMITS);
   const recent = new Set(latest.map((c) => c.hash));
   const short = (s: string): string => (s.length > 34 ? s.slice(0, 33) + '…' : s);
   return fixedGroups('recent', rows, (r) => (r.untracked ? NEW : r.commit && recent.has(r.commit.hash) ? r.commit.hash : NO_DATA), [
-    { key: NEW, label: 'Nuevo (sin commit)', color: '#bab0ac' },
+    { key: NEW, label: I.t('legend.new'), color: '#bab0ac' },
     ...latest.map((c, i) => ({ key: c.hash, label: `${c.short} ${short(c.subject)}`, color: CATEGORICAL[i] as string })),
-    { key: NO_DATA, label: 'Anteriores', color: '#5f5f5f' },
+    { key: NO_DATA, label: I.t('legend.older'), color: '#5f5f5f' },
   ]);
 }
 
@@ -249,28 +252,34 @@ const GENERATED = 'generado';
  * Cambios (SPEC §2.2 y §3.5): de gris (estable) a intenso (muy tocado), por cuantiles del
  * repo. Lockfiles y generados quedan fuera: cambian mucho y no dicen nada.
  */
-function byChanges(rows: readonly Row[]): Coloring {
+function byChanges(rows: readonly Row[], I: I18n): Coloring {
   const floors = quantileFloors(rows.filter((r) => !r.generated && r.changes > 0).map((r) => r.changes), CHANGE_COLORS.length);
   const keyOf = (r: Row): string => {
     if (r.generated) return GENERATED;
     if (r.changes <= 0) return STABLE;
     return `c${Math.max(0, floors.findIndex((f) => r.changes >= f))}`;
   };
-  const n = (x: number): string => x.toLocaleString('es-ES');
+  const n = (x: number): string => I.num(x);
   const groups = floors.map((floor, i) => {
     const top = i === 0 ? null : (floors[i - 1] as number) - 1;
-    const label = top === null ? `${n(floor)} o más` : top === floor ? `${n(floor)} ${floor === 1 ? 'cambio' : 'cambios'}` : `${n(floor)}–${n(top)}`;
+    const label = top === null ? I.t('legend.changesTop', { n: n(floor) }) : top === floor ? I.tp('changes', floor) : `${n(floor)}–${n(top)}`;
     const color = CHANGE_COLORS[floors.length === 1 ? 0 : Math.round((i * (CHANGE_COLORS.length - 1)) / (floors.length - 1))] as string;
-    return { key: `c${i}`, label: i === 0 && top === null ? `${label} cambios` : label, color };
+    return { key: `c${i}`, label, color };
   });
   return fixedGroups('changes', rows, keyOf, [
     ...groups,
-    { key: STABLE, label: 'Sin cambios registrados', color: '#6b6b6b' },
-    { key: GENERATED, label: 'Generado o lockfile', color: '#4d4d4d' },
+    { key: STABLE, label: I.t('legend.stable'), color: '#6b6b6b' },
+    { key: GENERATED, label: I.t('legend.generated'), color: '#4d4d4d' },
   ]);
 }
 
-export function coloring(mode: ColorMode, rows: readonly Row[], now = Date.now()): Coloring {
-  const modes: Record<ColorMode, (rows: readonly Row[]) => Coloring> = { ext: byExt, usage: byUsage, age: (r) => byAge(r, now), recent: byRecent, changes: byChanges };
+export function coloring(mode: ColorMode, rows: readonly Row[], I: I18n, now = Date.now()): Coloring {
+  const modes: Record<ColorMode, (rows: readonly Row[]) => Coloring> = {
+    ext: (r) => byExt(r, I),
+    usage: (r) => byUsage(r, I),
+    age: (r) => byAge(r, I, now),
+    recent: (r) => byRecent(r, I),
+    changes: (r) => byChanges(r, I),
+  };
   return modes[mode](rows);
 }

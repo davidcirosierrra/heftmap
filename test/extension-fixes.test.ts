@@ -1,7 +1,10 @@
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { activate, pct } from '../src/extension/extension.js';
+import { activate } from '../src/extension/extension.js';
+import { i18n } from '../src/i18n/index.js';
+
+const pct = i18n('es').pct;
 import { fake, makeContext, Uri, type TreeItem } from './fake-vscode.js';
 import { createRepo } from './fixture.js';
 import { inProcessRunner } from './in-process-runner.js';

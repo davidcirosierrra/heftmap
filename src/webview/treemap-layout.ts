@@ -1,3 +1,4 @@
+import type { MessageKey } from '../i18n/index.js';
 import { hierarchy, treemap, treemapSquarify } from 'd3-hierarchy';
 import type { Row } from './model.js';
 
@@ -7,11 +8,12 @@ import type { Row } from './model.js';
  */
 export type AreaMode = 'bytes' | 'balanced' | 'lines';
 
-export const AREA_LABEL: Record<AreaMode, string> = {
-  bytes: 'Bytes',
-  balanced: 'Equilibrado',
-  lines: 'Líneas',
-};
+/** Clave del texto de cada modo (src/i18n). */
+export const AREA_LABEL = {
+  bytes: 'area.bytes',
+  balanced: 'area.balanced',
+  lines: 'area.lines',
+} as const satisfies Record<AreaMode, MessageKey>;
 
 /** Valor que decide el área de un archivo. 0 = no se dibuja. */
 export function areaValue(row: Row, mode: AreaMode): number {

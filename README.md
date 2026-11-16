@@ -13,6 +13,7 @@ quién lo referencia, filtros «sin rastro» y acciones. También el último cam
 colores por antigüedad y por commits recientes, detalle del commit) y los hotspots: líneas × cambios,
 con el botón «Hotspots». Lo siguiente es el análisis incremental (plan en la sección 10 del SPEC); la integración con Knip
 queda como opcional.
+La interfaz está en inglés, castellano y euskera (ajuste `heft.language`).
 Diseño completo en [SPEC.md](SPEC.md); resultados de la fase 0 en [docs/fase-0.md](docs/fase-0.md).
 
 **Instalar y probar en Cursor: [prepareextension.md](prepareextension.md).**
@@ -43,4 +44,6 @@ npm run package   # heft.vsix
 - `src/webview/`: interfaz del panel (React, bundle de navegador `dist/webview.js`). `model.ts` es
   la lógica de la tabla (filas, filtro, orden), `treemap-layout.ts` la del treemap y `colors.ts` la
   de los colores: puras y con tests. Los `test/webview-*.test.ts` con jsdom prueban el panel real.
+- `src/i18n/`: textos en los tres idiomas y formatos (números, tamaños, fechas). Términos fijos en
+  [docs/glosario.md](docs/glosario.md).
 - `test/fake-vscode.ts`: doble de la API para el test de humo (alias en `vitest.config.ts`).

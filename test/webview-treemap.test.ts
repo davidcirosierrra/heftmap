@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { coloring, textOn } from '../src/webview/colors.js';
 import { toRows } from '../src/webview/model.js';
 import { areaValue, crumbs, effectiveZoom, fitText, layoutTreemap, type Cell } from '../src/webview/treemap-layout.js';
+import { i18n } from '../src/i18n/index.js';
+
+const ES = i18n('es');
 
 const rows = toRows(
   [
@@ -115,7 +118,7 @@ describe('treemap: textos y colores', () => {
   });
 
   it('color por extensión: las que más pesan primero, mismo color para la misma extensión', () => {
-    const c = coloring('ext', rows);
+    const c = coloring('ext', rows, ES);
     expect(c.legend.map((l) => l.key).slice(0, 2)).toEqual(['.glb', '.mp3']);
     expect(c.legend[0]).toMatchObject({ count: 2, size: 12_500_000 });
     expect(c.colorOf(rows[0]!)).toBe(c.colorOf(rows[1]!));
@@ -125,7 +128,7 @@ describe('treemap: textos y colores', () => {
 
   it('más extensiones que colores: el resto va a «otros»', () => {
     const many = toRows(Array.from({ length: 14 }, (_, i) => ({ path: `f.e${i}`, size: 100 - i })), []);
-    const c = coloring('ext', many);
+    const c = coloring('ext', many, ES);
     expect(c.legend).toHaveLength(10);
     expect(c.legend.at(-1)).toMatchObject({ label: 'otros (5)', count: 5 });
     expect(c.keyOf(many[13]!)).toBe('(otros)');

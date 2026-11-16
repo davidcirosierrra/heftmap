@@ -2,11 +2,12 @@ import path from 'node:path';
 import * as vscode from 'vscode';
 import { git } from '../core/git.js';
 import type { FileEntry, HeftIndex, Progress } from '../core/index.js';
-import { fmtMs, fmtSize, pct, rel, USAGE_LABEL } from '../report.js';
+import { i18n, resolveLocale, type I18n, type Locale, type MessageKey } from '../i18n/index.js';
+import { warningText } from '../i18n/warnings.js';
 import { HeftPanel, type PanelHost } from './panel.js';
 import { toPanelIndex } from './panel-data.js';
 import type { PanelIndex, PanelStatus, WebviewMessage } from './panel-protocol.js';
-import { CancelledError, workerRunner, type IndexJob, type IndexRunner } from './runner.js';
+import { CancelledError, WorkerExitError, workerRunner, type IndexJob, type IndexRunner } from './runner.js';
 import {
   addFolders,
   coveredByAncestor,
@@ -21,8 +22,8 @@ import {
 import { allFolders, buildFolderTree, childrenOf, share, type DirNode, type FolderTree, type TreeNode } from './tree-model.js';
 
 /**
- * Fases 1 y 2 (SPEC §5): vista lateral «Carpetas» con tamaños y casillas de ámbito, comandos,
- * menú contextual del explorador, barra de estado y panel con la tabla (`panel.ts`).
+ * Vista lateral «Carpetas», comandos, menú contextual del explorador, barra de estado y panel
+ * (`panel.ts`). Los textos salen de src/i18n en el idioma del editor o el de `heft.language`.
  *
  * El análisis no corre aquí: se lanza en un worker (`runner.ts`, `worker.ts`) para no
  * bloquear el proceso de extensiones. Este archivo no debe importar el núcleo salvo tipos,
@@ -32,6 +33,14 @@ import { allFolders, buildFolderTree, childrenOf, share, type DirNode, type Fold
 const VIEW_ID = 'heft.folders';
 const SCOPE_KEY = 'heft.scope';
 const REBUILD_DELAY_MS = 1500;
+
+type Reason = Extract<MessageKey, `reason.${string}`>;
+
+/** Idioma de Heft: el ajuste `heft.language` o, en «auto», el del editor. */
+export function currentLocale(): Locale {
+  const chosen = vscode.workspace.getConfiguration('heft').get<string>('language');
+  return chosen && chosen !== 'auto' ? resolveLocale(chosen) : resolveLocale(vscode.env.language);
+}
 
 /** `runner` solo se pasa en los tests; el editor llama a `activate(context)`. */
 export function activate(
@@ -72,6 +81,8 @@ class Heft implements vscode.Disposable, PanelHost {
   private readonly status: vscode.StatusBarItem;
   private readonly panel: HeftPanel;
   private readonly disposables: vscode.Disposable[] = [];
+  /** Textos y formatos en el idioma activo. */
+  I: I18n = i18n(currentLocale());
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -93,7 +104,7 @@ class Heft implements vscode.Disposable, PanelHost {
     const cmd = (id: string, fn: (...args: any[]) => unknown): void => {
       this.disposables.push(vscode.commands.registerCommand(id, fn));
     };
-    cmd('heft.refresh', () => this.rebuild('manual'));
+    cmd('heft.refresh', () => this.rebuild('reason.manual'));
     cmd('heft.clearScope', () => this.setScope([]));
     cmd('heft.pickScope', () => this.pickScope());
     cmd('heft.addToScope', (uri?: vscode.Uri, uris?: vscode.Uri[]) =>
@@ -116,7 +127,14 @@ class Heft implements vscode.Disposable, PanelHost {
       this.panel,
       this.view.onDidChangeCheckboxState((e) => this.onCheckboxes(e)),
       vscode.workspace.onDidChangeConfiguration((e) => {
-        if (e.affectsConfiguration('heft')) this.schedule('ajustes');
+        if (e.affectsConfiguration('heft.language')) {
+          // Solo cambia cómo se dice: se repinta sin volver a analizar.
+          this.I = i18n(currentLocale());
+          this.render();
+          this.panel.indexChanged();
+          return;
+        }
+        if (e.affectsConfiguration('heft')) this.schedule('reason.settings');
       }),
       vscode.workspace.onDidChangeWorkspaceFolders(() => void this.start()),
     );
@@ -135,7 +153,7 @@ class Heft implements vscode.Disposable, PanelHost {
       return;
     }
     if (folders.length > 1) {
-      this.log.appendLine(`Workspace con ${folders.length} carpetas: Heft analiza solo la primera (${folders[0]?.name}).`);
+      this.log.appendLine(this.I.t('log.multiRoot', { n: folders.length, name: folders[0]?.name ?? '' }));
     }
     const watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(this.root, '**/*'));
     this.watching = [
@@ -144,7 +162,7 @@ class Heft implements vscode.Disposable, PanelHost {
       watcher.onDidChange((uri) => void this.onFs(uri, 'change')),
       watcher.onDidDelete((uri) => void this.onFs(uri, 'delete')),
     ];
-    await this.rebuild('inicio');
+    await this.rebuild('reason.start');
   }
 
   private stopWatching(): void {
@@ -163,7 +181,7 @@ class Heft implements vscode.Disposable, PanelHost {
     const p = uri.path;
     if (p.includes('/.git/') || p.endsWith('/.git')) {
       // Dentro de .git solo interesa un cambio de HEAD o de ramas (nuevo commit).
-      if (/\/\.git\/(HEAD|refs\/)/.test(p)) this.schedule('cambios en git');
+      if (/\/\.git\/(HEAD|refs\/)/.test(p)) this.schedule('reason.git');
       return;
     }
     const rel = path.relative(root.fsPath, uri.fsPath).split(path.sep).join('/');
@@ -173,7 +191,7 @@ class Heft implements vscode.Disposable, PanelHost {
       if (kind !== 'create') return;
       if (await isIgnoredByGit(root.fsPath, rel)) return;
     }
-    this.schedule('cambios en disco');
+    this.schedule('reason.disk');
   }
 
   // ---------------------------------------------------------------- datos
@@ -200,7 +218,7 @@ class Heft implements vscode.Disposable, PanelHost {
     return vscode.Uri.joinPath(this.root, node.kind === 'dir' ? node.path : node.file.path);
   }
 
-  private schedule(reason: string): void {
+  private schedule(reason: Reason): void {
     clearTimeout(this.timer);
     this.timer = setTimeout(() => void this.rebuild(reason), REBUILD_DELAY_MS);
   }
@@ -209,7 +227,7 @@ class Heft implements vscode.Disposable, PanelHost {
    * Lanza un análisis. Si había otro en curso se cancela: sus datos ya son viejos.
    * La vista enseña una barra de progreso y la barra de estado, la fase y el avance.
    */
-  private async rebuild(reason: string): Promise<void> {
+  private async rebuild(reason: Reason): Promise<void> {
     const root = this.root;
     if (!root) return;
     this.job?.cancel();
@@ -260,21 +278,31 @@ class Heft implements vscode.Disposable, PanelHost {
       // Carpetas del ámbito que ya no existen (borradas, renombradas): no tendrían casilla que desmarcar.
       const alive = this.scope.filter((s) => this.tree?.byPath.has(s));
       if (alive.length !== this.scope.length) {
-        this.log.appendLine(`  ámbito: se quitan carpetas que ya no existen (${this.scope.filter((s) => !alive.includes(s)).join(', ')})`);
+        this.log.appendLine(`  ${this.I.t('log.scopeGone', { folders: this.scope.filter((s) => !alive.includes(s)).join(', ') })}`);
         this.scope = alive;
         void this.context.workspaceState.update(SCOPE_KEY, alive);
       }
       const t = index.timings;
+      const I = this.I;
       this.log.appendLine(
-        `[${new Date().toLocaleTimeString('es-ES')}] Índice (${reason}): ${index.files.length} archivos, ` +
-          `${index.commitsRead} commits · listado ${fmtMs(t.list)}, lectura ${fmtMs(t.read)}, git ${fmtMs(t.git)}, ` +
-          `uso ${fmtMs(t.usage)}, total ${fmtMs(t.total)}`,
+        `[${I.time(Date.now())}] ` +
+          I.t('log.index', {
+            reason: I.t(reason),
+            files: I.tp('files', index.files.length),
+            commits: I.num(index.commitsRead),
+            list: I.ms(t.list),
+            read: I.ms(t.read),
+            git: I.ms(t.git),
+            usage: I.ms(t.usage),
+            total: I.ms(t.total),
+          }),
       );
-      for (const w of index.warnings) this.log.appendLine(`  aviso: ${w}`);
+      for (const w of index.warnings) this.log.appendLine(`  ${I.t('log.warning', { text: warningText(w, I) })}`);
     } catch (err) {
       if (!current() || err instanceof CancelledError) return;
-      this.error = err instanceof Error ? err.message : String(err);
-      this.log.appendLine(`Error al construir el índice: ${this.error}`);
+      this.error =
+        err instanceof WorkerExitError ? this.I.t('error.workerExit', { code: err.code }) : err instanceof Error ? err.message : String(err);
+      this.log.appendLine(this.I.t('log.indexError', { error: this.error }));
     } finally {
       if (current()) {
         this.building = false;
@@ -313,9 +341,10 @@ class Heft implements vscode.Disposable, PanelHost {
       hasRoot: !!this.root,
       scope: [...this.scope],
       building: this.building,
-      progress: this.building ? progressLabel(this.progress) : null,
+      progress: this.building ? progressLabel(this.progress, this.I) : null,
       fraction: p && p.total > 0 ? p.done / p.total : null,
       error: this.error ?? null,
+      locale: this.I.locale,
     };
   }
 
@@ -342,12 +371,12 @@ class Heft implements vscode.Disposable, PanelHost {
       if (typeof m.folder === 'string') this.setScope(removeFolder(this.scope, m.folder));
     } else if (m.type === 'clearScope') this.setScope([]);
     else if (m.type === 'pickScope') void this.pickScope();
-    else if (m.type === 'refresh') void this.rebuild('manual');
+    else if (m.type === 'refresh') void this.rebuild('reason.manual');
     else if (m.type === 'showLog') this.log.show();
     else if (m.type === 'copy') {
       if (typeof m.text === 'string') void vscode.env.clipboard.writeText(m.text);
     } else if (m.type === 'error') {
-      this.log.appendLine(`[${new Date().toLocaleTimeString('es-ES')}] Error en el panel (${String(m.where)}): ${String(m.message)}`);
+      this.log.appendLine(`[${this.I.time(Date.now())}] ${this.I.t('log.panelError', { where: String(m.where), message: String(m.message) })}`);
       if (typeof m.stack === 'string') for (const line of m.stack.split('\n').slice(0, 30)) this.log.appendLine(`  ${line.trim()}`);
     }
   }
@@ -360,9 +389,9 @@ class Heft implements vscode.Disposable, PanelHost {
     if (list.includes(file)) return;
     try {
       await cfg.update('usage.ignore', [...list, file].sort(), vscode.ConfigurationTarget.Workspace);
-      this.log.appendLine(`Ignorado para el análisis de uso: ${file} (ajuste heft.usage.ignore)`);
+      this.log.appendLine(this.I.t('log.ignored', { path: file }));
     } catch (err) {
-      void vscode.window.showErrorMessage(`Heft no pudo guardar el ajuste heft.usage.ignore: ${err instanceof Error ? err.message : String(err)}`);
+      void vscode.window.showErrorMessage(this.I.t('ignore.failed', { error: err instanceof Error ? err.message : String(err) }));
     }
   }
 
@@ -373,19 +402,20 @@ class Heft implements vscode.Disposable, PanelHost {
   private async trash(file: string): Promise<void> {
     const entry = this.index?.complete ? this.index.files.find((f) => f.path === file) : undefined;
     if (!this.root || !entry || entry.usage !== 'none') return;
-    const action = 'Mover a la papelera';
+    const I = this.I;
+    const action = I.t('trash.action');
     const answer = await vscode.window.showWarningMessage(
-      `¿Mover «${file}» a la papelera?`,
-      { modal: true, detail: `${fmtSize(entry.size)}. Heft no ha encontrado ninguna referencia ni mención, pero no puede garantizar que no se use. Se puede recuperar desde la papelera.` },
+      I.t('trash.confirm', { path: file }),
+      { modal: true, detail: I.t('trash.detail', { size: I.size(entry.size) }) },
       action,
     );
     if (answer !== action) return;
     try {
       await vscode.workspace.fs.delete(vscode.Uri.joinPath(this.root, file), { useTrash: true });
-      this.log.appendLine(`A la papelera: ${file} (${fmtSize(entry.size)})`);
-      this.schedule('archivo a la papelera');
+      this.log.appendLine(I.t('log.trashed', { path: file, size: I.size(entry.size) }));
+      this.schedule('reason.trash');
     } catch (err) {
-      void vscode.window.showErrorMessage(`Heft no pudo mover «${file}» a la papelera: ${err instanceof Error ? err.message : String(err)}`);
+      void vscode.window.showErrorMessage(I.t('trash.failed', { path: file, error: err instanceof Error ? err.message : String(err) }));
     }
   }
 
@@ -404,9 +434,7 @@ class Heft implements vscode.Disposable, PanelHost {
       const result = toggleFolder(scope, node.path, state === vscode.TreeItemCheckboxState.Checked);
       if (result.kind === 'changed') scope = result.scope;
       else {
-        void vscode.window.showInformationMessage(
-          `«${node.path}/» está en el ámbito porque lo está «${result.by}/». Quita primero «${result.by}/».`,
-        );
+        void vscode.window.showInformationMessage(this.I.t('scope.blocked', { folder: node.path, by: result.by }));
       }
     }
     this.setScope(scope);
@@ -414,20 +442,20 @@ class Heft implements vscode.Disposable, PanelHost {
 
   private async pickScope(): Promise<void> {
     if (!this.tree) {
-      void vscode.window.showInformationMessage('Heft todavía está analizando el repositorio.');
+      void vscode.window.showInformationMessage(this.I.t('scope.stillAnalyzing'));
       return;
     }
     type Item = vscode.QuickPickItem & { path: string };
     const items: Item[] = allFolders(this.tree).map((d) => ({
       label: `$(folder) ${d.path}/`,
-      description: `${fmtSize(d.size)} · ${d.count} arch.`,
+      description: `${this.I.size(d.size)} · ${this.I.t('tree.filesShort', { n: this.I.num(d.count) })}`,
       path: d.path,
       picked: coveringFolder(this.scope, d.path) !== undefined,
     }));
     const picked = await vscode.window.showQuickPick(items, {
       canPickMany: true,
-      title: 'Heft: carpetas del ámbito',
-      placeHolder: 'Marca una o varias carpetas. Ninguna = todo el repositorio.',
+      title: this.I.t('scope.pickTitle'),
+      placeHolder: this.I.t('scope.pickPlaceholder'),
       matchOnDescription: false,
     });
     if (picked) this.setScope(addFolders([], picked.map((p) => p.path)));
@@ -448,9 +476,7 @@ class Heft implements vscode.Disposable, PanelHost {
     const valid = rels.filter((r) => tree.byPath.has(r));
     if (valid.length < rels.length) {
       const skipped = rels.filter((r) => !valid.includes(r));
-      void vscode.window.showInformationMessage(
-        `Heft no tiene archivos en ${skipped.map((s) => `«${s}»`).join(', ')} (ignorada por git o vacía): no se añade al ámbito.`,
-      );
+      void vscode.window.showInformationMessage(this.I.t('scope.skipped', { folders: skipped.map((s) => `«${s}»`).join(', ') }));
     }
     return valid;
   }
@@ -464,9 +490,10 @@ class Heft implements vscode.Disposable, PanelHost {
 
   /** Descripción de la vista y barra de estado, sin repintar el árbol (se llama en cada avance). */
   private renderStatus(): void {
-    const label = scopeLabel(this.scope);
-    this.view.description = this.building ? `${label} · analizando…` : label;
-    this.view.message = this.error ? `No se pudo analizar el repositorio: ${this.error}` : this.firstScanMessage();
+    const I = this.I;
+    const label = scopeLabel(this.scope, I.t('scope.all'));
+    this.view.description = this.building ? I.t('view.analyzingSuffix', { scope: label }) : label;
+    this.view.message = this.error ? I.t('view.error', { error: this.error }) : this.firstScanMessage();
     this.panel.statusChanged();
 
     if (!this.root) {
@@ -474,15 +501,15 @@ class Heft implements vscode.Disposable, PanelHost {
       return;
     }
     if (this.building) {
-      this.status.text = `$(sync~spin) Heft: ${progressLabel(this.progress)}`;
+      this.status.text = `$(sync~spin) ${I.t('status.analyzing', { progress: progressLabel(this.progress, I) })}`;
     } else if (!this.index) {
       this.status.text = '$(layers) Heft';
     } else {
       const files = this.index.files.filter((f) => !f.ignoredByGit && fileInScope(this.scope, f.path));
       const size = files.reduce((s, f) => s + f.size, 0);
-      this.status.text = `$(layers) Heft: ${label} · ${files.length} archivos · ${fmtSize(size)}`;
+      this.status.text = `$(layers) ${I.t('status.text', { scope: label, files: I.tp('files', files.length), size: I.size(size) })}`;
     }
-    this.status.tooltip = 'Heft: elegir carpetas del ámbito';
+    this.status.tooltip = I.t('status.tooltip');
     this.status.show();
   }
 
@@ -492,10 +519,8 @@ class Heft implements vscode.Disposable, PanelHost {
    */
   private firstScanMessage(): string | undefined {
     if (!this.building || this.index?.complete) return undefined;
-    const step = this.progress ? ` (${progressLabel(this.progress)})` : '';
-    return this.index
-      ? `Tamaños listos. Falta el uso y el historial de git${step}.`
-      : `Analizando el repositorio${step}. En repos grandes puede tardar un poco.`;
+    const step = this.progress ? ` (${progressLabel(this.progress, this.I)})` : '';
+    return this.I.t(this.index ? 'view.sizesReady' : 'view.firstScan', { step });
   }
 
   dispose(): void {
@@ -534,65 +559,72 @@ class FoldersProvider implements vscode.TreeDataProvider<TreeNode> {
   }
 
   private dirItem(dir: DirNode): vscode.TreeItem {
+    const I = this.heft.I;
     const scope = this.heft.getScope();
     const item = new vscode.TreeItem(dir.name, vscode.TreeItemCollapsibleState.Collapsed);
     item.id = `d:${dir.path}`;
     item.resourceUri = this.heft.uriOf(dir);
     item.iconPath = vscode.ThemeIcon.Folder;
     item.contextValue = 'heftDir';
-    item.description = `${fmtSize(dir.size)} · ${pct(share(dir.size, dir.parent?.size ?? 0))} · ${dir.count} arch.`;
+    item.description = `${I.size(dir.size)} · ${I.pct(share(dir.size, dir.parent?.size ?? 0))} · ${I.t('tree.filesShort', { n: I.num(dir.count) })}`;
 
     const covering = coveringFolder(scope, dir.path);
     const ancestor = coveredByAncestor(scope, dir.path);
     item.checkboxState = {
       state: covering ? vscode.TreeItemCheckboxState.Checked : vscode.TreeItemCheckboxState.Unchecked,
-      tooltip: ancestor
-        ? `En el ámbito por «${ancestor}/»`
-        : covering
-          ? 'Quitar del ámbito'
-          : 'Añadir al ámbito',
+      tooltip: ancestor ? I.t('tree.inScopeBy', { folder: ancestor }) : I.t(covering ? 'tree.removeFromScope' : 'tree.addToScope'),
     };
     // Las rutas van como texto: en Markdown `__tests__` se pintaría en negrita y `[id].tsx` como enlace.
     const md = new vscode.MarkdownString();
     md.appendText(`${dir.path}/`);
-    md.appendMarkdown(`\n\n${fmtSize(dir.size)} · ${dir.count} archivos · ${pct(share(dir.size, dir.parent?.size ?? 0))} de la carpeta padre`);
+    md.appendMarkdown('\n\n');
+    md.appendText(I.t('tree.dirStats', { size: I.size(dir.size), files: I.tp('files', dir.count), pct: I.pct(share(dir.size, dir.parent?.size ?? 0)) }));
     if (ancestor) {
-      md.appendMarkdown('\n\nEn el ámbito porque lo está ');
-      md.appendText(`«${ancestor}/»`);
+      md.appendMarkdown('\n\n');
+      md.appendText(I.t('tree.inScopeBecause', { folder: `«${ancestor}/»` }));
     }
     item.tooltip = md;
     return item;
   }
 
   private fileItem(f: FileEntry, parent: DirNode): vscode.TreeItem {
+    const I = this.heft.I;
     const uri = this.heft.uriOf({ kind: 'file', file: f, parent });
     const name = f.path.slice(f.path.lastIndexOf('/') + 1);
     const item = new vscode.TreeItem(name, vscode.TreeItemCollapsibleState.None);
     item.id = `f:${f.path}`;
     item.resourceUri = uri;
     item.contextValue = 'heftFile';
-    item.description = `${fmtSize(f.size)} · ${pct(share(f.size, parent.size))}${f.dirty ? ' ●' : ''}`;
-    if (uri) item.command = { command: 'vscode.open', title: 'Abrir', arguments: [uri] };
+    item.description = `${I.size(f.size)} · ${I.pct(share(f.size, parent.size))}${f.dirty ? ' ●' : ''}`;
+    if (uri) item.command = { command: 'vscode.open', title: I.t('common.open'), arguments: [uri] };
 
     const md = new vscode.MarkdownString();
     md.appendText(f.path);
-    md.appendMarkdown(`\n\n${fmtSize(f.size)}${f.lines != null ? ` · ${f.lines.toLocaleString('es-ES')} líneas` : ''}`);
+    md.appendMarkdown('\n\n');
+    md.appendText(`${I.size(f.size)}${f.lines != null ? ` · ${I.tp('lines', f.lines)}` : ''}`);
     if (!this.heft.isComplete()) {
       // Primer análisis a medias: todavía no hay veredicto de uso ni datos de git.
-      md.appendMarkdown('\n\nAnalizando uso y git…');
+      md.appendMarkdown('\n\n');
+      md.appendText(I.t('tree.analyzingUsage'));
       item.tooltip = md;
       return item;
     }
-    md.appendMarkdown(` · ${USAGE_LABEL[f.usage]}`);
-    if (f.refsIn.length) md.appendMarkdown(` (${f.refsIn.length} ${f.refsIn.length === 1 ? 'archivo lo usa' : 'archivos lo usan'})`);
+    md.appendText(` · ${I.t(`usage.${f.usage}`)}`);
+    if (f.refsIn.length) md.appendText(` (${I.tp('tree.usedBy', f.refsIn.length)})`);
     if (f.lastCommit) {
       const c = f.lastCommit;
-      md.appendMarkdown(`\n\nÚltimo commit: \`${c.short}\` ${escapeMd(c.subject)} — ${escapeMd(c.author)}, ${rel(c.time)}`);
-      md.appendMarkdown(` · ${f.changes} ${f.changes === 1 ? 'cambio' : 'cambios'}`);
+      md.appendMarkdown('\n\n');
+      md.appendText(`${I.t('tree.lastCommit')} `);
+      md.appendMarkdown(`\`${c.short}\` ${escapeMd(c.subject)} — ${escapeMd(c.author)}, `);
+      md.appendText(`${I.rel(c.time)} · ${I.tp('changes', f.changes)}`);
     } else if (f.untracked) {
-      md.appendMarkdown('\n\nArchivo nuevo: todavía sin commits');
+      md.appendMarkdown('\n\n');
+      md.appendText(I.t('tree.newFile'));
     }
-    if (f.dirty && !f.untracked) md.appendMarkdown('\n\n● Cambios sin commit');
+    if (f.dirty && !f.untracked) {
+      md.appendMarkdown('\n\n');
+      md.appendText(I.t('tree.uncommitted'));
+    }
     item.tooltip = md;
     return item;
   }
@@ -602,21 +634,11 @@ function isTreeNode(x: unknown): x is TreeNode {
   return !!x && typeof x === 'object' && 'kind' in x && ((x as TreeNode).kind === 'dir' || (x as TreeNode).kind === 'file');
 }
 
-export { pct };
-
-const PHASE_LABEL: Record<Progress['phase'], string> = {
-  list: 'listando archivos',
-  read: 'leyendo',
-  git: 'historial de git',
-  usage: 'uso',
-  mentions: 'menciones',
-};
-
-/** «uso 1.200/3.006», o solo la fase si no se puede medir. */
-export function progressLabel(p: Progress | undefined): string {
-  if (!p) return 'analizando…';
-  const n = (x: number): string => x.toLocaleString('es-ES');
-  return p.total > 0 ? `${PHASE_LABEL[p.phase]} ${n(p.done)}/${n(p.total)}` : `${PHASE_LABEL[p.phase]}…`;
+/** «uso 1200/3006», o solo la fase si no se puede medir. */
+export function progressLabel(p: Progress | undefined, I: I18n): string {
+  if (!p) return I.t('progress.analyzing');
+  const phase = I.t(`phase.${p.phase}`);
+  return p.total > 0 ? I.t('progress.step', { phase, done: I.num(p.done), total: I.num(p.total) }) : I.t('progress.phaseOnly', { phase });
 }
 
 /** `git check-ignore` sale con 0 si la ruta está ignorada y con 1 si no. */

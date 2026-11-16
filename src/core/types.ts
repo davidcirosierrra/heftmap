@@ -112,6 +112,14 @@ export interface Timings {
   total: number;
 }
 
+/**
+ * Avisos del análisis, como datos: quien los enseña los traduce (src/i18n/warnings.ts).
+ */
+export type Warning =
+  | { code: 'no-git' }
+  | { code: 'git-history'; detail: string }
+  | { code: 'unresolved-imports'; count: number; examples: string[] };
+
 export interface HeftIndex {
   root: string;
   /** false en el índice a medias de `onPartial`: solo valen archivos, tamaños y líneas. */
@@ -121,5 +129,5 @@ export interface HeftIndex {
   commitsRead: number;
   files: FileEntry[];
   timings: Timings;
-  warnings: string[];
+  warnings: Warning[];
 }

@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { promisify } from 'node:util';
-import type { CommitInfo } from './types.js';
+import type { CommitInfo, Warning } from './types.js';
 
 const exec = promisify(execFile);
 
@@ -20,7 +20,7 @@ export interface GitInfo {
   prefix: string;
   head: string | null;
   /** Motivo por el que se trabaja sin git cuando no es simplemente «no es un repo». */
-  warning?: string;
+  warning?: Warning;
 }
 
 export async function gitInfo(root: string): Promise<GitInfo> {
@@ -43,7 +43,7 @@ export async function gitInfo(root: string): Promise<GitInfo> {
         isGit: false,
         prefix: '',
         head: null,
-        warning: 'No se encuentra «git» en el PATH: se analiza sin git (sin .gitignore, historial ni cambios)',
+        warning: { code: 'no-git' },
       };
     }
     return { isGit: false, prefix: '', head: null };
@@ -63,7 +63,7 @@ export interface FileHistory {
 export async function readHistory(
   root: string,
   since?: string,
-): Promise<{ history: Map<string, FileHistory>; commits: number; warning?: string }> {
+): Promise<{ history: Map<string, FileHistory>; commits: number; warning?: Warning }> {
   const args = [
     'log',
     '--no-renames',
@@ -82,7 +82,9 @@ export async function readHistory(
     return {
       history: new Map(),
       commits: 0,
-      warning: empty ? undefined : `No se pudo leer el historial de git: ${msg.split('\n').find((l) => l.trim() && !l.startsWith('Command failed')) ?? msg.split('\n')[0]}`,
+      warning: empty
+        ? undefined
+        : { code: 'git-history', detail: msg.split('\n').find((l) => l.trim() && !l.startsWith('Command failed')) ?? msg.split('\n')[0] ?? msg },
     };
   }
   const history = new Map<string, FileHistory>();

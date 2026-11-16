@@ -13,7 +13,7 @@ import { allFolders, buildFolderTree, childrenOf } from '../src/extension/tree-m
 describe('ámbito', () => {
   it('vacío = todo el repositorio', () => {
     expect(fileInScope([], 'src/a.ts')).toBe(true);
-    expect(scopeLabel([])).toBe('Todo el repositorio');
+    expect(scopeLabel([], 'Todo el repositorio')).toBe('Todo el repositorio');
   });
 
   it('marcar una carpeta incluye sus subcarpetas y absorbe las ya marcadas', () => {

@@ -2,6 +2,7 @@ import { rmSync } from 'node:fs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildIndex, type HeftIndex } from '../src/core/index.js';
 import { activate, progressLabel } from '../src/extension/extension.js';
+import { i18n } from '../src/i18n/index.js';
 import { CancelledError, type IndexEvents, type IndexRunner } from '../src/extension/runner.js';
 import { fake, makeContext, type TreeItem } from './fake-vscode.js';
 import { createKartGame } from './fixture.js';
@@ -65,9 +66,11 @@ afterAll(() => {
 
 describe('extensión: análisis asíncrono', () => {
   it('etiquetas de progreso', () => {
-    expect(progressLabel(undefined)).toBe('analizando…');
-    expect(progressLabel({ phase: 'git', done: 0, total: 0 })).toBe('historial de git…');
-    expect(progressLabel({ phase: 'usage', done: 12, total: 30 })).toBe('uso 12/30');
+    const es = i18n('es');
+    expect(progressLabel(undefined, es)).toBe('analizando…');
+    expect(progressLabel({ phase: 'git', done: 0, total: 0 }, es)).toBe('historial de git…');
+    expect(progressLabel({ phase: 'usage', done: 12, total: 30 }, es)).toBe('uso 12/30');
+    expect(progressLabel({ phase: 'usage', done: 1200, total: 3006 }, i18n('en'))).toBe('usage 1,200/3,006');
   });
 
   it('mientras analiza: barra de progreso sobre la vista y árbol vacío', () => {

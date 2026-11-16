@@ -115,7 +115,7 @@ describe('avisos de git', () => {
     try {
       const idx = await buildIndex(dir);
       expect(idx.isGit).toBe(false);
-      expect(idx.warnings.join(' ')).toContain('No se encuentra «git»');
+      expect(idx.warnings).toContainEqual({ code: 'no-git' });
     } finally {
       process.env.PATH = saved;
       rmSync(dir, { recursive: true, force: true });

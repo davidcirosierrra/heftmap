@@ -1,5 +1,6 @@
 import { fileInScope, type Scope } from '../extension/scope.js';
 import type { Usage } from '../core/types.js';
+import type { MessageKey } from '../i18n/index.js';
 import type { PanelCommit, PanelFile, PanelRef } from '../extension/panel-protocol.js';
 
 /**
@@ -112,13 +113,14 @@ const USAGE_ORDER: readonly RowUsage[] = ['none', 'no-importers', 'mentioned', '
 /** Filtros rápidos de la barra superior (SPEC §2.2). */
 export type Quick = 'all' | 'none' | 'mentioned' | 'entry' | 'dirty';
 
-export const QUICK_LABEL: Record<Quick, string> = {
-  all: 'Todos',
-  none: 'Sin rastro',
-  mentioned: 'Mencionados',
-  entry: 'Puntos de entrada',
-  dirty: 'Con cambios sin commit',
-};
+/** Clave del texto de cada filtro rápido (src/i18n). */
+export const QUICK_LABEL = {
+  all: 'quick.all',
+  none: 'quick.none',
+  mentioned: 'quick.mentioned',
+  entry: 'quick.entry',
+  dirty: 'quick.dirty',
+} as const satisfies Record<Quick, MessageKey>;
 
 const QUICK_TEST: Record<Quick, (r: Row) => boolean> = {
   all: () => true,
