@@ -55,6 +55,8 @@ models, audio, textures), useful in any git repository, including monorepos.
 | `heftmap.usage.weakSources` | `["scripts", "tools", "bin"]` | Tooling folders: what they name counts as a mention, not as use |
 | `heftmap.exclude` | `[]` | What to leave out completely, as in .gitignore (`*.snap`, `fixtures`, `docs/images`) |
 | `heftmap.hotspots.exclude` | `[]` | Code left out of the hotspots, same patterns as `heftmap.exclude` |
+| `heftmap.panel.defaultArea` | `bytes` | Treemap area the panel opens with: `bytes`, `balanced` or `lines` |
+| `heftmap.panel.defaultColor` | `ext` | Colour the panel opens with: `ext`, `usage`, `age`, `recent` or `changes` |
 
 ## Monorepos
 

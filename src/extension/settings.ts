@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import type { BuildOptions } from '../core/index.js';
+import { PANEL_AREAS, PANEL_COLORS, type PanelArea, type PanelColor } from './panel-protocol.js';
 
 /**
  * Ajustes de Heftmap (`heftmap.*`), leídos de una vez y validados. Es el único sitio que lee
@@ -32,6 +33,10 @@ export interface HeftSettings {
   exclude: string[];
   /** Patrones de código que no cuenta en los hotspots (generado a mano, vendorizado…). */
   hotspotsExclude: string[];
+  /** Área del treemap con la que abre el panel si no tiene estado guardado. */
+  panelDefaultArea: PanelArea;
+  /** Color con el que abre el panel si no tiene estado guardado. */
+  panelDefaultColor: PanelColor;
 }
 
 /** Límites de `heftmap.refreshDelay` (ms), los mismos que declara package.json. */
@@ -55,6 +60,8 @@ export function readSettings(scope?: vscode.Uri): HeftSettings {
     usageWeakSources: Array.isArray(cfg.get('usage.weakSources')) ? strings(cfg.get('usage.weakSources')) : undefined,
     exclude: strings(cfg.get('exclude')),
     hotspotsExclude: strings(cfg.get('hotspots.exclude')),
+    panelDefaultArea: oneOf(cfg.get('panel.defaultArea'), PANEL_AREAS, 'bytes'),
+    panelDefaultColor: oneOf(cfg.get('panel.defaultColor'), PANEL_COLORS, 'ext'),
   };
 }
 
@@ -80,6 +87,10 @@ function str(v: unknown): string {
 function num(v: unknown, r: { default: number; min: number; max: number }): number {
   if (typeof v !== 'number' || !Number.isFinite(v)) return r.default;
   return Math.min(r.max, Math.max(r.min, Math.round(v)));
+}
+
+function oneOf<T extends string>(v: unknown, allowed: readonly T[], def: T): T {
+  return allowed.includes(v as T) ? (v as T) : def;
 }
 
 function bool(v: unknown, def: boolean): boolean {

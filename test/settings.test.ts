@@ -111,6 +111,16 @@ describe('hotspots.exclude', () => {
   });
 });
 
+describe('panel.defaultArea y panel.defaultColor', () => {
+  it('por defecto bytes y ext; solo valores de la lista', () => {
+    expect(readSettings()).toMatchObject({ panelDefaultArea: 'bytes', panelDefaultColor: 'ext' });
+    Object.assign(fake.config, { 'panel.defaultArea': 'lines', 'panel.defaultColor': 'changes' });
+    expect(readSettings()).toMatchObject({ panelDefaultArea: 'lines', panelDefaultColor: 'changes' });
+    Object.assign(fake.config, { 'panel.defaultArea': 'pies', 'panel.defaultColor': 3 });
+    expect(readSettings()).toMatchObject({ panelDefaultArea: 'bytes', panelDefaultColor: 'ext' });
+  });
+});
+
 describe('toBuildOptions', () => {
   it('pasa los ajustes al análisis y la confianza decide si se usa git', () => {
     const s = readSettings();

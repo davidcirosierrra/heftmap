@@ -29,6 +29,7 @@ export function App() {
       else if (e.data.type === 'status') {
         setLocale(e.data.status.locale);
         setStatus(e.data.status);
+        applyDefaults(e.data.status.defaults);
       }
     };
     window.addEventListener('message', onMessage);
@@ -36,7 +37,7 @@ export function App() {
     return () => window.removeEventListener('message', onMessage);
   }, []);
   // Después del efecto de mensajes, para que el orden de los efectos sea el de siempre.
-  const [saved, set, setSaved] = useSaved();
+  const [saved, set, setSaved, applyDefaults] = useSaved();
 
   const scope = status?.scope ?? [];
   const scoped = useMemo(() => toRows(index?.files ?? [], scope, { complete: index?.complete, refs: index?.refs, commits: index?.commits }), [index, scope.join('\n')]);

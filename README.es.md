@@ -51,6 +51,8 @@ audio, texturas), sirve en cualquier repo con git, también en monorepos.
 | `heftmap.usage.weakSources` | `["scripts", "tools", "bin"]` | Carpetas de tooling: lo que nombran cuenta como mención, no como uso |
 | `heftmap.exclude` | `[]` | Lo que se deja fuera del todo, como en .gitignore (`*.snap`, `fixtures`, `docs/images`) |
 | `heftmap.hotspots.exclude` | `[]` | Código que no cuenta en los hotspots, mismos patrones que `heftmap.exclude` |
+| `heftmap.panel.defaultArea` | `bytes` | Área del treemap al abrir el panel: `bytes`, `balanced` o `lines` |
+| `heftmap.panel.defaultColor` | `ext` | Color al abrir el panel: `ext`, `usage`, `age`, `recent` o `changes` |
 
 ## Monorepos
 
