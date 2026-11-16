@@ -11,6 +11,8 @@ export interface Harness {
   root: HTMLElement;
   send(m: HostMessage): Promise<void>;
   click(el: Element | null | undefined): Promise<void>;
+  dblclick(el: Element | null | undefined): Promise<void>;
+  choose(el: Element | null | undefined, value: string): Promise<void>;
   type(el: Element | null | undefined, value: string): Promise<void>;
   key(el: Element | null | undefined, key: string): Promise<void>;
   $(sel: string): HTMLElement | null;
@@ -25,6 +27,10 @@ export async function mountPanel(savedState?: unknown): Promise<Harness> {
     observe(): void {}
     disconnect(): void {}
   };
+  // jsdom no calcula tamaños: sin esto la tabla y el treemap medirían 0×0.
+  for (const [prop, value] of [['clientWidth', 800], ['clientHeight', 480]] as const) {
+    Object.defineProperty(HTMLElement.prototype, prop, { configurable: true, get: () => value });
+  }
   const h = { sent: [] as WebviewMessage[], state: savedState };
   g.acquireVsCodeApi = () => ({
     postMessage: (m: WebviewMessage) => void h.sent.push(m),
@@ -50,6 +56,13 @@ export async function mountPanel(savedState?: unknown): Promise<Harness> {
     root,
     send: (m) => act(async () => void window.dispatchEvent(new MessageEvent('message', { data: m }))),
     click: (el) => act(async () => void need(el).dispatchEvent(new MouseEvent('click', { bubbles: true }))),
+    dblclick: (el) => act(async () => void need(el).dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))),
+    choose: (el, value) =>
+      act(async () => {
+        const select = need(el) as HTMLSelectElement;
+        Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(select, value);
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+      }),
     type: (el, value) =>
       act(async () => {
         const input = need(el) as HTMLInputElement;

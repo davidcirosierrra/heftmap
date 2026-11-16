@@ -16,7 +16,8 @@ describe('tabla del panel: filas', () => {
   it('sin ámbito entran todos; nombre y carpeta salen de la ruta', () => {
     const rows = toRows(files, []);
     expect(rows).toHaveLength(7);
-    expect(rows[0]).toEqual({ path: 'README.md', name: 'README.md', folder: '', size: 300 });
+    expect(rows[0]).toEqual({ path: 'README.md', name: 'README.md', folder: '', ext: '.md', size: 300 });
+    expect(toRows([{ path: '.gitignore', size: 1 }, { path: 'a/Logo.PNG', size: 1 }], []).map((r) => r.ext)).toEqual(['', '.png']);
     expect(rows[2]).toMatchObject({ name: 'Cámara.ts', folder: 'src/game' });
   });
 

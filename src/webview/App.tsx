@@ -1,35 +1,39 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { HostMessage, PanelIndex, PanelStatus } from '../extension/panel-protocol.js';
 import { fmtSize, pct } from '../report.js';
-import { vscode } from './vscode.js';
-import { DEFAULT_SORT, filterRows, nextSort, sortRows, toRows, totalSize, visibleRange, type Row, type Sort, type SortKey } from './model.js';
+import { COLOR_LABEL, coloring as buildColoring, type ColorMode } from './colors.js';
+import { Detail } from './Detail.js';
+import { DEFAULT_SORT, SORT_KEYS, filterRows, nextSort, sortRows, toRows, totalSize, type Sort } from './model.js';
+import { Table, type Column } from './Table.js';
+import { Treemap } from './Treemap.js';
+import { AREA_LABEL, crumbs, effectiveZoom, type AreaMode } from './treemap-layout.js';
+import { post, vscode } from './vscode.js';
 
-/** Fase 2 (SPEC §2.2): barra superior y tabla. El treemap y el detalle llegan en las fases 3 a 5. */
+/** Panel «Heft» (SPEC §2.2): barra superior · tabla · treemap · detalle. */
 
 /** Lo que sobrevive a ocultar y volver a mostrar la pestaña. */
 interface Saved {
   sort: Sort;
   filter: string;
   selected: string | null;
+  area: AreaMode;
+  color: ColorMode;
+  zoom: string;
 }
 
 function loadSaved(): Saved {
-  const s = vscode.getState() as Partial<Saved> | undefined;
-  const keys: SortKey[] = ['name', 'folder', 'size'];
-  const sort = s?.sort && keys.includes(s.sort.key) && (s.sort.dir === 'asc' || s.sort.dir === 'desc') ? s.sort : DEFAULT_SORT;
+  const s = (vscode.getState() ?? {}) as Partial<Saved>;
+  const sort = s.sort && SORT_KEYS.includes(s.sort.key) && (s.sort.dir === 'asc' || s.sort.dir === 'desc') ? s.sort : DEFAULT_SORT;
   return {
     sort,
-    filter: typeof s?.filter === 'string' ? s.filter : '',
-    selected: typeof s?.selected === 'string' ? s.selected : null,
+    filter: typeof s.filter === 'string' ? s.filter : '',
+    selected: typeof s.selected === 'string' ? s.selected : null,
+    area: s.area && s.area in AREA_LABEL ? s.area : 'bytes',
+    color: s.color && s.color in COLOR_LABEL ? s.color : 'ext',
+    zoom: typeof s.zoom === 'string' ? s.zoom : '',
   };
 }
 
-const ROW_HEIGHT = 24;
-const COLUMNS: { key: SortKey; label: string }[] = [
-  { key: 'name', label: 'Nombre' },
-  { key: 'folder', label: 'Carpeta' },
-  { key: 'size', label: 'Tamaño' },
-];
 const count = (n: number): string => `${n.toLocaleString('es-ES')} ${n === 1 ? 'archivo' : 'archivos'}`;
 
 export function App() {
@@ -37,6 +41,8 @@ export function App() {
   const [index, setIndex] = useState<PanelIndex | null | undefined>(undefined);
   const [status, setStatus] = useState<PanelStatus | undefined>(undefined);
   const [saved, setSaved] = useState<Saved>(loadSaved);
+  const [highlight, setHighlight] = useState<string | null>(null);
+  const set = (patch: Partial<Saved>): void => setSaved((s) => ({ ...s, ...patch }));
 
   useEffect(() => {
     const onMessage = (e: MessageEvent<HostMessage>): void => {
@@ -44,7 +50,7 @@ export function App() {
       else if (e.data.type === 'status') setStatus(e.data.status);
     };
     window.addEventListener('message', onMessage);
-    vscode.postMessage({ type: 'ready' });
+    post({ type: 'ready' });
     return () => window.removeEventListener('message', onMessage);
   }, []);
 
@@ -57,7 +63,16 @@ export function App() {
   const scope = status?.scope ?? [];
   const scoped = useMemo(() => toRows(index?.files ?? [], scope), [index, scope.join('\n')]);
   const scopeBytes = useMemo(() => totalSize(scoped), [scoped]);
-  const rows = useMemo(() => sortRows(filterRows(scoped, saved.filter), saved.sort), [scoped, saved.filter, saved.sort]);
+  const filtered = useMemo(() => filterRows(scoped, saved.filter), [scoped, saved.filter]);
+  const rows = useMemo(() => sortRows(filtered, saved.sort), [filtered, saved.sort]);
+  // Colores sobre el ámbito, no sobre el filtro: escribir en el filtro no debe cambiarlos.
+  const coloring = useMemo(() => buildColoring(saved.color, scoped), [saved.color, scoped]);
+  const zoom = useMemo(() => effectiveZoom(filtered, saved.zoom), [filtered, saved.zoom]);
+  const selectedRow = useMemo(() => (saved.selected ? scoped.find((r) => r.path === saved.selected) : undefined), [scoped, saved.selected]);
+
+  useEffect(() => {
+    if (highlight != null && !coloring.legend.some((l) => l.key === highlight)) setHighlight(null);
+  }, [coloring, highlight]);
 
   if (!status || index === undefined) return <Splash title="Cargando…" />;
   if (!status.hasRoot) return <Splash title="Abre una carpeta para ver qué pesa y qué se usa." idle />;
@@ -65,7 +80,7 @@ export function App() {
     if (status.error) {
       return (
         <Splash title="No se pudo analizar el repositorio" detail={status.error} idle>
-          <button onClick={() => vscode.postMessage({ type: 'refresh' })}>Reintentar</button>
+          <button onClick={() => post({ type: 'refresh' })}>Reintentar</button>
         </Splash>
       );
     }
@@ -79,7 +94,34 @@ export function App() {
     );
   }
 
-  const filtered = saved.filter.trim() !== '';
+  const columns: Column[] = [
+    {
+      key: 'name',
+      label: 'Nombre',
+      width: 'minmax(120px, 2fr)',
+      render: (r) => (
+        <>
+          <i className="swatch" style={{ background: coloring.colorOf(r) }} />
+          {r.name}
+        </>
+      ),
+    },
+    { key: 'folder', label: 'Carpeta', width: 'minmax(80px, 2fr)', render: (r) => r.folder },
+    {
+      key: 'size',
+      label: 'Tamaño',
+      width: '130px',
+      align: 'right',
+      title: 'Tamaño y % del ámbito',
+      render: (r) => (
+        <>
+          {fmtSize(r.size)} <span className="share">{pct(scopeBytes > 0 ? r.size / scopeBytes : 0)}</span>
+        </>
+      ),
+    },
+  ];
+
+  const isFiltered = saved.filter.trim() !== '';
   return (
     <div className="app">
       <header className="bar">
@@ -90,18 +132,18 @@ export function App() {
             scope.map((s) => (
               <span className="chip" key={s}>
                 {s}/
-                <button title={`Quitar «${s}/» del ámbito`} aria-label={`Quitar ${s} del ámbito`} onClick={() => vscode.postMessage({ type: 'removeScope', folder: s })}>
+                <button title={`Quitar «${s}/» del ámbito`} aria-label={`Quitar ${s} del ámbito`} onClick={() => post({ type: 'removeScope', folder: s })}>
                   ✕
                 </button>
               </span>
             ))
           )}
-          <button className="link" onClick={() => vscode.postMessage({ type: 'pickScope' })}>
+          <button className="link" onClick={() => post({ type: 'pickScope' })}>
             Cambiar ámbito…
           </button>
         </div>
         <div className="totals">
-          {filtered ? `${rows.length.toLocaleString('es-ES')} de ${count(scoped.length)} · ${fmtSize(totalSize(rows))}` : `${count(scoped.length)} · ${fmtSize(scopeBytes)}`}
+          {isFiltered ? `${rows.length.toLocaleString('es-ES')} de ${count(scoped.length)} · ${fmtSize(totalSize(rows))}` : `${count(scoped.length)} · ${fmtSize(scopeBytes)}`}
         </div>
         <input
           className="filter"
@@ -109,7 +151,7 @@ export function App() {
           placeholder="Filtrar por nombre o ruta"
           aria-label="Filtrar por nombre o ruta"
           value={saved.filter}
-          onChange={(e) => setSaved((s) => ({ ...s, filter: e.target.value }))}
+          onChange={(e) => set({ filter: e.target.value })}
         />
       </header>
       {status.building && (
@@ -120,141 +162,95 @@ export function App() {
         </div>
       )}
       {status.error && <div className="error">No se pudo analizar el repositorio: {status.error}</div>}
-      <Table
-        rows={rows}
-        sort={saved.sort}
-        scopeBytes={scopeBytes}
-        selected={saved.selected}
-        empty={filtered ? 'Ningún archivo coincide con el filtro.' : 'No hay archivos en el ámbito.'}
-        onSort={(key) => setSaved((s) => ({ ...s, sort: nextSort(s.sort, key) }))}
-        onSelect={(path) => setSaved((s) => ({ ...s, selected: path }))}
-      />
+      <div className="main">
+        <Table
+          rows={rows}
+          columns={columns}
+          sort={saved.sort}
+          selected={saved.selected}
+          empty={isFiltered ? 'Ningún archivo coincide con el filtro.' : 'No hay archivos en el ámbito.'}
+          onSort={(key) => setSaved((s) => ({ ...s, sort: nextSort(s.sort, key) }))}
+          onSelect={(path) => set({ selected: path })}
+          onOpen={(path) => post({ type: 'open', path })}
+        />
+        <section className="tm-pane" aria-label="Treemap">
+          <div className="tm-bar">
+            <nav className="crumbs" aria-label="Carpeta ampliada">
+              {crumbs(zoom, index.rootName).map((c, i, all) =>
+                i === all.length - 1 ? (
+                  <span key={c.path} className="here">
+                    {c.name}
+                  </span>
+                ) : (
+                  <span key={c.path}>
+                    <button className="link" onClick={() => set({ zoom: c.path })}>
+                      {c.name}
+                    </button>
+                    <span className="sep">›</span>
+                  </span>
+                ),
+              )}
+            </nav>
+            <Select label="Área" value={saved.area} options={AREA_LABEL} onChange={(area) => set({ area })} />
+            <Select label="Color" value={saved.color} options={COLOR_LABEL} onChange={(color) => set({ color })} />
+          </div>
+          <Treemap
+            rows={filtered}
+            coloring={coloring}
+            area={saved.area}
+            zoom={zoom}
+            selected={saved.selected}
+            highlight={highlight}
+            onSelect={(path) => set({ selected: path })}
+            onOpen={(path) => post({ type: 'open', path })}
+            onZoom={(folder) => set({ zoom: folder })}
+          />
+          <div className="legend" aria-label={`Leyenda: ${COLOR_LABEL[saved.color]}`}>
+            {coloring.legend.map((l) => (
+              <button
+                key={l.key}
+                className={`leg${highlight === l.key ? ' on' : ''}${highlight != null && highlight !== l.key ? ' off' : ''}`}
+                title={`${count(l.count)} · ${fmtSize(l.size)}. Clic para resaltar`}
+                aria-pressed={highlight === l.key}
+                onClick={() => setHighlight((h) => (h === l.key ? null : l.key))}
+              >
+                <i className="swatch" style={{ background: l.color }} />
+                {l.label}
+              </button>
+            ))}
+          </div>
+        </section>
+      </div>
+      <Detail row={selectedRow} scopeBytes={scopeBytes} />
     </div>
   );
 }
 
-function Splash(props: { title: string; detail?: string; hint?: string; fraction?: number | null; idle?: boolean; children?: React.ReactNode }) {
+function Select<T extends string>(props: { label: string; value: T; options: Record<T, string>; onChange(v: T): void }) {
+  const keys = Object.keys(props.options) as T[];
+  return (
+    <label className="select">
+      {props.label}
+      <select value={props.value} onChange={(e) => props.onChange(e.target.value as T)} disabled={keys.length < 2}>
+        {keys.map((k) => (
+          <option key={k} value={k}>
+            {props.options[k]}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function Splash(props: { title: string; detail?: string; hint?: string; fraction?: number | null; idle?: boolean; children?: ReactNode }) {
   return (
     <div className="splash" role="status">
       {!props.idle && <span className="spinner" />}
       <h1>{props.title}</h1>
-      {props.detail && <p className="detail">{props.detail}</p>}
+      {props.detail && <p className="detail-line">{props.detail}</p>}
       {props.fraction != null && <progress value={props.fraction} max={1} />}
       {props.hint && <p className="hint">{props.hint}</p>}
       {props.children}
-    </div>
-  );
-}
-
-function Table(props: {
-  rows: Row[];
-  sort: Sort;
-  scopeBytes: number;
-  selected: string | null;
-  empty: string;
-  onSort(key: SortKey): void;
-  onSelect(path: string): void;
-}) {
-  const { rows, selected } = props;
-  const body = useRef<HTMLDivElement>(null);
-  const [scrollTop, setScrollTop] = useState(0);
-  const [height, setHeight] = useState(600);
-
-  useLayoutEffect(() => {
-    const el = body.current;
-    if (!el) return;
-    setHeight(el.clientHeight);
-    const ro = new ResizeObserver(() => setHeight(el.clientHeight));
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  const selectedAt = useMemo(() => (selected ? rows.findIndex((r) => r.path === selected) : -1), [rows, selected]);
-
-  const select = (i: number): void => {
-    const row = rows[Math.max(0, Math.min(rows.length - 1, i))];
-    const el = body.current;
-    if (!row || !el) return;
-    props.onSelect(row.path);
-    // Mantener la fila a la vista al moverse con el teclado.
-    const top = rows.indexOf(row) * ROW_HEIGHT;
-    if (top < el.scrollTop) el.scrollTop = top;
-    else if (top + ROW_HEIGHT > el.scrollTop + el.clientHeight) el.scrollTop = top + ROW_HEIGHT - el.clientHeight;
-  };
-
-  const onKeyDown = (e: KeyboardEvent): void => {
-    const page = Math.max(1, Math.floor(height / ROW_HEIGHT) - 1);
-    const moves: Record<string, number> = {
-      ArrowDown: selectedAt + 1,
-      ArrowUp: selectedAt < 0 ? 0 : selectedAt - 1,
-      PageDown: selectedAt + page,
-      PageUp: selectedAt - page,
-      Home: 0,
-      End: rows.length - 1,
-    };
-    if (e.key in moves) {
-      e.preventDefault();
-      select(moves[e.key] as number);
-    } else if (e.key === 'Enter' && selected && selectedAt >= 0) {
-      e.preventDefault();
-      vscode.postMessage({ type: 'open', path: selected });
-    }
-  };
-
-  const { start, end } = visibleRange(scrollTop, height, ROW_HEIGHT, rows.length);
-  return (
-    <div className="table" role="grid" aria-rowcount={rows.length}>
-      <div className="row head" role="row">
-        {COLUMNS.map((c) => {
-          const active = props.sort.key === c.key;
-          return (
-            <button
-              key={c.key}
-              role="columnheader"
-              className={`cell ${c.key}`}
-              aria-sort={active ? (props.sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
-              onClick={() => props.onSort(c.key)}
-            >
-              {c.label}
-              <span className="arrow">{active ? (props.sort.dir === 'asc' ? '▲' : '▼') : ''}</span>
-            </button>
-          );
-        })}
-      </div>
-      <div className="body" ref={body} tabIndex={0} onKeyDown={onKeyDown} onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}>
-        {rows.length === 0 ? (
-          <p className="empty">{props.empty}</p>
-        ) : (
-          <div className="spacer" style={{ height: rows.length * ROW_HEIGHT }}>
-            {rows.slice(start, end).map((r, i) => {
-              const isSelected = r.path === selected;
-              return (
-                <div
-                  key={r.path}
-                  role="row"
-                  aria-selected={isSelected}
-                  className={`row${isSelected ? ' selected' : ''}`}
-                  style={{ top: (start + i) * ROW_HEIGHT }}
-                  title={r.path}
-                  onClick={() => props.onSelect(r.path)}
-                >
-                  <span className="cell name">{r.name}</span>
-                  <span className="cell folder">{r.folder}</span>
-                  <span className="cell size">
-                    {fmtSize(r.size)} <span className="share">{pct(props.scopeBytes > 0 ? r.size / props.scopeBytes : 0)}</span>
-                  </span>
-                  {isSelected && (
-                    <button className="open" onClick={() => vscode.postMessage({ type: 'open', path: r.path })}>
-                      Abrir
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-      <footer className="foot">Clic: seleccionar · ↑ ↓: moverse · Enter: abrir</footer>
     </div>
   );
 }

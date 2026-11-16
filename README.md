@@ -7,8 +7,8 @@ Extensión para Cursor (y VS Code) que responde a una pregunta: **¿qué pesa en
 - Último cambio en git y **hotspots** (líneas × frecuencia de cambio).
 
 Estado: **fase 2**. Vista lateral «Carpetas» con tamaños y casillas de ámbito, comandos, menú
-contextual del explorador, barra de estado y panel con la tabla de archivos (orden, filtro, ámbito).
-El treemap llega en la fase 3.
+contextual del explorador, barra de estado y panel con la tabla de archivos (orden, filtro, ámbito)
+y el treemap enlazado (área, color por extensión, zoom). El uso llega al panel en la fase 4.
 Diseño completo en [SPEC.md](SPEC.md); resultados de la fase 0 en [docs/fase-0.md](docs/fase-0.md).
 
 **Instalar y probar en Cursor: [prepareextension.md](prepareextension.md).**
@@ -37,5 +37,6 @@ npm run package   # heft.vsix
   `worker.ts` ejecuta el núcleo (bundle aparte, `dist/worker.cjs`). `panel.ts` crea el webview del
   panel y `panel-protocol.ts` define los mensajes que se cruzan con él.
 - `src/webview/`: interfaz del panel (React, bundle de navegador `dist/webview.js`). `model.ts` es
-  la lógica de la tabla (filas, filtro, orden), pura y con tests.
+  la lógica de la tabla (filas, filtro, orden), `treemap-layout.ts` la del treemap y `colors.ts` la
+  de los colores: puras y con tests. Los `test/webview-*.test.ts` con jsdom prueban el panel real.
 - `test/fake-vscode.ts`: doble de la API para el test de humo (alias en `vitest.config.ts`).

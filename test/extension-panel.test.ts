@@ -123,6 +123,14 @@ describe('panel: mensajes del webview', () => {
     expect(String(call.args[0])).toMatch(/\/src\/main\.tsx$/);
   });
 
+  it('revelar en el explorador', () => {
+    panel().receive.fire({ type: 'reveal', path: 'src/main.tsx' });
+    expect(fake.executed.at(-1)!.id).toBe('revealInExplorer');
+    const before = fake.executed.length;
+    panel().receive.fire({ type: 'reveal', path: '/etc/passwd' });
+    expect(fake.executed).toHaveLength(before);
+  });
+
   it('no abre rutas que no están en el índice', () => {
     const before = fake.executed.length;
     panel().receive.fire({ type: 'open', path: '../../etc/passwd' });
