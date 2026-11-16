@@ -40,7 +40,7 @@ Ofrece, sobre un mismo índice de archivos:
   aquí solo se integra de forma opcional (fase 6).
 - No es un navegador de archivos: para abrir un archivo por nombre ya está Ctrl+P.
 - No colorea por commit como modo principal (no escala más allá de unos pocos commits).
-- La ciudad 3D pasa a ser un extra opcional, fuera del producto mínimo.
+- No hay ciudad 3D: descartada (16-11-2026). El treemap 2D cubre lo mismo sin Three.js.
 
 ## 2. Interfaz
 
@@ -181,7 +181,7 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
 ### 4.1 Stack
 - TypeScript, API `vscode`. Build con **esbuild**, tres bundles: extensión y worker (Node) y webview
   (navegador, `dist/webview.js` + `dist/webview.css`).
-- Webview: React + `d3-hierarchy`. Sin Three.js en el producto mínimo.
+- Webview: React + `d3-hierarchy`. Sin Three.js.
 - Análisis de imports con **`typescript@5.9.3` propia**: TypeScript 7 (nativa) ya no expone
   `preProcessFile`, `resolveModuleName` ni `createSourceFile`. No depende de la versión del proyecto.
 - Estilo de código: `async/await` en lugar de cadenas `.then/.catch` (el top-level `await` no aplica:
@@ -222,7 +222,7 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
   `Map<path, { size, lines?, ext, commit?, changes, gitState, usage, refsIn, refsOut }>`.
 
 ### 4.3 Datos
-- **Tamaños**: `fs.stat` sobre la lista de 3.2. `FileSystemWatcher` para actualizar de forma incremental.
+- **Tamaños**: `fs.stat` sobre la lista de 3.2. `FileSystemWatcher` para actualizar de forma incremental (plan en §10).
 - **Git, último commit por archivo**: un único comando sobre todo el repo, sin acotar por carpeta:
   ```bash
   git -c core.quotePath=false log --format='%x00%H%x09%h%x09%an%x09%at%x09%s' --name-only [--since=…]
@@ -239,7 +239,7 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
      archivo y contra la carpeta pública (ajuste, por defecto `public`).
   2. *Menciones*: para cada recurso aún sin referencia, buscar su nombre (con y sin extensión) en los
      archivos de texto. Si aparece: «mencionado».
-  Recalcular solo el archivo guardado (grafo incremental).
+  Recalcular solo el archivo guardado (grafo incremental, plan en §10).
 
 ### 4.4 Comandos y menús
 - Paleta: `Heft: Abrir panel`, `Elegir carpetas del ámbito…` (QuickPick múltiple),
@@ -262,7 +262,7 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
    a 1 real tras corregir 7 causas de falsos positivos).
 1. ~~Vista lateral «Carpetas» con tamaños y casillas de ámbito.~~ **Hecha**: más comandos, menú
    contextual del explorador, barra de estado, ajustes y recálculo al cambiar archivos (completo, con
-   espera de 1,5 s; el incremental queda pendiente). Multi-root: solo la primera carpeta.
+   espera de 1,5 s; el incremental está planificado en §10). Multi-root: solo la primera carpeta.
    Los cambios en archivos ignorados por git (`dist/`, `node_modules/`) no relanzan el análisis.
    El análisis corre en un worker, con progreso y cancelación (§4.2).
 2. ~~Panel con la tabla (tamaño, orden, filtro, ámbito).~~ **Hecha**: comando y botón `Abrir panel`,
@@ -308,7 +308,9 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
    aparte y fuera del cálculo; botón **Hotspots** que aplica las tres cosas. Sin git: el botón y
    los colores de git quedan apagados y el área `Líneas` sigue funcionando. El detalle lleva
    líneas y cambios.
-7. Opcionales: integración con Knip para código (verificar su salida JSON), ciudad 3D con Three.js.
+7. Opcional: integración con Knip para código (verificar su salida JSON). La ciudad 3D con Three.js
+   se **descarta** (16-11-2026).
+8. **Análisis incremental**: planificado en §10, sin código. Es lo siguiente, antes que la fase 7.
 
 Producto mínimo útil = fases 0 a 4. Para proyectos sin archivos grandes, el valor llega en la fase 6.
 
@@ -364,7 +366,7 @@ El diseño interactivo no incluye los hotspots (líneas y cambios); la extensió
 | `03-repo-completo-color-extension.png` | Sí (modo por defecto) | — |
 | `04-color-antiguedad.png` | El modo | Tramos por cuantiles, no por fechas fijas |
 | `05-arbol-por-tamano.png` | Estructura y orden | Sin barras ni colores: tamaño y % en texto |
-| `06-ciudad-3d.png` | Solo como opcional (fase 6) | Fuera del producto mínimo |
+| `06-ciudad-3d.png` | No | Descartada: no hay ciudad 3D |
 | `07-ambito-paleta-y-menu.png` | Sí | Se quita «Abrir treemap de esta carpeta» |
 | `08-referencias-huerfanos.png` | Fila desplegable y acciones | Deja de ser pestaña: son columnas y filtros de la tabla; «Huérfano» pasa a «Sin rastro» / «Mencionado» |
 
@@ -381,3 +383,112 @@ El diseño interactivo no incluye los hotspots (líneas y cambios); la extensió
 - Git pasa de la fase 4 a la 5 y deja de ser requisito de las anteriores; se añade la fase 0.
 - Añadido después: hotspots (líneas × cambios) como fase 6; Impacto y Cambian juntos apuntados
   para más adelante (5.1).
+
+## 10. Análisis incremental (plan)
+
+Estado: **planificado, sin código**. Es el siguiente trabajo. Fecha del plan: 16-11-2026.
+
+### 10.1 Problema
+
+Hoy cualquier cambio en disco relanza el análisis completo tras 1,5 s: listar, leer todos los
+archivos, `git log` de todo el historial, extraer referencias de cada origen y buscar menciones.
+Además el worker vive un solo análisis y se destruye, así que no queda nada que reutilizar.
+En un repo pequeño no se nota; en un monorepo, guardar un archivo cuesta lo mismo que abrirlo.
+
+### 10.2 Objetivo y criterio de aceptación
+
+- Guardar un archivo actualiza el índice recalculando **solo lo que ese archivo puede cambiar**.
+- **Equivalencia**: tras cualquier secuencia de cambios, el índice incremental es idéntico (salvo
+  tiempos) al de un análisis completo desde cero. Es el criterio que manda y va en un test:
+  ediciones aleatorias sobre el proyecto de prueba, comparando contra `buildIndex`.
+- Si algo no encaja en el camino incremental, se cae al análisis completo. Nunca se enseña un dato
+  viejo a sabiendas, y **Refrescar** es siempre un análisis completo.
+- Objetivo de tiempo, a confirmar en el paso I0: guardar un archivo en `vitejs/vite` por debajo de
+  100 ms (hoy ~2 s).
+
+### 10.3 Qué depende de qué
+
+| Cambio | Qué invalida |
+|--------|--------------|
+| Contenido de un archivo existente | Su tamaño, líneas y `●`; las referencias que **salen** de él; las menciones que él aporta; el estado de uso de los archivos a los que apuntaba o apunta |
+| Archivo creado | Lo anterior, más: imports sin resolver de otros archivos que ahora sí resuelven, patrones `import.meta.glob` que lo incluyen y, si es un recurso, su búsqueda de menciones |
+| Archivo borrado | Sus referencias de salida; las de entrada (esos orígenes pasan a tener un import sin resolver); si un recurso pierde su última referencia, hay que buscarle menciones |
+| Commit nuevo sobre el mismo historial | Último commit y recuento de cambios de los archivos de esos commits; `●` |
+| Cambio de rama, rebase, amend, reset | Todo el historial (no el uso, salvo los archivos que cambien en disco) |
+| `tsconfig*`/`jsconfig*`, `package.json`, `.gitignore`, ajustes `heft.*`, aparece o desaparece una carpeta pública | Todo: cambian la resolución, los puntos de entrada o la lista de archivos |
+
+### 10.4 Diseño
+
+**Estado que se conserva** (`IndexState`, en el núcleo, sin `vscode`):
+- El mapa de archivos y, por cada origen, su **extracción**: lo que el archivo dice (imports,
+  strings con pinta de ruta, `url()`, `src/href`, enlaces, patrones glob), separado de **a qué
+  resuelve**. Extraer es lo caro (AST de TypeScript); resolver es barato y depende del conjunto
+  de archivos.
+- Las referencias por origen y el índice inverso (quién apunta a cada archivo).
+- Los imports relativos sin resolver, indexados por el último tramo de la ruta, para saber a qué
+  orígenes puede afectar un archivo nuevo sin recorrerlos todos.
+- El historial de git y el `HEAD` con el que se leyó.
+- **No** se conservan los textos: en un monorepo serían cientos de MB. Las menciones de un recurso
+  que se queda sin referencias se buscan releyendo el disco (caso raro). A confirmar en I0.
+
+**Uso**: separar `analyzeUsage` en extraer → resolver → menciones, y aplicar según 10.3:
+- Contenido: re-extraer y re-resolver ese archivo; quitar sus menciones y volver a buscarlas solo
+  en su texto (un único recorrido con todos los recursos pendientes); recalcular el estado de uso
+  de los destinos que ganan o pierden una referencia.
+- Las menciones solo existen para recursos sin referencia directa, igual que hoy: si un recurso
+  gana una, se quitan sus menciones; si pierde la última, se le buscan en todo el repo.
+
+**Git**:
+- `git status --porcelain` acotado a las rutas del lote.
+- `HEAD` avanza y el anterior es ancestro (`git merge-base --is-ancestor`): `git log
+  viejo..nuevo --name-only` y sumar. En cualquier otro caso, releer el historial entero (solo git).
+- Con `heft.git.since` la ventana se desplaza y los recuentos no se pueden restar: se relee el
+  historial en cada cambio de `HEAD` (ya está acotado por `since`).
+
+**Worker y extensión**:
+- El worker pasa a ser **persistente** (uno por carpeta analizada) y guarda el `IndexState`.
+  Mensajes: `build` (completo), `apply` (lote de cambios), `dispose`.
+- La extensión deja de programar «un análisis» y acumula **rutas con su tipo** (creado, cambiado,
+  borrado, git). Espera corta (300 ms) y un lote cada vez; lo que llegue mientras se aplica uno
+  va al siguiente.
+- Cancelar un análisis completo sigue siendo terminar el worker (se pierde el estado, que de
+  todos modos se iba a rehacer). Un lote incremental no se cancela: es corto.
+- El worker sigue devolviendo el índice entero; mandar solo las diferencias al panel se decide
+  midiendo (paso I6).
+
+**Caída al análisis completo**: primer análisis; carpeta sin git; más de 50 rutas en un lote
+(renombrar una carpeta, cambiar de rama, `npm install`); cualquier archivo de la última fila de
+10.3; error durante un lote; **Refrescar**.
+
+**Lo que ve el usuario**: la línea de estado del panel dice qué se hizo («Actualizado: 2
+archivos · 10:03:09» o «Análisis completo · …») y el registro lleva una línea por lote con sus
+tiempos.
+
+### 10.5 Pasos (cada uno, un PR)
+
+- **I0 · Medir.** `--profile` en el CLI: tiempo de extraer, resolver, menciones, `git status`,
+  `git log` y de pasar el índice del worker a la extensión y al panel; memoria con y sin textos.
+  Sobre `vitejs/vite` y el monorepo de trabajo. Fija los umbrales de 10.4 y decide si I6 hace falta.
+- **I1 · Separar sin cambiar nada.** `analyzeUsage` en extraer, resolver y menciones; `IndexState`
+  con `build()`. Los tests actuales siguen pasando tal cual.
+- **I2 · Contenido.** `IndexState.apply()` para archivos existentes que cambian, con el test de
+  equivalencia. Todavía sin conectar a la extensión.
+- **I3 · Crear, borrar y renombrar**, y las caídas al análisis completo.
+- **I4 · Git.** Avance de `HEAD` incremental; lo demás, relectura del historial.
+- **I5 · Conectar.** Worker persistente, lotes de rutas en la extensión, espera de 300 ms, línea de
+  estado y registro. A partir de aquí lo nota el usuario.
+- **I6 · Solo si I0 lo pide.** Mandar diferencias al panel en vez del índice entero.
+
+### 10.6 Riesgos y límites aceptados
+
+- **Sombra**: crear `foo.ts` junto a un `foo.js` ya importado cambia a cuál resuelve el import y el
+  camino incremental no lo ve (solo revisa imports sin resolver). Se corrige en el siguiente
+  análisis completo. Si el test de equivalencia lo destapa a menudo, re-resolver también los
+  imports cuyo destino comparte nombre con el archivo nuevo.
+- **Windows**: el vigilante puede dar las rutas con otra capitalización; se normalizan contra las
+  rutas conocidas del índice antes de aplicar nada.
+- **Memoria** del worker persistente: acotada al no guardar textos; se mide en I0.
+- **Deriva**: el test de equivalencia es la defensa. En desarrollo, un ajuste oculto
+  (`heft.debug.verifyIncremental`) que tras cada lote lanza el análisis completo y registra las
+  diferencias.
+- El incremental no arregla el primer análisis: ese sigue costando lo mismo.
