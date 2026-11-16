@@ -4,6 +4,7 @@
  */
 
 import type { CommitInfo, RefKind, Usage } from '../core/types.js';
+import type { Locale } from '../i18n/index.js';
 
 /** Lo que el panel necesita de cada archivo. */
 export interface PanelFile {
@@ -58,6 +59,8 @@ export interface PanelStatus {
   /** Avance de la fase entre 0 y 1; null si la fase no se puede medir. */
   fraction: number | null;
   error: string | null;
+  /** Idioma de la interfaz: el panel lo sigue si cambia el ajuste `heft.language`. */
+  locale?: Locale;
 }
 
 export type HostMessage =

@@ -117,6 +117,7 @@ export const fake = {
   /** Llamadas a withProgress: dónde se pinta y si la tarea ya terminó. */
   progress: [] as { location: unknown; done: boolean }[],
   folderListeners: [] as (() => unknown)[],
+  configListeners: [] as ((e: { affectsConfiguration(k: string): boolean }) => unknown)[],
   treeView: undefined as
     | {
         provider: any;
@@ -159,6 +160,7 @@ export const fake = {
     this.watchers = 0;
     this.progress = [];
     this.folderListeners = [];
+    this.configListeners = [];
     this.treeView = undefined;
     this.panels = [];
     this.warnings = [];
@@ -274,6 +276,8 @@ export const window = {
 };
 
 export const env = {
+  /** Idioma del editor. Los tests van en castellano salvo que digan otra cosa. */
+  language: 'es',
   clipboard: { writeText: async (s: string) => void (fake.clipboard = s) },
 };
 
@@ -302,7 +306,10 @@ export const workspace = {
   fs: {
     delete: async (uri: Uri, options: any) => void fake.deleted.push({ path: uri.path, options }),
   },
-  onDidChangeConfiguration: () => disposable,
+  onDidChangeConfiguration: (fn: (e: { affectsConfiguration(k: string): boolean }) => unknown) => {
+    fake.configListeners.push(fn);
+    return disposable;
+  },
   onDidChangeWorkspaceFolders: (fn: () => unknown) => {
     fake.folderListeners.push(fn);
     return disposable;

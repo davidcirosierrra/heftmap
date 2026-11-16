@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { coloring, quantileFloors } from '../src/webview/colors.js';
 import { DEFAULT_SORT, filterRows, linksOf, nextSort, quickCounts, quickRows, sortRows, toRows, totalSize, visibleRange } from '../src/webview/model.js';
 import type { PanelCommit, PanelFile, PanelRef } from '../src/extension/panel-protocol.js';
+import { i18n } from '../src/i18n/index.js';
+
+const ES = i18n('es');
 
 const files = [
   { path: 'README.md', size: 300 },
@@ -158,7 +161,7 @@ describe('uso (fase 4)', () => {
   });
 
   it('color «Uso»: un grupo por estado presente, en orden de sospecha', () => {
-    const c = coloring('usage', all);
+    const c = coloring('usage', all, ES);
     expect(c.legend.map((l) => l.label)).toEqual(['Sin rastro', 'Sin importadores', 'Mencionado', 'Referenciado', 'Punto de entrada', 'No analizado']);
     expect(c.legend[3]).toMatchObject({ count: 3, size: 5020 });
     expect(c.colorOf(usageOf('public/trees.glb'))).not.toBe(c.colorOf(usageOf('public/kart.glb')));
@@ -247,10 +250,10 @@ describe('git (fase 5)', () => {
   });
 
   it('color «Antigüedad»: 5 tramos por cuantiles del repo, más nuevos y sin dato', () => {
-    const c = coloring('age', rows, now);
+    const c = coloring('age', rows, ES, now);
     expect(c.legend.map((l) => l.count)).toEqual([1, 3, 2, 2, 2, 2, 1]);
     expect(c.legend[0]!.label).toBe('Nuevo (sin commit)');
-    expect(c.legend[1]!.label).toBe('hasta hace 3 meses');
+    expect(c.legend[1]!.label).toBe('hoy – hace 3 meses');
     expect(c.legend.at(-1)!.label).toBe('Sin dato de git');
     expect(c.keyOf(row('src/f0.ts'))).toBe('t0');
     expect(c.keyOf(row('src/f9.ts'))).toBe('t4');
@@ -259,12 +262,12 @@ describe('git (fase 5)', () => {
 
   it('«Antigüedad» se adapta al repo: si todo es de la última semana, también reparte', () => {
     const recent = Array.from({ length: 10 }, (_, i) => commit(i, i * 0.5));
-    const c = coloring('age', toRows(recent.map((_, i) => ({ path: `f${i}`, size: 1, commit: i })), [], { commits: recent }), now);
+    const c = coloring('age', toRows(recent.map((_, i) => ({ path: `f${i}`, size: 1, commit: i })), [], { commits: recent }), ES, now);
     expect(c.legend).toHaveLength(5);
   });
 
   it('color «Commits recientes»: solo los últimos 8; mismo commit, mismo color', () => {
-    const c = coloring('recent', rows);
+    const c = coloring('recent', rows, ES);
     expect(c.legend.map((l) => l.label)).toEqual([
       'Nuevo (sin commit)',
       ...commits.slice(0, 8).map((k) => `${k.short} ${k.subject}`),
@@ -325,7 +328,7 @@ describe('hotspots (fase 6)', () => {
   });
 
   it('color «Cambios»: tramos por cuantiles; lockfiles y generados quedan fuera', () => {
-    const c = coloring('changes', rows);
+    const c = coloring('changes', rows, ES);
     expect(c.keyOf(row('package-lock.json'))).toBe('generado');
     expect(c.keyOf(row('src/nuevo.ts'))).toBe('estable');
     // El lockfile (40 cambios) no entra en el cálculo: el tramo más intenso empieza en 19.
@@ -338,6 +341,6 @@ describe('hotspots (fase 6)', () => {
 
   it('etiquetas de los tramos de cambios: rangos sin huecos', () => {
     const many = toRows(Array.from({ length: 50 }, (_, i) => ({ path: `f${i}.ts`, size: 1, lines: 1, changes: i + 1 })), []);
-    expect(coloring('changes', many).legend.map((l) => l.label)).toEqual(['41 o más cambios', '31–40', '21–30', '11–20', '1–10']);
+    expect(coloring('changes', many, ES).legend.map((l) => l.label)).toEqual(['41 o más cambios', '31–40', '21–30', '11–20', '1–10']);
   });
 });

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
 import type { HostMessage, PanelIndex, PanelStatus } from '../extension/panel-protocol.js';
-import { fmtSize, pct, rel } from '../report.js';
+import type { I18n, MessageKey } from '../i18n/index.js';
+import { setLocale, useI18n } from './locale.js';
 import { COLOR_LABEL, USAGE_COLOR, coloring as buildColoring, usageLabel, type ColorMode } from './colors.js';
 import { Detail } from './Detail.js';
 import { DEFAULT_SORT, QUICK_LABEL, SORT_KEYS, filterRows, linksOf, nextSort, quickCounts, quickRows, sortRows, toRows, totalSize, type Quick, type Sort } from './model.js';
@@ -47,9 +48,9 @@ function loadSaved(): Saved {
   };
 }
 
-const count = (n: number): string => `${n.toLocaleString('es-ES')} ${n === 1 ? 'archivo' : 'archivos'}`;
-
 export function App() {
+  const I = useI18n();
+  const count = (n: number): string => I.tp('files', n);
   // undefined: el panel aún no ha recibido nada de la extensión.
   const [index, setIndex] = useState<PanelIndex | null | undefined>(undefined);
   const [status, setStatus] = useState<PanelStatus | undefined>(undefined);
@@ -60,7 +61,10 @@ export function App() {
   useEffect(() => {
     const onMessage = (e: MessageEvent<HostMessage>): void => {
       if (e.data.type === 'index') setIndex(e.data.index);
-      else if (e.data.type === 'status') setStatus(e.data.status);
+      else if (e.data.type === 'status') {
+        setLocale(e.data.status.locale);
+        setStatus(e.data.status);
+      }
     };
     window.addEventListener('message', onMessage);
     post({ type: 'ready' });
@@ -82,7 +86,7 @@ export function App() {
   const filtered = useMemo(() => filterRows(quickRows(scoped, quick), saved.filter), [scoped, quick, saved.filter]);
   const rows = useMemo(() => sortRows(filtered, saved.sort), [filtered, saved.sort]);
   // Colores sobre el ámbito, no sobre el filtro: escribir en el filtro no debe cambiarlos.
-  const coloring = useMemo(() => buildColoring(saved.color, scoped), [saved.color, scoped]);
+  const coloring = useMemo(() => buildColoring(saved.color, scoped, I), [saved.color, scoped, I]);
   const zoom = useMemo(() => effectiveZoom(filtered, saved.zoom), [filtered, saved.zoom]);
   const selectedRow = useMemo(() => (saved.selected ? scoped.find((r) => r.path === saved.selected) : undefined), [scoped, saved.selected]);
   const links = useMemo(
@@ -120,22 +124,22 @@ export function App() {
     e.preventDefault();
   };
 
-  if (!status || index === undefined) return <Splash title="Cargando…" />;
-  if (!status.hasRoot) return <Splash title="Abre una carpeta para ver qué pesa y qué se usa." idle />;
+  if (!status || index === undefined) return <Splash title={I.t('panel.loading')} />;
+  if (!status.hasRoot) return <Splash title={I.t('panel.noFolder')} idle />;
   if (!index) {
     if (status.error) {
       return (
-        <Splash title="No se pudo analizar el repositorio" detail={status.error} idle>
-          <button onClick={() => post({ type: 'refresh' })}>Reintentar</button>
+        <Splash title={I.t('panel.analysisFailed')} detail={status.error} idle>
+          <button onClick={() => post({ type: 'refresh' })}>{I.t('common.retry')}</button>
         </Splash>
       );
     }
     return (
       <Splash
-        title="Analizando el repositorio…"
+        title={I.t('panel.analyzing')}
         detail={status.progress ?? undefined}
         fraction={status.fraction}
-        hint="La tabla aparece en cuanto se conocen los tamaños. En repos grandes puede tardar un poco."
+        hint={I.t('panel.analyzingHint')}
       />
     );
   }
@@ -143,7 +147,7 @@ export function App() {
   const columns: Column[] = [
     {
       key: 'name',
-      label: 'Nombre',
+      label: I.t('col.name'),
       width: 'minmax(120px, 2fr)',
       render: (r) => (
         <>
@@ -152,60 +156,60 @@ export function App() {
         </>
       ),
     },
-    { key: 'folder', label: 'Carpeta', width: 'minmax(90px, 2fr)', render: (r) => r.folder },
+    { key: 'folder', label: I.t('col.folder'), width: 'minmax(90px, 2fr)', render: (r) => r.folder },
     {
       key: 'size',
-      label: 'Tamaño',
+      label: I.t('col.size'),
       width: '122px',
       align: 'right',
-      title: 'Tamaño y % del ámbito',
+      title: I.t('col.sizeTip'),
       render: (r) => (
         <>
-          {fmtSize(r.size)} <span className="share">{pct(scopeBytes > 0 ? r.size / scopeBytes : 0)}</span>
+          {I.size(r.size)} <span className="share">{I.pct(scopeBytes > 0 ? r.size / scopeBytes : 0)}</span>
         </>
       ),
     },
     {
       key: 'lines',
-      label: 'Líneas',
-      width: '64px',
+      label: I.t('col.lines'),
+      width: '72px',
       align: 'right',
-      title: 'Nº de líneas (vacío en binarios)',
-      render: (r) => (r.lines == null ? '' : r.lines.toLocaleString('es-ES')),
+      title: I.t('col.linesTip'),
+      render: (r) => (r.lines == null ? '' : I.num(r.lines)),
     },
     {
       key: 'changes',
-      label: 'Cambios',
+      label: I.t('col.changes'),
       width: '88px',
       align: 'right',
-      title: 'Nº de commits que han tocado el archivo. No sigue renombrados',
-      render: (r) => (r.usage === 'pending' ? '…' : r.changes > 0 ? <span className={r.generated ? 'share auto' : undefined}>{r.changes.toLocaleString('es-ES')}</span> : ''),
+      title: I.t('col.changesTip'),
+      render: (r) => (r.usage === 'pending' ? '…' : r.changes > 0 ? <span className={r.generated ? 'share auto' : undefined}>{I.num(r.changes)}</span> : ''),
     },
     {
       key: 'usage',
-      label: 'Uso',
+      label: I.t('col.usage'),
       width: '170px',
-      title: 'Estado de uso y nº de archivos que lo referencian',
+      title: I.t('col.usageTip'),
       render: (r) => (
-        <span title={r.usage === 'no-importers' ? 'Código sin importadores: aviso de baja confianza. Para código muerto, usa Knip.' : undefined}>
+        <span title={r.usage === 'no-importers' ? I.t('usageHint.no-importers') : undefined}>
           <i className="dot" style={{ background: USAGE_COLOR[r.usage] }} />
-          {usageLabel(r.usage)}
+          {usageLabel(r.usage, I)}
           {r.refsIn > 0 && <span className="share">{' '}· {r.refsIn}</span>}
         </span>
       ),
     },
     {
       key: 'changed',
-      label: 'Último cambio',
+      label: I.t('col.changed'),
       width: '166px',
-      title: 'Fecha y hash del último commit. ● = cambios sin commit',
+      title: I.t('col.changedTip'),
       render: (r) =>
         r.untracked ? (
-          <span className="new">nuevo</span>
+          <span className="new">{I.t('common.new')}</span>
         ) : r.commit ? (
           <span title={`${r.commit.short} ${r.commit.subject} — ${r.commit.author}`}>
-            {rel(r.commit.time)} <span className="hash">{r.commit.short}</span>
-            {r.dirty && <span className="dirty" title="Cambios sin commit"> ●</span>}
+            {I.rel(r.commit.time)} <span className="hash">{r.commit.short}</span>
+            {r.dirty && <span className="dirty" title={I.t('common.uncommitted')}> ●</span>}
           </span>
         ) : (
           <span className="share">{r.usage === 'pending' ? '…' : '—'}</span>
@@ -222,34 +226,36 @@ export function App() {
       <header className="bar">
         <div className="chips">
           {scope.length === 0 ? (
-            <span className="chip all">Todo el repositorio</span>
+            <span className="chip all">{I.t('scope.all')}</span>
           ) : (
             scope.map((s) => (
               <span className="chip" key={s}>
                 {s}/
-                <button title={`Quitar «${s}/» del ámbito`} aria-label={`Quitar ${s} del ámbito`} onClick={() => post({ type: 'removeScope', folder: s })}>
+                <button title={I.t('bar.removeScope', { folder: s })} aria-label={I.t('bar.removeScope', { folder: s })} onClick={() => post({ type: 'removeScope', folder: s })}>
                   ✕
                 </button>
               </span>
             ))
           )}
           <button className="link" onClick={() => post({ type: 'pickScope' })}>
-            Cambiar ámbito…
+            {I.t('bar.changeScope')}
           </button>
         </div>
         <div className="totals">
-          {isFiltered ? `${rows.length.toLocaleString('es-ES')} de ${count(scoped.length)} · ${fmtSize(totalSize(rows))}` : `${count(scoped.length)} · ${fmtSize(scopeBytes)}`}
+          {isFiltered
+            ? I.t('bar.filteredTotals', { shown: I.num(rows.length), files: count(scoped.length), size: I.size(totalSize(rows)) })
+            : `${count(scoped.length)} · ${I.size(scopeBytes)}`}
         </div>
         <input
           className="filter"
           type="search"
-          placeholder="Filtrar por nombre o ruta"
-          aria-label="Filtrar por nombre o ruta"
+          placeholder={I.t('bar.filter')}
+          aria-label={I.t('bar.filter')}
           value={saved.filter}
           onChange={(e) => set({ filter: e.target.value })}
         />
       </header>
-      <div className="quick" role="group" aria-label="Filtros rápidos">
+      <div className="quick" role="group" aria-label={I.t('bar.quickFilters')}>
         {(Object.keys(QUICK_LABEL) as Quick[]).map((q) => (
           <button
             key={q}
@@ -258,21 +264,21 @@ export function App() {
             disabled={(!index.complete && q !== 'all') || (q === 'dirty' && index.isGit === false)}
             onClick={() => set({ quick: q })}
           >
-            {QUICK_LABEL[q]}
-            {q !== 'all' && index.complete && <span className="n">{counts[q].toLocaleString('es-ES')}</span>}
+            {I.t(QUICK_LABEL[q])}
+            {q !== 'all' && index.complete && <span className="n">{I.num(counts[q])}</span>}
           </button>
         ))}
         <button
           className={`pill hot${inHotspots ? ' on' : ''}`}
           aria-pressed={inHotspots}
           disabled={!canHotspots}
-          title={canHotspots ? 'Área «Líneas» + color «Cambios» + tabla ordenada por Cambios: el código grande que más se toca' : 'Los hotspots necesitan el historial de git'}
+          title={I.t(canHotspots ? 'bar.hotspotsTip' : 'bar.hotspotsNoGit')}
           onClick={() => set({ area: 'lines', color: 'changes', sort: { key: 'changes', dir: 'desc' }, zoom: '', chart: true })}
         >
-          Hotspots
+          {I.t('bar.hotspots')}
         </button>
-        <button className="pill" aria-pressed={saved.chart} title="Mostrar u ocultar el treemap" onClick={() => set({ chart: !saved.chart })}>
-          {saved.chart ? 'Ocultar gráfico' : 'Mostrar gráfico'}
+        <button className="pill" aria-pressed={saved.chart} title={I.t('bar.chartTip')} onClick={() => set({ chart: !saved.chart })}>
+          {I.t(saved.chart ? 'bar.hideChart' : 'bar.showChart')}
         </button>
       </div>
       {/* Siempre presente y de altura fija: si apareciera solo al analizar, la tabla saltaría. */}
@@ -281,15 +287,15 @@ export function App() {
           <>
             <span className="spinner small" />
             <span className="txt">
-              {index.complete ? 'Actualizando' : 'Tamaños listos. Falta el uso y el historial de git'}
+              {I.t(index.complete ? 'panel.updating' : 'panel.sizesReady')}
               {status.progress ? `: ${status.progress}` : '…'}
             </span>
           </>
         ) : status.error ? (
-          <span className="txt">No se pudo analizar el repositorio: {status.error}</span>
+          <span className="txt">{I.t('panel.errorLine', { error: status.error })}</span>
         ) : (
           <span className="txt">
-            Última actualización: {index.updatedAt ? new Date(index.updatedAt).toLocaleTimeString('es-ES') : '—'}
+            {I.t('panel.lastUpdate', { time: index.updatedAt ? I.time(index.updatedAt) : '—' })}
           </span>
         )}
       </div>
@@ -299,7 +305,7 @@ export function App() {
           columns={columns}
           sort={saved.sort}
           selected={saved.selected}
-          empty={isFiltered ? 'Ningún archivo coincide con el filtro.' : 'No hay archivos en el ámbito.'}
+          empty={I.t(isFiltered ? 'table.noMatch' : 'table.empty')}
           onSort={(key) => setSaved((s) => ({ ...s, sort: nextSort(s.sort, key) }))}
           onSelect={(path) => set({ selected: path })}
           onOpen={(path) => post({ type: 'open', path })}
@@ -309,12 +315,12 @@ export function App() {
             className="splitter"
             role="separator"
             aria-orientation="vertical"
-            aria-label="Ancho de la tabla y del gráfico"
+            aria-label={I.t('tm.splitter')}
             aria-valuemin={SPLIT_MIN * 100}
             aria-valuemax={SPLIT_MAX * 100}
             aria-valuenow={Math.round(saved.split * 100)}
             tabIndex={0}
-            title="Arrastra para ajustar el ancho. Doble clic: volver al reparto inicial"
+            title={I.t('tm.splitterTip')}
             onPointerDown={onSplitDown}
             onPointerMove={onSplitMove}
             onPointerUp={onSplitUp}
@@ -326,7 +332,7 @@ export function App() {
         {saved.chart && (
           <section className="tm-pane" aria-label="Treemap">
           <div className="tm-bar">
-            <nav className="crumbs" aria-label="Carpeta ampliada">
+            <nav className="crumbs" aria-label={I.t('tm.zoomed')}>
               {crumbs(zoom, index.rootName).map((c, i, all) =>
                 i === all.length - 1 ? (
                   <span key={c.path} className="here">
@@ -342,9 +348,10 @@ export function App() {
                 ),
               )}
             </nav>
-            <Select label="Área" value={saved.area} options={AREA_LABEL} onChange={(area) => set({ area })} />
+            <Select I={I} label={I.t('tm.area')} value={saved.area} options={AREA_LABEL} onChange={(area) => set({ area })} />
             <Select
-              label="Color"
+              I={I}
+              label={I.t('tm.color')}
               value={saved.color}
               options={COLOR_LABEL}
               disabled={index.isGit === false ? ['age', 'recent', 'changes'] : []}
@@ -363,12 +370,12 @@ export function App() {
             onZoom={(folder) => set({ zoom: folder })}
             layoutKey={saved.split}
           />
-          <div className="legend" aria-label={`Leyenda: ${COLOR_LABEL[saved.color]}`}>
+          <div className="legend" aria-label={I.t('tm.legend', { mode: I.t(COLOR_LABEL[saved.color]) })}>
             {coloring.legend.map((l) => (
               <button
                 key={l.key}
                 className={`leg${highlight === l.key ? ' on' : ''}${highlight != null && highlight !== l.key ? ' off' : ''}`}
-                title={`${count(l.count)} · ${fmtSize(l.size)}. Clic para resaltar`}
+                title={I.t('tm.legendTip', { files: count(l.count), size: I.size(l.size) })}
                 aria-pressed={highlight === l.key}
                 onClick={() => setHighlight((h) => (h === l.key ? null : l.key))}
               >
@@ -385,7 +392,7 @@ export function App() {
   );
 }
 
-function Select<T extends string>(props: { label: string; value: T; options: Record<T, string>; disabled?: T[]; onChange(v: T): void }) {
+function Select<T extends string>(props: { I: I18n; label: string; value: T; options: Record<T, MessageKey>; disabled?: T[]; onChange(v: T): void }) {
   const keys = Object.keys(props.options) as T[];
   return (
     <label className="select">
@@ -393,7 +400,7 @@ function Select<T extends string>(props: { label: string; value: T; options: Rec
       <select value={props.value} onChange={(e) => props.onChange(e.target.value as T)} disabled={keys.length < 2}>
         {keys.map((k) => (
           <option key={k} value={k} disabled={props.disabled?.includes(k)}>
-            {props.options[k]}
+            {props.I.t(props.options[k])}
           </option>
         ))}
       </select>

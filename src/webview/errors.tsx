@@ -1,4 +1,5 @@
 import { Component, useEffect, useState, type ErrorInfo, type ReactNode } from 'react';
+import { currentI18n, useI18n } from './locale.js';
 import { post } from './vscode.js';
 
 /**
@@ -21,14 +22,16 @@ function report(where: string, e: PanelError, extra?: string): void {
 }
 
 function ErrorDetails({ error, extra }: { error: PanelError; extra?: string }) {
+  // Sin hook: también se pinta desde el límite de errores, que es una clase.
+  const I = currentI18n();
   const text = [error.message, error.stack, extra].filter(Boolean).join('\n');
   return (
     <>
       <pre className="stack">{text}</pre>
       <div className="actions">
-        <button onClick={() => post({ type: 'copy', text })}>Copiar el error</button>
+        <button onClick={() => post({ type: 'copy', text })}>{I.t('crash.copy')}</button>
         <button className="secondary" onClick={() => post({ type: 'showLog' })}>
-          Ver el registro
+          {I.t('crash.log')}
         </button>
       </div>
     </>
@@ -51,18 +54,19 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, BoundarySt
   override componentDidCatch(err: unknown, info: ErrorInfo): void {
     const components = info.componentStack ?? undefined;
     this.setState({ components });
-    report('al pintar', describe(err), components);
+    report(currentI18n().t('where.render'), describe(err), components);
   }
 
   override render(): ReactNode {
     const { error, components } = this.state;
     if (!error) return this.props.children;
+    const I = currentI18n();
     return (
       <div className="crash" role="alert">
-        <h1>El panel de Heft ha fallado</h1>
-        <p>El análisis sigue intacto: es un error al pintar. Puedes reintentar; si se repite, copia el error.</p>
+        <h1>{I.t('crash.title')}</h1>
+        <p>{I.t('crash.body')}</p>
         <div className="actions">
-          <button onClick={() => this.setState({ error: null, components: undefined })}>Reintentar</button>
+          <button onClick={() => this.setState({ error: null, components: undefined })}>{I.t('common.retry')}</button>
         </div>
         <ErrorDetails error={error} extra={components} />
       </div>
@@ -72,6 +76,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, BoundarySt
 
 /** Errores fuera del pintado (manejadores, promesas): banda descartable sobre el panel. */
 export function RuntimeErrors() {
+  const I = useI18n();
   const [errors, setErrors] = useState<PanelError[]>([]);
   const [open, setOpen] = useState(false);
 
@@ -81,8 +86,8 @@ export function RuntimeErrors() {
       report(where, e);
       setErrors((list) => [...list.slice(-4), e]);
     };
-    const onError = (ev: ErrorEvent): void => add('en ejecución', ev.error ?? ev.message);
-    const onRejection = (ev: PromiseRejectionEvent): void => add('en una promesa', ev.reason);
+    const onError = (ev: ErrorEvent): void => add(currentI18n().t('where.runtime'), ev.error ?? ev.message);
+    const onRejection = (ev: PromiseRejectionEvent): void => add(currentI18n().t('where.promise'), ev.reason);
     window.addEventListener('error', onError);
     window.addEventListener('unhandledrejection', onRejection);
     return () => {
@@ -97,11 +102,11 @@ export function RuntimeErrors() {
     <div className="runtime-error" role="alert">
       <div className="line">
         <span className="msg">
-          {errors.length > 1 ? `${errors.length} errores. Último: ` : 'Error: '}
+          {errors.length > 1 ? I.t('runtime.many', { n: I.num(errors.length) }) : I.t('runtime.single')}
           {last.message}
         </span>
         <button className="link" onClick={() => setOpen((o) => !o)}>
-          {open ? 'Ocultar' : 'Detalles'}
+          {I.t(open ? 'runtime.hide' : 'runtime.details')}
         </button>
         <button
           className="link"
@@ -110,7 +115,7 @@ export function RuntimeErrors() {
             setOpen(false);
           }}
         >
-          Descartar
+          {I.t('runtime.dismiss')}
         </button>
       </div>
       {open && <ErrorDetails error={last} />}

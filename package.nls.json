@@ -1,0 +1,22 @@
+{
+  "displayName": "Heft",
+  "description": "What's heavy in your repo and whether it's used: file table, treemap, unreferenced assets, git history and hotspots.",
+  "container.title": "Heft",
+  "view.folders": "Folders",
+  "view.welcome": "Open a folder to see what is heavy and what is used.\n[Open Folder](command:vscode.openFolder)",
+  "command.openPanel": "Open Panel",
+  "command.refresh": "Refresh",
+  "command.pickScope": "Choose Folders in Scope…",
+  "command.clearScope": "Whole Repository",
+  "command.addToScope": "Add to Heft Scope",
+  "command.limitScope": "Limit Heft Scope to This Folder",
+  "command.revealInExplorer": "Reveal in Explorer",
+  "command.showLog": "Show Log",
+  "config.title": "Heft",
+  "config.publicDir": "Folder against which absolute paths (/models/x.glb) are resolved. The nearest one is searched upwards from each file.",
+  "config.git.since": "Limit the git history in large repositories, e.g. «1.year». Empty = all of it.",
+  "config.usage.ignore": "Files (relative paths) that never count as orphans.",
+  "config.usage.entryPoints": "Extra entry points besides the ones detected automatically.",
+  "config.language.auto": "The editor's display language (English if it is not Spanish or Basque)",
+  "config.language": "Language of the Heft panel and side view. Command and setting names follow the editor's display language."
+}

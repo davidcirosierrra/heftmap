@@ -20,6 +20,14 @@ export interface IndexJob {
 
 export type IndexRunner = (root: string, opts: BuildOptions, events: IndexEvents) => IndexJob;
 
+/** El worker terminó sin mandar resultado (se cayó). La extensión lo traduce al enseñarlo. */
+export class WorkerExitError extends Error {
+  constructor(readonly code: number) {
+    super(`worker exited with code ${code}`);
+    this.name = 'WorkerExitError';
+  }
+}
+
 export class CancelledError extends Error {
   constructor() {
     super('Análisis cancelado');
@@ -59,7 +67,7 @@ export function workerRunner(workerFile: string): IndexRunner {
       worker.on('error', reject);
       // Si ya se resolvió o rechazó, esto no tiene efecto.
       worker.on('exit', (code) => {
-        reject(cancelled ? new CancelledError() : new Error(`El análisis terminó sin resultado (código ${code})`));
+        reject(cancelled ? new CancelledError() : new WorkerExitError(code));
       });
     });
     return {

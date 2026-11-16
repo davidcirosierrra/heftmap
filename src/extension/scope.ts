@@ -48,8 +48,9 @@ export function toggleFolder(scope: Scope, folder: string, checked: boolean): To
   return { kind: 'changed', scope: removeFolder(scope, f) };
 }
 
-export function scopeLabel(scope: Scope): string {
-  return scope.length === 0 ? 'Todo el repositorio' : scope.join(' + ');
+/** `all`: el texto de «todo el repositorio» en el idioma activo. */
+export function scopeLabel(scope: Scope, all: string): string {
+  return scope.length === 0 ? all : scope.join(' + ');
 }
 
 /** Lee lo guardado en workspaceState, descartando valores raros. */

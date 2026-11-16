@@ -2,7 +2,7 @@ import path from 'node:path';
 import ts from 'typescript';
 import { COMPONENT_EXT, extOf } from './classify.js';
 import { toPosix } from './files.js';
-import type { FileEntry, Phase, Ref, RefKind } from './types.js';
+import type { FileEntry, Phase, Ref, RefKind, Warning } from './types.js';
 
 /**
  * Grafo de uso (SPEC §4.3), en dos pasadas:
@@ -29,14 +29,14 @@ export interface UsageInput {
 
 export interface UsageResult {
   refs: Ref[];
-  warnings: string[];
+  warnings: Warning[];
 }
 
 export function analyzeUsage(input: UsageInput): UsageResult {
   const { root, files, texts, sources, publicDir, onProgress } = input;
   const refs: Ref[] = [];
   const seen = new Set<string>();
-  const warnings: string[] = [];
+  const warnings: Warning[] = [];
   const unresolved: string[] = [];
 
   const add = (from: string, to: string | null, kind: RefKind): void => {
@@ -158,7 +158,7 @@ export function analyzeUsage(input: UsageInput): UsageResult {
   }
 
   if (unresolved.length) {
-    warnings.push(`${unresolved.length} imports relativos sin resolver (p. ej. ${unresolved.slice(0, 3).join(', ')})`);
+    warnings.push({ code: 'unresolved-imports', count: unresolved.length, examples: unresolved.slice(0, 3) });
   }
   return { refs, warnings };
 }

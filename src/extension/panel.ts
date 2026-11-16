@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import * as vscode from 'vscode';
+import type { Locale } from '../i18n/index.js';
 import type { HostMessage, PanelIndex, PanelStatus, WebviewMessage } from './panel-protocol.js';
 
 /** Lo que el panel pide a la extensión. Los datos se piden, no se guardan aquí. */
@@ -51,7 +52,7 @@ export class HeftPanel implements vscode.Disposable {
     });
     this.panel = panel;
     this.ready = false;
-    panel.webview.html = html(panel.webview, dist);
+    panel.webview.html = html(panel.webview, dist, this.host.panelStatus().locale ?? 'en');
   }
 
   /** El índice ha cambiado (pesa: solo se manda cuando cambia de verdad). */
@@ -73,13 +74,14 @@ export class HeftPanel implements vscode.Disposable {
   }
 }
 
-function html(webview: vscode.Webview, dist: vscode.Uri): string {
+/** El idioma va en la página para que el primer pintado («Cargando…») ya salga bien. */
+function html(webview: vscode.Webview, dist: vscode.Uri, locale: Locale): string {
   const nonce = randomBytes(16).toString('base64');
   const js = webview.asWebviewUri(vscode.Uri.joinPath(dist, 'webview.js'));
   const css = webview.asWebviewUri(vscode.Uri.joinPath(dist, 'webview.css'));
   const csp = `default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}'`;
   return `<!doctype html>
-<html lang="es">
+<html lang="${locale}" data-heft-locale="${locale}">
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="${csp}">

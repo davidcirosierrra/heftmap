@@ -204,6 +204,16 @@ Marca cada punto. Si algo falla, abre **Heft: Mostrar registro** (`Ctrl+Shift+P`
 - [ ] En una carpeta sin git: el botón Hotspots y los colores de git están apagados; `Líneas` funciona.
 - [ ] Con el panel estrecho la tabla se desplaza en horizontal en vez de aplastar las columnas.
 
+**Idiomas**
+- [ ] Con el editor en castellano, todo sale en castellano (panel, vista, barra de estado, avisos,
+      comandos de la paleta y ajustes).
+- [ ] Ajuste `Heft: Language` = `English`: el panel y la vista pasan a inglés al momento, sin
+      reanalizar. Los nombres de los comandos y ajustes siguen en el idioma del editor (VS Code no
+      deja cambiarlos por extensión).
+- [ ] `Euskara`: textos en euskera, números `1,5 MB`, porcentajes `% 51`, fechas `2026/11/12`.
+- [ ] Cambia el idioma del editor (*Configure Display Language*) con el ajuste en `auto`: tras
+      reiniciar, todo sigue al editor (inglés si no es castellano ni euskera).
+
 **Reparto y estado**
 - [ ] Arrastra la barra entre la tabla y el treemap: cambia el ancho y el treemap se redibuja. Doble
       clic la devuelve a su sitio. Con el foco en ella, `←` `→` también la mueven.

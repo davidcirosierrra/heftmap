@@ -246,10 +246,27 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
   `Todo el repositorio`, `Refrescar`.
 - Menú contextual del explorador sobre carpetas: `Añadir al ámbito` · `Limitar ámbito a esta carpeta`.
 
+### 4.4 bis Idiomas
+
+- Inglés (base), castellano y euskera. Idioma: el ajuste `heft.language` (`auto` por defecto =
+  idioma del editor; inglés si no es castellano ni euskera). Cambiarlo repinta la vista y el panel
+  sin volver a analizar.
+- Textos en `src/i18n/messages.ts`, un diccionario por idioma con el tipo del inglés: si falta o
+  sobra una clave, no compila. Un test comprueba además que cada traducción usa los mismos
+  marcadores (`{n}`, `{path}`).
+- Comandos, vista y ajustes en `package.nls.json`, `package.nls.es.json` y `package.nls.eu.json`;
+  estos siguen siempre el idioma del editor (limitación de VS Code), no `heft.language`.
+- Los avisos del núcleo son datos (`{ code: 'no-git' }`), no frases: se traducen al enseñarlos.
+- Formatos con `Intl`; para euskera, si el motor no trae sus datos (Chromium no los trae), se
+  usan los separadores del castellano y se montan a mano el `%` y la fecha.
+- El CLI sigue en castellano: es una herramienta de desarrollo y no va en el `.vsix`.
+- Glosario y formatos en [docs/glosario.md](docs/glosario.md). Pendiente: revisión del euskera.
+
 ### 4.5 Ajustes
 
 | Clave | Por defecto | Descripción |
 |-------|-------------|-------------|
+| `heft.language` | `auto` | Idioma de la interfaz: `auto` (el del editor), `en`, `es`, `eu` |
 | `heft.publicDir` | `public` | Carpeta contra la que se resuelven las rutas absolutas (`/models/x.glb`) |
 | `heft.git.since` | *(vacío)* | Limitar el historial en repos grandes, p. ej. `1.year` |
 | `heft.usage.ignore` | `[]` | Archivos que nunca se marcan «sin rastro» |

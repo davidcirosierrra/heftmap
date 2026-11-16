@@ -81,6 +81,7 @@ describe('primer análisis: aviso sobre el árbol y panel de espera', () => {
       progress: 'leyendo 5/27',
       fraction: 5 / 27,
       error: null,
+      locale: 'es',
     });
     runs[0]!.events.onProgress({ phase: 'read', done: 27, total: 27 });
     expect(last('status').status).toMatchObject({ progress: 'leyendo 27/27', fraction: 1 });
@@ -288,5 +289,28 @@ describe('panel: ciclo de vida', () => {
     expect(fake.panels).toHaveLength(2);
     panel().receive.fire({ type: 'ready' });
     expect(last('status').status.scope).toEqual(['public']);
+  });
+});
+
+describe('idioma de la extensión', () => {
+  it('sigue al editor y el ajuste heft.language manda; cambiarlo repinta sin reanalizar', async () => {
+    const { env } = await import('./fake-vscode.js');
+    const before = runs.length;
+    // Editor en inglés, ajuste en «auto».
+    env.language = 'en';
+    fake.config['language'] = 'auto';
+    fake.configListeners.forEach((fn) => fn({ affectsConfiguration: (k: string) => k === 'heft' || k === 'heft.language' }));
+    expect(fake.status.text).toMatch(/^\$\(layers\) Heft: (Whole repository|public) · \d+ files · /);
+    expect(last('status').status.locale).toBe('en');
+    // El ajuste fuerza euskera aunque el editor esté en inglés.
+    fake.config['language'] = 'eu';
+    fake.configListeners.forEach((fn) => fn({ affectsConfiguration: (k: string) => k === 'heft' || k === 'heft.language' }));
+    expect(fake.status.text).toMatch(/^\$\(layers\) Heft: (Biltegi osoa|public) · \d+ fitxategi · /);
+    expect(last('status').status.locale).toBe('eu');
+    await tick();
+    expect(runs).toHaveLength(before);
+    env.language = 'es';
+    fake.config['language'] = 'auto';
+    fake.configListeners.forEach((fn) => fn({ affectsConfiguration: (k: string) => k === 'heft' || k === 'heft.language' }));
   });
 });

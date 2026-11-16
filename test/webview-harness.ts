@@ -20,7 +20,7 @@ export interface Harness {
   text(sel: string): string[];
 }
 
-export async function mountPanel(savedState?: unknown): Promise<Harness> {
+export async function mountPanel(savedState?: unknown, locale: 'en' | 'es' | 'eu' = 'es'): Promise<Harness> {
   const g = globalThis as any;
   g.IS_REACT_ACT_ENVIRONMENT = true;
   g.ResizeObserver ??= class {
@@ -37,6 +37,9 @@ export async function mountPanel(savedState?: unknown): Promise<Harness> {
     getState: () => h.state,
     setState: (s: unknown) => (h.state = s),
   });
+  // Como la página real: el idioma va en <html>. Los tests del panel van en castellano.
+  document.documentElement.setAttribute('data-heft-locale', locale);
+  document.documentElement.lang = locale;
   document.body.innerHTML = '<div id="root"></div>';
   const root = document.getElementById('root') as HTMLElement;
   await act(async () => {

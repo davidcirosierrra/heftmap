@@ -2,7 +2,7 @@ import path from 'node:path';
 import { categorize, extOf, isConventionalEntry, isGenerated, isNotAnalyzedCategory, isSourceCategory } from './classify.js';
 import { listFiles, listIgnoredDirs, readFile } from './files.js';
 import { gitInfo, readHistory, readStatus } from './git.js';
-import type { BuildHooks, BuildOptions, FileEntry, HeftIndex, Phase, Usage } from './types.js';
+import type { BuildHooks, BuildOptions, FileEntry, HeftIndex, Phase, Usage, Warning } from './types.js';
 import { analyzeUsage, packageEntryPoints } from './usage.js';
 
 export * from './types.js';
@@ -12,7 +12,7 @@ export async function buildIndex(rootArg: string, opts: BuildOptions = {}, hooks
   const root = path.resolve(rootArg);
   const publicDir = (opts.publicDir ?? 'public').replace(/^\/+|\/+$/g, '');
   const t0 = performance.now();
-  const warnings: string[] = [];
+  const warnings: Warning[] = [];
   const progress = throttledProgress(hooks);
 
   // 1. Listado
