@@ -342,6 +342,58 @@
         "key": "ctrl+shift+alt+h",
         "mac": "cmd+ctrl+shift+h"
       }
+    ],
+    "walkthroughs": [
+      {
+        "id": "heftmap.start",
+        "title": "%walkthrough.title%",
+        "description": "%walkthrough.description%",
+        "steps": [
+          {
+            "id": "openPanel",
+            "title": "%walkthrough.panel.title%",
+            "description": "%walkthrough.panel.description%",
+            "media": {
+              "image": "docs/images/usage.png",
+              "altText": "%walkthrough.panel.alt%"
+            },
+            "completionEvents": [
+              "onCommand:heftmap.openPanel"
+            ]
+          },
+          {
+            "id": "scope",
+            "title": "%walkthrough.scope.title%",
+            "description": "%walkthrough.scope.description%",
+            "media": {
+              "image": "docs/images/age.png",
+              "altText": "%walkthrough.scope.alt%"
+            },
+            "completionEvents": [
+              "onCommand:heftmap.pickScope",
+              "onCommand:heftmap.limitScope"
+            ]
+          },
+          {
+            "id": "noTrace",
+            "title": "%walkthrough.noTrace.title%",
+            "description": "%walkthrough.noTrace.description%",
+            "media": {
+              "image": "docs/images/usage.png",
+              "altText": "%walkthrough.noTrace.alt%"
+            }
+          },
+          {
+            "id": "hotspots",
+            "title": "%walkthrough.hotspots.title%",
+            "description": "%walkthrough.hotspots.description%",
+            "media": {
+              "image": "docs/images/hotspots.png",
+              "altText": "%walkthrough.hotspots.alt%"
+            }
+          }
+        ]
+      }
     ]
   },
   "scripts": {
