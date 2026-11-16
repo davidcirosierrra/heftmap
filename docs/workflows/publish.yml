@@ -4,13 +4,15 @@ name: Publish
 # .github/workflows/publish.yml (ver docs/publicar.md, «Publicar con GitHub Actions»).
 
 # Al crear una release en GitHub (tag vX.Y.Z) se publica en Open VSX y se adjunta el .vsix.
-# Necesita el secreto OVSX_PAT (token de open-vsx.org, ver docs/publicar.md).
+# Sin token guardado: Trusted Publishing de Open VSX (OIDC). Hay que registrar en open-vsx.org
+# este repo, el archivo `publish.yml` y el entorno `openvsx` (ver docs/publicar.md).
 on:
   release:
     types: [published]
 
 permissions:
-  contents: write
+  contents: write # adjuntar el .vsix a la release
+  id-token: write # token OIDC de corta vida para Open VSX
 
 jobs:
   publish:
@@ -33,9 +35,8 @@ jobs:
           fi
       - run: npm run package
       - name: Publicar en Open VSX
-        run: npx --yes ovsx publish heft.vsix -p "$OVSX_PAT"
-        env:
-          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        # --trusted-publishing: falla si no hay token OIDC, en vez de buscar otro método.
+        run: npx --yes ovsx@latest publish heft.vsix --trusted-publishing
       - name: Adjuntar el .vsix a la release
         run: gh release upload "${GITHUB_REF_NAME}" heft.vsix --clobber
         env:
