@@ -15,7 +15,9 @@ el Marketplace solo hace falta para llegar a usuarios de VS Code (sección 6).
   (`README.es.md`, `README.eu.md`). Lo de desarrollo está en `CONTRIBUTING.md`.
 - Capturas en `docs/images/` (hotspots, uso, antigüedad), hechas con el panel real sobre el repo
   de Vite.
-- GitHub Actions: `ci.yml` (tests en cada PR) y `publish.yml` (publica al crear una release).
+- GitHub Actions: `ci.yml` (tests en cada PR, activo). La publicación automática está
+  **desactivada**: `docs/workflows/publish.yml` está fuera de `.github/workflows/` y GitHub no la
+  ejecuta. Crear una release no publica nada.
 
 ## 2. Antes de hacer público el repo (David)
 
@@ -51,6 +53,10 @@ el Marketplace solo hace falta para llegar a usuarios de VS Code (sección 6).
    tiene su propia verificación de publicadores (se pide en su foro) y exige antes la de Open VSX.
 
 ## 4. Primera publicación (David)
+
+**Publicar con GitHub Actions** (desactivado ahora). Para activarlo:
+`git mv docs/workflows/publish.yml .github/workflows/publish.yml`, quitar el comentario
+«DESACTIVADO» y hacer merge a `main`. Después:
 
 1. En GitHub → Settings → Environments → *New environment* `openvsx`, y dentro *Add secret*
    `OVSX_PAT` con el token. (El entorno permite exigir tu aprobación antes de publicar.)
