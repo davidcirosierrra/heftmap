@@ -41,13 +41,14 @@ el Marketplace solo hace falta para llegar a usuarios de VS Code (sección 6).
 3. **Acuerdo de publicación**: en open-vsx.org → avatar → *Settings* → *Log in with Eclipse*. Luego
    *Show Publisher Agreement*, léelo hasta el final y *Agree*. No es el «Eclipse Contributor
    Agreement» (ECA): ese es para contribuir código a Eclipse y no sirve aquí.
-4. **Token**: *Settings* → *Access Tokens* → *Generate New Token*. Descripción «GitHub Actions
-   Heft». Si te deja, restríngelo al namespace `davidcirosierrra` y a solo publicar. Cópialo en
-   el momento: no se vuelve a enseñar.
-5. **Namespace** (tiene que coincidir con `publisher` del `package.json`):
-   ```bash
-   npx ovsx create-namespace davidcirosierrra -p <token>
-   ```
+4. **Namespace** (tiene que coincidir con `publisher` del `package.json`): en *Settings*, junto
+   a *Namespaces*, el botón **+** → `davidcirosierrra`. Sin namespace no se puede registrar el
+   *Trusted Publisher*.
+5. **Trusted Publisher** (en vez de token): *Settings* → *Trusted Publishers* → registrar
+   repositorio `davidcirosierrra/heft`, workflow `publish.yml` y entorno `openvsx`. Así GitHub
+   Actions publica con un token OIDC que dura minutos y solo vale para ese repo, ese archivo y
+   ese entorno: no hay ningún secreto guardado que se pueda filtrar. Se puede registrar ya,
+   aunque la acción esté desactivada.
 6. **Verificar el namespace** (opcional pero recomendable): crearlo no te hace propietario
    verificado. Se pide en el repo de Open VSX con una incidencia de *namespace access*. Cursor
    tiene su propia verificación de publicadores (se pide en su foro) y exige antes la de Open VSX.
@@ -58,8 +59,8 @@ el Marketplace solo hace falta para llegar a usuarios de VS Code (sección 6).
 `git mv docs/workflows/publish.yml .github/workflows/publish.yml`, quitar el comentario
 «DESACTIVADO» y hacer merge a `main`. Después:
 
-1. En GitHub → Settings → Environments → *New environment* `openvsx`, y dentro *Add secret*
-   `OVSX_PAT` con el token. (El entorno permite exigir tu aprobación antes de publicar.)
+1. En GitHub → Settings → Environments → *New environment* `openvsx`, sin secretos. Activa
+   *Required reviewers* contigo: cada publicación esperará a que la apruebes.
 2. Comprueba que `package.json` tiene la versión que quieres (`0.1.0`).
 3. GitHub → Releases → *Draft a new release* → tag `v0.1.0` → título `0.1.0` → copia la sección
    de `CHANGELOG.md` → *Publish release*.
@@ -70,8 +71,9 @@ el Marketplace solo hace falta para llegar a usuarios de VS Code (sección 6).
 6. Comprueba la página en https://open-vsx.org/extension/davidcirosierrra/heft y búscala en Cursor
    (*Extensions* → «Heft»). Puede tardar un rato en aparecer en Cursor.
 
-**Alternativa sin GitHub Actions**: `npm run package` y
-`npx ovsx publish heft.vsix -p <token>` desde tu equipo.
+**Alternativa sin GitHub Actions**: genera un token en *Settings* → *Access Tokens* (solo para
+esto, y bórralo después), `npm run package` y `npx ovsx publish heft.vsix -p <token>` desde tu
+equipo.
 
 ## 5. Versiones siguientes
 
