@@ -20,7 +20,14 @@ export interface HeftSettings {
   usageIgnore: string[];
   /** Puntos de entrada extra. */
   usageEntryPoints: string[];
+  /** Espera (ms) tras un cambio antes de volver a analizar. */
+  refreshDelay: number;
+  /** false: los cambios en disco y en git no relanzan el análisis; el botón de refrescar sí. */
+  autoRefresh: boolean;
 }
+
+/** Límites de `heftmap.refreshDelay` (ms), los mismos que declara package.json. */
+export const REFRESH_DELAY = { default: 1500, min: 250, max: 60000 } as const;
 
 /** Lee todos los ajustes; `scope` es la carpeta del workspace (ajustes por carpeta). */
 export function readSettings(scope?: vscode.Uri): HeftSettings {
@@ -31,6 +38,8 @@ export function readSettings(scope?: vscode.Uri): HeftSettings {
     gitSince: str(cfg.get('git.since')) || undefined,
     usageIgnore: strings(cfg.get('usage.ignore')),
     usageEntryPoints: strings(cfg.get('usage.entryPoints')),
+    refreshDelay: num(cfg.get('refreshDelay'), REFRESH_DELAY),
+    autoRefresh: bool(cfg.get('autoRefresh'), true),
   };
 }
 
@@ -47,6 +56,16 @@ export function toBuildOptions(s: HeftSettings, trusted: boolean): BuildOptions 
 
 function str(v: unknown): string {
   return typeof v === 'string' ? v : '';
+}
+
+/** Número dentro de [min, max], redondeado; fuera del rango se recorta, si no es número vale `default`. */
+function num(v: unknown, r: { default: number; min: number; max: number }): number {
+  if (typeof v !== 'number' || !Number.isFinite(v)) return r.default;
+  return Math.min(r.max, Math.max(r.min, Math.round(v)));
+}
+
+function bool(v: unknown, def: boolean): boolean {
+  return typeof v === 'boolean' ? v : def;
 }
 
 function strings(v: unknown): string[] {

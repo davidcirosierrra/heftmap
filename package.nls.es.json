@@ -20,5 +20,7 @@
   "config.language": "Idioma del panel y de la vista lateral de Heftmap. Los nombres de comandos y ajustes siguen el idioma del editor.",
   "config.language.auto": "El idioma del editor (inglés si no es castellano ni euskera)",
   "capabilities.untrusted": "En modo restringido Heftmap no ejecuta git: muestra tamaños y uso, sin historial ni cambios sin commit. Se ignoran los ajustes de Heftmap del workspace.",
-  "command.copyReport": "Copiar informe de errores"
+  "command.copyReport": "Copiar informe de errores",
+  "config.refreshDelay": "Milisegundos que se espera tras un cambio (en disco, en git o en los ajustes) antes de volver a analizar. Entre 250 y 60000.",
+  "config.autoRefresh": "Volver a analizar automáticamente cuando cambian los archivos o git. Si se desactiva, solo se vuelve a analizar con el botón Refrescar (o al cambiar un ajuste)."
 }

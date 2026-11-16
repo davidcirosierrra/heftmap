@@ -1,7 +1,7 @@
 /**
  * Límites fijos del análisis. Están juntos para que se vea de un vistazo qué acota el trabajo y
- * qué se podrá configurar (plan, fase 2). El retardo antes de reanalizar vive en el host
- * (`REBUILD_DELAY_MS` en `extension.ts`): no es del núcleo.
+ * qué se podrá configurar (plan, fase 2). El retardo antes de reanalizar no está aquí: es un
+ * ajuste del host (`heftmap.refreshDelay`), no del núcleo.
  */
 
 /** Texto más grande que esto no se lee (ni líneas ni análisis de uso). */

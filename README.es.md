@@ -45,6 +45,8 @@ audio, texturas), sirve en cualquier repo con git, también en monorepos.
 | `heftmap.git.since` | vacío | Limitar el historial en repos grandes, p. ej. `1.year` |
 | `heftmap.usage.ignore` | `[]` | Archivos que nunca cuentan como huérfanos |
 | `heftmap.usage.entryPoints` | `[]` | Puntos de entrada extra (rutas de un framework, por ejemplo) |
+| `heftmap.refreshDelay` | `1500` | Milisegundos de espera tras un cambio antes de volver a analizar (250–60000) |
+| `heftmap.autoRefresh` | `true` | Volver a analizar automáticamente al cambiar archivos o git; desactivado = solo con Refrescar |
 
 ## Monorepos
 

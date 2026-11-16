@@ -51,6 +51,8 @@ balio du, monorepoetan ere bai.
 | `heftmap.git.since` | hutsik | Git historia mugatu biltegi handietan, adib. `1.year` |
 | `heftmap.usage.ignore` | `[]` | Inoiz umezurtz gisa kontatzen ez diren fitxategiak |
 | `heftmap.usage.entryPoints` | `[]` | Sarrera-puntu gehigarriak (framework baten bideak, adibidez) |
+| `heftmap.refreshDelay` | `1500` | Aldaketa baten ondoren berriro aztertu aurretik itxarotekoa, milisegundotan (250–60000) |
+| `heftmap.autoRefresh` | `true` | Berriro aztertu bere kabuz fitxategiak edo git aldatzean; desaktibatuta = Freskatu-rekin bakarrik |
 
 ## Monorepoak
 

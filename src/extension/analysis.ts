@@ -12,8 +12,6 @@ import { CancelledError, type IndexJob, type IndexRunner } from './runner.js';
  * No guarda el índice ni pinta nada: avisa a quien lo usa (`AnalysisListener`) y este decide.
  */
 
-const REBUILD_DELAY_MS = 1500;
-
 /** Por qué se lanza un análisis; el texto sale al registro. */
 export type Reason = Extract<MessageKey, `reason.${string}`>;
 
@@ -29,6 +27,8 @@ export interface AnalysisListener {
   inIndex(rel: string): boolean;
   /** ¿El índice actual es de un repo git? Sin índice, false. */
   isGit(): boolean;
+  /** Espera (ms) antes de un análisis planificado y si los cambios en disco lo relanzan. */
+  refresh(): { delay: number; auto: boolean };
   /** Empieza un análisis (aún no se ha lanzado el worker). */
   onStart(): void;
   /** El análisis ya está lanzado; `done` se resuelve (o falla) cuando termina. */
@@ -105,7 +105,8 @@ export class Analysis implements vscode.Disposable {
    */
   private async onFs(uri: vscode.Uri, kind: 'create' | 'change' | 'delete'): Promise<void> {
     const root = this.currentRoot;
-    if (!root) return;
+    // Con `heftmap.autoRefresh` desactivado solo se reanaliza a mano (o al cambiar un ajuste).
+    if (!root || !this.listener.refresh().auto) return;
     const p = uri.path;
     if (p.includes('/.git/') || p.endsWith('/.git')) {
       // Dentro de .git solo interesa un cambio de HEAD o de ramas (nuevo commit).
@@ -124,7 +125,8 @@ export class Analysis implements vscode.Disposable {
   /** Lanza un análisis dentro de un rato; si llega otra petición antes, cuenta solo la última. */
   schedule(reason: Reason): void {
     clearTimeout(this.timer);
-    this.timer = setTimeout(() => void guard(this.log, 'scheduled analysis', () => this.rebuild(reason))(), REBUILD_DELAY_MS);
+    const { delay } = this.listener.refresh();
+    this.timer = setTimeout(() => void guard(this.log, 'scheduled analysis', () => this.rebuild(reason))(), delay);
   }
 
   /** Lanza un análisis ya. Si había otro en curso se cancela: sus datos ya son viejos. */

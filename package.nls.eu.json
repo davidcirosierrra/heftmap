@@ -20,5 +20,7 @@
   "config.language": "Heftmap-en panelaren eta alboko ikuspegiaren hizkuntza. Komandoen eta ezarpenen izenek editorearen hizkuntza jarraitzen dute.",
   "config.language.auto": "Editorearen hizkuntza (ingelesa, gaztelania edo euskara ez bada)",
   "capabilities.untrusted": "Modu mugatuan Heftmap-ek ez du git exekutatzen: tamainak eta erabilera erakusten ditu, historiarik eta commit gabeko aldaketarik gabe. Lan-eremuko Heftmap ezarpenak ez dira kontuan hartzen.",
-  "command.copyReport": "Kopiatu errore-txostena"
+  "command.copyReport": "Kopiatu errore-txostena",
+  "config.refreshDelay": "Aldaketa baten ondoren (diskoan, git-en edo ezarpenetan) berriro aztertu aurretik itxaroten diren milisegundoak. 250 eta 60000 artean.",
+  "config.autoRefresh": "Berriro aztertu bere kabuz fitxategiak edo git aldatzean. Desaktibatuta, Freskatu botoiak (edo ezarpen-aldaketa batek) bakarrik aztertzen du berriro."
 }
