@@ -1,16 +1,16 @@
 import path from 'node:path';
 import * as vscode from 'vscode';
-import { git } from '../core/git.js';
-import type { HeftIndex, Progress } from '../core/index.js';
-import { i18n, resolveLocale, type I18n, type Locale, type MessageKey } from '../i18n/index.js';
+import type { BuildOptions, HeftIndex, Progress } from '../core/index.js';
+import { i18n, resolveLocale, type I18n, type Locale } from '../i18n/index.js';
 import { warningText } from '../i18n/warnings.js';
+import { Analysis, type Reason } from './analysis.js';
 import { HeftDecorations } from './decorations.js';
 import { FoldersProvider } from './folders-view.js';
 import { guard, HeftLog } from './log.js';
 import { HeftPanel, PANEL_VIEW_TYPE, type PanelHost } from './panel.js';
 import { toPanelIndex } from './panel-data.js';
 import type { PanelIndex, PanelStatus, WebviewMessage } from './panel-protocol.js';
-import { CancelledError, WorkerExitError, workerRunner, type IndexJob, type IndexRunner } from './runner.js';
+import { WorkerExitError, workerRunner, type IndexRunner } from './runner.js';
 import {
   addFolders,
   coveringFolder,
@@ -25,18 +25,16 @@ import { allFolders, buildFolderTree, type FolderTree, type TreeNode } from './t
 
 /**
  * Comandos, menú contextual del explorador, barra de estado, la vista lateral «Carpetas»
- * (`folders-view.ts`) y el panel (`panel.ts`). Los textos salen de src/i18n en el idioma del editor o el de `heftmap.language`.
+ * (`folders-view.ts`) y el panel (`panel.ts`). Los textos salen de src/i18n en el idioma del
+ * editor o el de `heftmap.language`.
  *
- * El análisis no corre aquí: se lanza en un worker (`runner.ts`, `worker.ts`) para no
- * bloquear el proceso de extensiones. Este archivo no debe importar el núcleo salvo tipos,
+ * El análisis no corre aquí: `analysis.ts` lo planifica y lo lanza en un worker (`runner.ts`,
+ * `worker.ts`) para no bloquear el proceso de extensiones. Este archivo no debe importar el núcleo salvo tipos,
  * o TypeScript acabaría también en este bundle.
  */
 
 const VIEW_ID = 'heftmap.folders';
 const SCOPE_KEY = 'heftmap.scope';
-const REBUILD_DELAY_MS = 1500;
-
-type Reason = Extract<MessageKey, `reason.${string}`>;
 
 /** Idioma de Heftmap: el ajuste `heftmap.language` o, en «auto», el del editor. */
 export function currentLocale(): Locale {
@@ -71,23 +69,16 @@ export function deactivate(): void {
 }
 
 class Heft implements vscode.Disposable, PanelHost {
-  private root: vscode.Uri | undefined;
   private index: HeftIndex | undefined;
   private tree: FolderTree | undefined;
   /** Cuándo llegó el índice actual: el panel lo enseña como «última actualización». */
   private indexAt = 0;
   private scope: string[];
-  private building = false;
-  /** Análisis en curso y su número: un resultado de un análisis anterior se descarta. */
-  private job: IndexJob | undefined;
-  private generation = 0;
-  private progress: Progress | undefined;
-  private timer: NodeJS.Timeout | undefined;
   private error: string | undefined;
   /** Rutas del índice actual, para descartar eventos de disco que no le afectan. */
   private known = new Set<string>();
-  /** Vigilancia de la carpeta analizada; se sustituye si cambia la raíz. */
-  private watching: vscode.Disposable[] = [];
+  /** Planifica, lanza y cancela los análisis, y vigila el disco. */
+  private readonly analysis: Analysis;
 
   private readonly provider: FoldersProvider;
   private readonly view: vscode.TreeView<TreeNode>;
@@ -100,9 +91,35 @@ class Heft implements vscode.Disposable, PanelHost {
   constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly log: HeftLog,
-    private readonly runner: IndexRunner,
+    runner: IndexRunner,
   ) {
     this.scope = sanitizeScope(context.workspaceState.get(SCOPE_KEY));
+    this.analysis = new Analysis(runner, log, {
+      options: (root) => this.analysisOptions(root),
+      inIndex: (rel) => this.known.has(rel) || !!this.tree?.byPath.has(rel),
+      isGit: () => !!this.index?.isGit,
+      onStart: () => this.render(),
+      onLaunched: (done) => {
+        // Barra de progreso nativa sobre la vista mientras dure este análisis.
+        void vscode.window.withProgress({ location: { viewId: VIEW_ID } }, async () => {
+          try {
+            await done;
+          } catch {
+            // El error se trata en onError; aquí solo se espera.
+          }
+        });
+      },
+      onProgress: () => this.renderStatus(),
+      onPartial: (partial) => {
+        // Solo la primera vez: con un índice completo en pantalla, uno a medias sería ir a peor.
+        if (this.index?.complete) return;
+        this.setIndex(partial);
+        this.render();
+      },
+      onComplete: (index, reason) => this.onIndex(index, reason),
+      onError: (err, reason) => this.onAnalysisError(err, reason),
+      onEnd: () => this.render(),
+    });
     this.provider = new FoldersProvider(this, log);
     this.view = vscode.window.createTreeView(VIEW_ID, {
       treeDataProvider: this.provider,
@@ -118,7 +135,7 @@ class Heft implements vscode.Disposable, PanelHost {
       this.disposables.push(vscode.commands.registerCommand(id, guard(log, `command ${id}`, fn)));
     };
     const on = <A extends unknown[]>(where: string, fn: (...args: A) => unknown) => guard(log, where, fn);
-    cmd('heftmap.refresh', () => this.rebuild('reason.manual'));
+    cmd('heftmap.refresh', () => this.analysis.rebuild('reason.manual'));
     cmd('heftmap.clearScope', () => this.setScope([]));
     cmd('heftmap.pickScope', () => this.pickScope());
     cmd('heftmap.addToScope', (uri?: vscode.Uri, uris?: vscode.Uri[]) =>
@@ -159,21 +176,21 @@ class Heft implements vscode.Disposable, PanelHost {
           this.panel.indexChanged();
           return;
         }
-        if (e.affectsConfiguration('heftmap')) this.schedule('reason.settings');
+        if (e.affectsConfiguration('heftmap')) this.analysis.schedule('reason.settings');
       })),
       vscode.workspace.onDidChangeWorkspaceFolders(on('workspace folders', () => this.start())),
-      vscode.workspace.onDidGrantWorkspaceTrust(on('workspace trust', () => this.rebuild('reason.trust'))),
+      vscode.workspace.onDidGrantWorkspaceTrust(on('workspace trust', () => this.analysis.rebuild('reason.trust'))),
     );
   }
 
   async start(): Promise<void> {
     const folders = vscode.workspace.workspaceFolders ?? [];
     const previous = this.root?.toString();
-    this.root = folders[0]?.uri;
-    this.stopWatching();
+    const root = folders[0]?.uri;
+    this.analysis.setRoot(root);
     // Otra carpeta: el índice de la anterior no vale ni como «anterior mientras se reanaliza».
-    if (previous && previous !== this.root?.toString()) this.clearIndex();
-    if (!this.root) {
+    if (previous && previous !== root?.toString()) this.clearIndex();
+    if (!root) {
       this.clearIndex();
       this.render();
       return;
@@ -181,46 +198,16 @@ class Heft implements vscode.Disposable, PanelHost {
     if (folders.length > 1) {
       this.log.info(this.I.t('log.multiRoot', { n: folders.length, name: folders[0]?.name ?? '' }));
     }
-    const watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(this.root, '**/*'));
-    this.watching = [
-      watcher,
-      watcher.onDidCreate(guard(this.log, 'file watcher', (uri: vscode.Uri) => this.onFs(uri, 'create'))),
-      watcher.onDidChange(guard(this.log, 'file watcher', (uri: vscode.Uri) => this.onFs(uri, 'change'))),
-      watcher.onDidDelete(guard(this.log, 'file watcher', (uri: vscode.Uri) => this.onFs(uri, 'delete'))),
-    ];
-    await this.rebuild('reason.start');
-  }
-
-  private stopWatching(): void {
-    for (const d of this.watching) d.dispose();
-    this.watching = [];
-  }
-
-  /**
-   * Un cambio en disco solo relanza el análisis si puede cambiar el índice. Lo que git
-   * ignora (dist/, node_modules/, cachés) no está en él: sin este filtro, cada build del
-   * proyecto analizado provocaría un análisis completo.
-   */
-  private async onFs(uri: vscode.Uri, kind: 'create' | 'change' | 'delete'): Promise<void> {
-    const root = this.root;
-    if (!root) return;
-    const p = uri.path;
-    if (p.includes('/.git/') || p.endsWith('/.git')) {
-      // Dentro de .git solo interesa un cambio de HEAD o de ramas (nuevo commit).
-      if (/\/\.git\/(HEAD|refs\/)/.test(p)) this.schedule('reason.git');
-      return;
-    }
-    const rel = path.relative(root.fsPath, uri.fsPath).split(path.sep).join('/');
-    const inIndex = this.known.has(rel) || this.tree?.byPath.has(rel);
-    if (this.index?.isGit && rel && !rel.startsWith('..') && !inIndex) {
-      // Modificar o borrar algo que no está en el índice no lo cambia.
-      if (kind !== 'create') return;
-      if (await isIgnoredByGit(root.fsPath, rel)) return;
-    }
-    this.schedule('reason.disk');
+    this.analysis.watch();
+    await this.analysis.rebuild('reason.start');
   }
 
   // ---------------------------------------------------------------- datos
+
+  /** Carpeta analizada: la primera del workspace. */
+  private get root(): vscode.Uri | undefined {
+    return this.analysis.root;
+  }
 
   getTree(): FolderTree | undefined {
     return this.tree;
@@ -244,101 +231,50 @@ class Heft implements vscode.Disposable, PanelHost {
     return vscode.Uri.joinPath(this.root, node.kind === 'dir' ? node.path : node.file.path);
   }
 
-  private schedule(reason: Reason): void {
-    clearTimeout(this.timer);
-    this.timer = setTimeout(() => void guard(this.log, 'scheduled analysis', () => this.rebuild(reason))(), REBUILD_DELAY_MS);
+  private analysisOptions(root: vscode.Uri): BuildOptions {
+    const cfg = vscode.workspace.getConfiguration('heftmap', root);
+    return {
+      publicDir: cfg.get<string>('publicDir') || 'public',
+      since: cfg.get<string>('git.since') || undefined,
+      ignore: cfg.get<string[]>('usage.ignore') ?? [],
+      entryPoints: cfg.get<string[]>('usage.entryPoints') ?? [],
+      // Workspace sin confianza: git podría ejecutar programas que trae el propio repo (SPEC §3.6).
+      useGit: vscode.workspace.isTrusted,
+    };
   }
 
-  /**
-   * Lanza un análisis. Si había otro en curso se cancela: sus datos ya son viejos.
-   * La vista enseña una barra de progreso y la barra de estado, la fase y el avance.
-   */
-  private async rebuild(reason: Reason): Promise<void> {
-    const root = this.root;
-    if (!root) return;
-    this.job?.cancel();
-    const generation = ++this.generation;
-    const current = (): boolean => generation === this.generation;
-    this.building = true;
-    this.progress = undefined;
-    this.render();
-
-    const cfg = vscode.workspace.getConfiguration('heftmap', root);
-    const job = this.runner(
-      root.fsPath,
-      {
-        publicDir: cfg.get<string>('publicDir') || 'public',
-        since: cfg.get<string>('git.since') || undefined,
-        ignore: cfg.get<string[]>('usage.ignore') ?? [],
-        entryPoints: cfg.get<string[]>('usage.entryPoints') ?? [],
-        // Workspace sin confianza: git podría ejecutar programas que trae el propio repo (SPEC §3.6).
-        useGit: vscode.workspace.isTrusted,
-      },
-      {
-        onProgress: (p) => {
-          if (!current()) return;
-          this.progress = p;
-          this.renderStatus();
-        },
-        onPartial: (partial) => {
-          // Solo la primera vez: con un índice completo en pantalla, uno a medias sería ir a peor.
-          if (!current() || this.index?.complete) return;
-          this.setIndex(partial);
-          this.render();
-        },
-      },
-    );
-    this.job = job;
-    // Barra de progreso nativa sobre la vista mientras dure este análisis.
-    void vscode.window.withProgress({ location: { viewId: VIEW_ID } }, async () => {
-      try {
-        await job.result;
-      } catch {
-        // El error se trata abajo; aquí solo se espera.
-      }
-    });
-
-    try {
-      const index = await job.result;
-      if (!current()) return;
-      this.setIndex(index);
-      this.error = undefined;
-      // Carpetas del ámbito que ya no existen (borradas, renombradas): no tendrían casilla que desmarcar.
-      const alive = this.scope.filter((s) => this.tree?.byPath.has(s));
-      if (alive.length !== this.scope.length) {
-        this.log.info(`${this.I.t('log.scopeGone', { folders: this.scope.filter((s) => !alive.includes(s)).join(', ') })}`);
-        this.scope = alive;
-        void this.context.workspaceState.update(SCOPE_KEY, alive);
-      }
-      const t = index.timings;
-      const I = this.I;
-      this.log.info(
-        I.t('log.index', {
-            reason: I.t(reason),
-            files: I.tp('files', index.files.length),
-            commits: I.num(index.commitsRead),
-            list: I.ms(t.list),
-            read: I.ms(t.read),
-            git: I.ms(t.git),
-            usage: I.ms(t.usage),
-            total: I.ms(t.total),
-          }),
-      );
-      for (const w of index.warnings) this.log.warn(warningText(w, I));
-    } catch (err) {
-      if (!current() || err instanceof CancelledError) return;
-      this.error =
-        err instanceof WorkerExitError ? this.I.t('error.workerExit', { code: err.code }) : err instanceof Error ? err.message : String(err);
-      // Ya se enseña en la vista y en el panel; el aviso es para saber que el fallo es de Heftmap.
-      this.log.error(`analysis (${reason})`, err, { notify: true, detail: this.I.t('log.indexError', { error: this.error }) });
-    } finally {
-      if (current()) {
-        this.building = false;
-        this.job = undefined;
-        this.progress = undefined;
-        this.render();
-      }
+  private onIndex(index: HeftIndex, reason: Reason): void {
+    this.setIndex(index);
+    this.error = undefined;
+    // Carpetas del ámbito que ya no existen (borradas, renombradas): no tendrían casilla que desmarcar.
+    const alive = this.scope.filter((s) => this.tree?.byPath.has(s));
+    if (alive.length !== this.scope.length) {
+      this.log.info(`${this.I.t('log.scopeGone', { folders: this.scope.filter((s) => !alive.includes(s)).join(', ') })}`);
+      this.scope = alive;
+      void this.context.workspaceState.update(SCOPE_KEY, alive);
     }
+    const t = index.timings;
+    const I = this.I;
+    this.log.info(
+      I.t('log.index', {
+        reason: I.t(reason),
+        files: I.tp('files', index.files.length),
+        commits: I.num(index.commitsRead),
+        list: I.ms(t.list),
+        read: I.ms(t.read),
+        git: I.ms(t.git),
+        usage: I.ms(t.usage),
+        total: I.ms(t.total),
+      }),
+    );
+    for (const w of index.warnings) this.log.warn(warningText(w, I));
+  }
+
+  private onAnalysisError(err: unknown, reason: Reason): void {
+    this.error =
+      err instanceof WorkerExitError ? this.I.t('error.workerExit', { code: err.code }) : err instanceof Error ? err.message : String(err);
+    // Ya se enseña en la vista y en el panel; el aviso es para saber que el fallo es de Heftmap.
+    this.log.error(`analysis (${reason})`, err, { notify: true, detail: this.I.t('log.indexError', { error: this.error }) });
   }
 
   private setIndex(index: HeftIndex): void {
@@ -364,12 +300,12 @@ class Heft implements vscode.Disposable, PanelHost {
   }
 
   panelStatus(): PanelStatus {
-    const p = this.building ? this.progress : undefined;
+    const p = this.analysis.building ? this.analysis.progress : undefined;
     return {
       hasRoot: !!this.root,
       scope: [...this.scope],
-      building: this.building,
-      progress: this.building ? progressLabel(this.progress, this.I) : null,
+      building: this.analysis.building,
+      progress: this.analysis.building ? progressLabel(this.analysis.progress, this.I) : null,
       fraction: p && p.total > 0 ? p.done / p.total : null,
       error: this.error ?? null,
       locale: this.I.locale,
@@ -407,7 +343,7 @@ class Heft implements vscode.Disposable, PanelHost {
       if (typeof m.folder === 'string') this.setScope(removeFolder(this.scope, m.folder));
     } else if (m.type === 'clearScope') this.setScope([]);
     else if (m.type === 'pickScope') void this.pickScope();
-    else if (m.type === 'refresh') void this.rebuild('reason.manual');
+    else if (m.type === 'refresh') void this.analysis.rebuild('reason.manual');
     else if (m.type === 'showLog') this.log.show();
     else if (m.type === 'copy') {
       if (typeof m.text === 'string') void vscode.env.clipboard.writeText(m.text);
@@ -450,7 +386,7 @@ class Heft implements vscode.Disposable, PanelHost {
     try {
       await vscode.workspace.fs.delete(vscode.Uri.joinPath(this.root, file), { useTrash: true });
       this.log.info(I.t('log.trashed', { path: file, size: I.size(entry.size) }));
-      this.schedule('reason.trash');
+      this.analysis.schedule('reason.trash');
     } catch (err) {
       void vscode.window.showErrorMessage(I.t('trash.failed', { path: file, error: err instanceof Error ? err.message : String(err) }));
     }
@@ -532,7 +468,7 @@ class Heft implements vscode.Disposable, PanelHost {
     // Total del ámbito junto al título de la vista (el panel ya lo enseña; aquí faltaba).
     const totals = this.scopeTotals();
     const summary = totals ? `${label} · ${I.size(totals.size)} · ${I.tp('files', totals.count)}` : label;
-    this.view.description = this.building ? I.t('view.analyzingSuffix', { scope: summary }) : summary;
+    this.view.description = this.analysis.building ? I.t('view.analyzingSuffix', { scope: summary }) : summary;
     this.view.message = this.error
       ? I.t('view.error', { error: this.error })
       : (this.firstScanMessage() ?? (this.root && !vscode.workspace.isTrusted ? I.t('view.restricted') : undefined));
@@ -542,8 +478,8 @@ class Heft implements vscode.Disposable, PanelHost {
       this.status.hide();
       return;
     }
-    if (this.building) {
-      this.status.text = `$(sync~spin) ${I.t('status.analyzing', { progress: progressLabel(this.progress, I) })}`;
+    if (this.analysis.building) {
+      this.status.text = `$(sync~spin) ${I.t('status.analyzing', { progress: progressLabel(this.analysis.progress, I) })}`;
     } else if (!this.index) {
       this.status.text = '$(layers) Heftmap';
     } else {
@@ -572,21 +508,17 @@ class Heft implements vscode.Disposable, PanelHost {
    * aparecer y la barra de progreso nativa sola no deja claro que Heftmap está trabajando.
    */
   private firstScanMessage(): string | undefined {
-    if (!this.building || this.index?.complete) return undefined;
-    const step = this.progress ? ` (${progressLabel(this.progress, this.I)})` : '';
+    if (!this.analysis.building || this.index?.complete) return undefined;
+    const progress = this.analysis.progress;
+    const step = progress ? ` (${progressLabel(progress, this.I)})` : '';
     return this.I.t(this.index ? 'view.sizesReady' : 'view.firstScan', { step });
   }
 
   dispose(): void {
-    clearTimeout(this.timer);
-    this.generation++;
-    this.job?.cancel();
-    this.stopWatching();
+    this.analysis.dispose();
     for (const d of this.disposables) d.dispose();
   }
 }
-
-
 
 function isTreeNode(x: unknown): x is TreeNode {
   return !!x && typeof x === 'object' && 'kind' in x && ((x as TreeNode).kind === 'dir' || (x as TreeNode).kind === 'file');
@@ -599,12 +531,3 @@ export function progressLabel(p: Progress | undefined, I: I18n): string {
   return p.total > 0 ? I.t('progress.step', { phase, done: I.num(p.done), total: I.num(p.total) }) : I.t('progress.phaseOnly', { phase });
 }
 
-/** `git check-ignore` sale con 0 si la ruta está ignorada y con 1 si no. */
-async function isIgnoredByGit(root: string, rel: string): Promise<boolean> {
-  try {
-    await git(root, ['check-ignore', '-q', '--', rel]);
-    return true;
-  } catch {
-    return false;
-  }
-}
