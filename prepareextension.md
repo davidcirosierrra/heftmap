@@ -204,8 +204,14 @@ Marca cada punto. Si algo falla, abre **Heft: Mostrar registro** (`Ctrl+Shift+P`
 - [ ] En una carpeta sin git: el botón Hotspots y los colores de git están apagados; `Líneas` funciona.
 - [ ] Con el panel estrecho la tabla se desplaza en horizontal en vez de aplastar las columnas.
 
-**Estado**
-- [ ] Cambia a otra pestaña y vuelve: se conservan orden, filtro, selección, área, color y zoom.
+**Reparto y estado**
+- [ ] Arrastra la barra entre la tabla y el treemap: cambia el ancho y el treemap se redibuja. Doble
+      clic la devuelve a su sitio. Con el foco en ella, `←` `→` también la mueven.
+- [ ] **Ocultar gráfico** (junto a Hotspots): la tabla ocupa todo. **Mostrar gráfico** lo recupera.
+- [ ] Bajo los filtros hay siempre una línea: «Última actualización: hh:mm:ss». Guarda un archivo:
+      pasa a «Actualizando: …» y vuelve con la hora nueva, sin que la tabla se mueva.
+- [ ] Cambia a otra pestaña y vuelve: se conservan orden, filtro, selección, área, color, zoom,
+      el ancho de la tabla y si el gráfico está oculto.
 - [ ] Crea o borra un archivo: la tabla se actualiza sola; mientras, arriba dice «Actualizando: …».
 
 ## 7. Limitaciones conocidas

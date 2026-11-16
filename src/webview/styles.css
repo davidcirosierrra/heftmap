@@ -250,3 +250,26 @@ button { font: inherit; color: inherit; }
 .cell.lines, .cell.changes { padding-left: 8px; }
 .share.auto { width: auto; }
 .pill.hot { margin-left: auto; }
+
+/* ------------------------------------------------------------ divisor, gráfico oculto y línea de estado */
+.main { grid-template-columns: minmax(0, var(--split, 60%)) 7px minmax(0, 1fr); }
+.main.no-chart { grid-template-columns: minmax(0, 1fr); }
+.tm-pane { border-left: 0; }
+.splitter {
+  cursor: col-resize; touch-action: none; position: relative;
+  border-left: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+}
+.splitter::after { content: ''; position: absolute; inset: 0 -3px; }
+.splitter:hover, .splitter:active, .splitter:focus-visible { background: var(--vscode-sash-hoverBorder, var(--vscode-focusBorder)); outline: none; }
+.statusline {
+  display: flex; align-items: center; gap: 8px; height: 24px; flex: none; box-sizing: border-box; padding: 0 12px;
+  color: var(--vscode-descriptionForeground); font-variant-numeric: tabular-nums;
+}
+.statusline .txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.statusline.failed { color: var(--vscode-errorForeground); }
+@media (max-width: 760px) {
+  .main, .main.no-chart { grid-template-columns: minmax(0, 1fr); }
+  .main { grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); }
+  .main.no-chart { grid-template-rows: minmax(0, 1fr); }
+  .splitter { display: none; }
+}

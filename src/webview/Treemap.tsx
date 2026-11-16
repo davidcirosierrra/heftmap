@@ -16,6 +16,8 @@ export function Treemap(props: {
   onSelect(path: string): void;
   onOpen(path: string): void;
   onZoom(folder: string): void;
+  /** Cambia cuando el panel reparte el ancho de otra forma (divisor): hay que volver a medir. */
+  layoutKey?: unknown;
 }) {
   const { rows, coloring, selected, highlight, area } = props;
   const box = useRef<HTMLDivElement>(null);
@@ -29,8 +31,18 @@ export function Treemap(props: {
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
-    return () => ro.disconnect();
+    window.addEventListener('resize', measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', measure);
+    };
   }, []);
+
+  // Al mover el divisor se mide en el mismo pintado, sin esperar al ResizeObserver.
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (el) setSize((s) => (s.width === el.clientWidth && s.height === el.clientHeight ? s : { width: el.clientWidth, height: el.clientHeight }));
+  }, [props.layoutKey]);
 
   const cells = useMemo(
     () => layoutTreemap(rows, { width: size.width, height: size.height, area: props.area, zoom: props.zoom }),

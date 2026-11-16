@@ -52,6 +52,8 @@ class Heft implements vscode.Disposable, PanelHost {
   private root: vscode.Uri | undefined;
   private index: HeftIndex | undefined;
   private tree: FolderTree | undefined;
+  /** Cuándo llegó el índice actual: el panel lo enseña como «última actualización». */
+  private indexAt = 0;
   private scope: string[];
   private building = false;
   /** Análisis en curso y su número: un resultado de un análisis anterior se descarta. */
@@ -285,6 +287,7 @@ class Heft implements vscode.Disposable, PanelHost {
 
   private setIndex(index: HeftIndex): void {
     this.index = index;
+    this.indexAt = Date.now();
     this.tree = buildFolderTree(index);
     this.known = new Set(index.files.map((f) => f.path));
     this.panel.indexChanged();
@@ -301,7 +304,7 @@ class Heft implements vscode.Disposable, PanelHost {
 
   panelIndex(): PanelIndex | null {
     if (!this.index || !this.root) return null;
-    return toPanelIndex(this.index, path.basename(this.root.fsPath));
+    return toPanelIndex(this.index, path.basename(this.root.fsPath), this.indexAt);
   }
 
   panelStatus(): PanelStatus {

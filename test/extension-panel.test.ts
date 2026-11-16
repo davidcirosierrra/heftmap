@@ -144,6 +144,11 @@ describe('primer análisis: aviso sobre el árbol y panel de espera', () => {
     expect(files.find((f: any) => f.path === 'public/models/kart.glb').lines).toBeUndefined();
   });
 
+  it('y la hora en que llegó el índice, para la línea de estado del panel', () => {
+    const at = last('index').index.updatedAt;
+    expect(Math.abs(Date.now() - at)).toBeLessThan(5000);
+  });
+
   it('un reanálisis con datos en pantalla no vuelve a poner el aviso', async () => {
     void fake.commands.get('heft.refresh')!();
     await tick();

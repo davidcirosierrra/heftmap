@@ -45,6 +45,8 @@ export interface PanelIndex {
   isGit?: boolean;
   /** Commits distintos referenciados por `files[].commit`. */
   commits?: PanelCommit[];
+  /** Cuándo terminó el análisis que produjo este índice (ms desde epoch). */
+  updatedAt?: number;
 }
 
 export interface PanelStatus {
