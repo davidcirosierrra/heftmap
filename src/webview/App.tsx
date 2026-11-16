@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
 import type { HostMessage, PanelIndex, PanelStatus } from '../extension/panel-protocol.js';
 import { fmtSize, pct, rel } from '../report.js';
 import { COLOR_LABEL, USAGE_COLOR, coloring as buildColoring, usageLabel, type ColorMode } from './colors.js';
@@ -20,7 +20,16 @@ interface Saved {
   area: AreaMode;
   color: ColorMode;
   zoom: string;
+  /** Parte del ancho para la tabla, entre SPLIT_MIN y SPLIT_MAX. */
+  split: number;
+  /** false: gráficos ocultos, la tabla ocupa todo. */
+  chart: boolean;
 }
+
+const SPLIT_MIN = 0.2;
+const SPLIT_MAX = 0.85;
+const SPLIT_DEFAULT = 0.6;
+const clampSplit = (x: number): number => Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, x));
 
 function loadSaved(): Saved {
   const s = (vscode.getState() ?? {}) as Partial<Saved>;
@@ -33,6 +42,8 @@ function loadSaved(): Saved {
     area: s.area && s.area in AREA_LABEL ? s.area : 'bytes',
     color: s.color && s.color in COLOR_LABEL ? s.color : 'ext',
     zoom: typeof s.zoom === 'string' ? s.zoom : '',
+    split: typeof s.split === 'number' && Number.isFinite(s.split) ? clampSplit(s.split) : SPLIT_DEFAULT,
+    chart: s.chart !== false,
   };
 }
 
@@ -82,6 +93,32 @@ export function App() {
   useEffect(() => {
     if (highlight != null && !coloring.legend.some((l) => l.key === highlight)) setHighlight(null);
   }, [coloring, highlight]);
+
+  // Divisor entre la tabla y el gráfico: se arrastra (con captura del puntero, para no perderlo
+  // al pasar sobre el SVG) o se mueve con las flechas.
+  const main = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
+  const onSplitDown = (e: PointerEvent<HTMLDivElement>): void => {
+    dragging.current = true;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    e.preventDefault();
+  };
+  const onSplitMove = (e: PointerEvent<HTMLDivElement>): void => {
+    const box = main.current?.getBoundingClientRect();
+    if (!dragging.current || !box || box.width <= 0) return;
+    set({ split: clampSplit((e.clientX - box.left) / box.width) });
+  };
+  const onSplitUp = (e: PointerEvent<HTMLDivElement>): void => {
+    dragging.current = false;
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+  };
+  const onSplitKey = (e: KeyboardEvent): void => {
+    const step = e.key === 'ArrowLeft' ? -0.02 : e.key === 'ArrowRight' ? 0.02 : 0;
+    if (e.key === 'Home') setSaved((s) => ({ ...s, split: SPLIT_DEFAULT }));
+    else if (step) setSaved((s) => ({ ...s, split: clampSplit(s.split + step) }));
+    else return;
+    e.preventDefault();
+  };
 
   if (!status || index === undefined) return <Splash title="Cargando…" />;
   if (!status.hasRoot) return <Splash title="Abre una carpeta para ver qué pesa y qué se usa." idle />;
@@ -230,20 +267,33 @@ export function App() {
           aria-pressed={inHotspots}
           disabled={!canHotspots}
           title={canHotspots ? 'Área «Líneas» + color «Cambios» + tabla ordenada por Cambios: el código grande que más se toca' : 'Los hotspots necesitan el historial de git'}
-          onClick={() => set({ area: 'lines', color: 'changes', sort: { key: 'changes', dir: 'desc' }, zoom: '' })}
+          onClick={() => set({ area: 'lines', color: 'changes', sort: { key: 'changes', dir: 'desc' }, zoom: '', chart: true })}
         >
           Hotspots
         </button>
+        <button className="pill" aria-pressed={saved.chart} title="Mostrar u ocultar el treemap" onClick={() => set({ chart: !saved.chart })}>
+          {saved.chart ? 'Ocultar gráfico' : 'Mostrar gráfico'}
+        </button>
       </div>
-      {status.building && (
-        <div className="working" role="status">
-          <span className="spinner small" />
-          {index.complete ? 'Actualizando' : 'Tamaños listos. Falta el uso y el historial de git'}
-          {status.progress ? `: ${status.progress}` : '…'}
-        </div>
-      )}
-      {status.error && <div className="error">No se pudo analizar el repositorio: {status.error}</div>}
-      <div className="main">
+      {/* Siempre presente y de altura fija: si apareciera solo al analizar, la tabla saltaría. */}
+      <div className={`statusline${!status.building && status.error ? ' failed' : ''}`} role="status">
+        {status.building ? (
+          <>
+            <span className="spinner small" />
+            <span className="txt">
+              {index.complete ? 'Actualizando' : 'Tamaños listos. Falta el uso y el historial de git'}
+              {status.progress ? `: ${status.progress}` : '…'}
+            </span>
+          </>
+        ) : status.error ? (
+          <span className="txt">No se pudo analizar el repositorio: {status.error}</span>
+        ) : (
+          <span className="txt">
+            Última actualización: {index.updatedAt ? new Date(index.updatedAt).toLocaleTimeString('es-ES') : '—'}
+          </span>
+        )}
+      </div>
+      <div className={`main${saved.chart ? '' : ' no-chart'}`} ref={main} style={{ '--split': `${(saved.split * 100).toFixed(2)}%` } as CSSProperties}>
         <Table
           rows={rows}
           columns={columns}
@@ -254,7 +304,27 @@ export function App() {
           onSelect={(path) => set({ selected: path })}
           onOpen={(path) => post({ type: 'open', path })}
         />
-        <section className="tm-pane" aria-label="Treemap">
+        {saved.chart && (
+          <div
+            className="splitter"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Ancho de la tabla y del gráfico"
+            aria-valuemin={SPLIT_MIN * 100}
+            aria-valuemax={SPLIT_MAX * 100}
+            aria-valuenow={Math.round(saved.split * 100)}
+            tabIndex={0}
+            title="Arrastra para ajustar el ancho. Doble clic: volver al reparto inicial"
+            onPointerDown={onSplitDown}
+            onPointerMove={onSplitMove}
+            onPointerUp={onSplitUp}
+            onPointerCancel={onSplitUp}
+            onDoubleClick={() => set({ split: SPLIT_DEFAULT })}
+            onKeyDown={onSplitKey}
+          />
+        )}
+        {saved.chart && (
+          <section className="tm-pane" aria-label="Treemap">
           <div className="tm-bar">
             <nav className="crumbs" aria-label="Carpeta ampliada">
               {crumbs(zoom, index.rootName).map((c, i, all) =>
@@ -291,6 +361,7 @@ export function App() {
             onSelect={(path) => set({ selected: path })}
             onOpen={(path) => post({ type: 'open', path })}
             onZoom={(folder) => set({ zoom: folder })}
+            layoutKey={saved.split}
           />
           <div className="legend" aria-label={`Leyenda: ${COLOR_LABEL[saved.color]}`}>
             {coloring.legend.map((l) => (
@@ -307,6 +378,7 @@ export function App() {
             ))}
           </div>
         </section>
+        )}
       </div>
       <Detail row={selectedRow} scopeBytes={scopeBytes} links={links} onSelect={(path, inScope) => (inScope ? set({ selected: path }) : post({ type: 'open', path }))} />
     </div>

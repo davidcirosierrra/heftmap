@@ -132,7 +132,7 @@ describe('panel (DOM): uso', () => {
   });
 
   it('filtros rápidos con recuento; recortan tabla y treemap', async () => {
-    expect(p.text('.pill')).toEqual(['Todos', 'Sin rastro1', 'Mencionados0', 'Puntos de entrada1', 'Con cambios sin commit2', 'Hotspots']);
+    expect(p.text('.pill')).toEqual(['Todos', 'Sin rastro1', 'Mencionados0', 'Puntos de entrada1', 'Con cambios sin commit2', 'Hotspots', 'Ocultar gráfico']);
     await p.click(pill('Sin rastro'));
     expect(names()).toEqual(['kart.glb']);
     expect(p.$$('.tm-file')).toHaveLength(1);
@@ -252,5 +252,61 @@ describe('panel (DOM): uso', () => {
     expect(new Set(p.text('.body .row .cell.usage'))).toEqual(new Set(['Analizando…']));
     expect(pill('Sin rastro')?.hasAttribute('disabled')).toBe(true);
     expect(pill('Todos')?.hasAttribute('disabled')).toBe(false);
+  });
+});
+
+describe('panel (DOM): divisor, gráfico y línea de estado', () => {
+  const pill = (label: string) => p.$$('.pill').find((b) => b.textContent?.startsWith(label));
+  const split = () => p.$('.main')!.style.getPropertyValue('--split');
+
+  it('la línea de estado está siempre, con la hora de la última actualización', async () => {
+    const at = new Date(2026, 10, 16, 10, 3, 9).getTime();
+    await p.send({ type: 'index', index: { rootName: 'kart', complete: true, isGit: true, files, refs, commits, updatedAt: at } });
+    expect(p.$('.statusline')?.textContent).toBe('Última actualización: 10:03:09');
+    expect(p.$('.statusline .spinner')).toBeNull();
+  });
+
+  it('al analizar cambia el texto, no aparece ni desaparece ninguna línea', async () => {
+    await p.send(status({ building: true, progress: 'uso 12/30' }));
+    expect(p.$$('.statusline')).toHaveLength(1);
+    expect(p.$('.statusline')?.textContent).toBe('Actualizando: uso 12/30');
+    expect(p.$('.statusline .spinner')).toBeTruthy();
+    await p.send(status({ error: 'se rompió' }));
+    expect(p.$('.statusline')?.textContent).toBe('No se pudo analizar el repositorio: se rompió');
+    expect(p.$('.statusline')?.className).toContain('failed');
+    await p.send(status());
+    expect(p.$$('.statusline')).toHaveLength(1);
+  });
+
+  it('divisor entre tabla y gráfico: flechas, límites y vuelta al reparto inicial', async () => {
+    const bar = p.$('.splitter')!;
+    expect(bar.getAttribute('role')).toBe('separator');
+    expect(split()).toBe('60.00%');
+    await p.key(bar, 'ArrowLeft');
+    expect(split()).toBe('58.00%');
+    expect(p.state).toMatchObject({ split: 0.58 });
+    for (let i = 0; i < 40; i++) await p.key(bar, 'ArrowRight');
+    expect(split()).toBe('85.00%');
+    for (let i = 0; i < 60; i++) await p.key(bar, 'ArrowLeft');
+    expect(split()).toBe('20.00%');
+    await p.dblclick(bar);
+    expect(split()).toBe('60.00%');
+  });
+
+  it('«Ocultar gráfico» quita treemap y divisor; la tabla sigue; se guarda', async () => {
+    await p.click(pill('Ocultar gráfico'));
+    expect(p.$('.tm-pane')).toBeNull();
+    expect(p.$('.splitter')).toBeNull();
+    expect(p.$('.main')?.className).toContain('no-chart');
+    expect(names()).toHaveLength(4);
+    expect(p.state).toMatchObject({ chart: false });
+    await p.click(pill('Mostrar gráfico'));
+    expect(p.$('.tm-pane')).toBeTruthy();
+  });
+
+  it('«Hotspots» vuelve a mostrar el gráfico si estaba oculto', async () => {
+    await p.click(pill('Ocultar gráfico'));
+    await p.click(pill('Hotspots'));
+    expect(p.$('.tm-pane')).toBeTruthy();
   });
 });

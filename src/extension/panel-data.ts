@@ -2,7 +2,7 @@ import type { HeftIndex } from '../core/index.js';
 import type { PanelCommit, PanelFile, PanelIndex, PanelRef } from './panel-protocol.js';
 
 /** Del índice del núcleo a lo que viaja al panel. Pura, sin `vscode`. */
-export function toPanelIndex(index: HeftIndex, rootName: string): PanelIndex {
+export function toPanelIndex(index: HeftIndex, rootName: string, updatedAt?: number): PanelIndex {
   const kept = index.files.filter((f) => !f.ignoredByGit);
   const at = new Map(kept.map((f, i) => [f.path, i]));
   // Cada referencia una sola vez (desde su origen) y por posición: el grafo de un repo
@@ -34,5 +34,5 @@ export function toPanelIndex(index: HeftIndex, rootName: string): PanelIndex {
     if (f.generated) out.generated = true;
     return out;
   });
-  return { rootName, complete: index.complete, isGit: index.isGit, files, refs, commits };
+  return { rootName, complete: index.complete, isGit: index.isGit, files, refs, commits, updatedAt };
 }

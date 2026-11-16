@@ -312,6 +312,15 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
 
 Producto mínimo útil = fases 0 a 4. Para proyectos sin archivos grandes, el valor llega en la fase 6.
 
+Ajustes del panel tras probarlo en el editor:
+- **Divisor** entre la tabla y el gráfico: se arrastra, se mueve con ← → y vuelve al reparto
+  inicial con doble clic o Inicio. Entre el 20 % y el 85 % del ancho; se guarda con el estado.
+- Botón **Ocultar gráfico / Mostrar gráfico**: la tabla ocupa todo el panel. «Hotspots» lo vuelve
+  a mostrar.
+- **Línea de estado** siempre presente y de altura fija bajo los filtros: avance mientras analiza,
+  error si falla y, en reposo, «Última actualización: hh:mm:ss». Antes aparecía solo al analizar
+  y la tabla saltaba.
+
 ### 5.1 Para más adelante (no planificado; decidir tras usar los hotspots en un repo real)
 
 - **Impacto**: nº de archivos que dependen de uno, directa **o indirectamente** (cierre transitivo
