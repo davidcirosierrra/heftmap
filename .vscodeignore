@@ -4,6 +4,7 @@
 !dist/webview.js
 !dist/webview.css
 !media/**
+!docs/images/**
 !package.json
 !package.nls.json
 !package.nls.*.json

@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { i18n, LOCALES, resolveLocale } from '../src/i18n/index.js';
 import { en, es, eu } from '../src/i18n/messages.js';
@@ -127,5 +127,33 @@ describe('idiomas: package.json', () => {
     const lang = JSON.parse(pkg).contributes.configuration.properties['heftmap.language'];
     expect(lang.enum).toEqual(['auto', 'en', 'es', 'eu']);
     expect(lang.default).toBe('auto');
+  });
+});
+
+describe('walkthrough de primer uso (plan, paso 3.7)', () => {
+  const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+  const ignore = readFileSync('.vscodeignore', 'utf8');
+
+  it('cuatro pasos: panel, ámbito, sin rastro y hotspots', () => {
+    const [w] = pkg.contributes.walkthroughs;
+    expect(w.steps.map((s: { id: string }) => s.id)).toEqual(['openPanel', 'scope', 'noTrace', 'hotspots']);
+  });
+
+  it('sus imágenes existen y entran en el .vsix', () => {
+    for (const step of pkg.contributes.walkthroughs[0].steps) {
+      expect(existsSync(step.media.image), step.media.image).toBe(true);
+      expect(step.media.image.startsWith('docs/images/')).toBe(true);
+    }
+    expect(ignore).toContain('!docs/images/**');
+  });
+
+  it('los comandos de sus enlaces existen', () => {
+    const declared = new Set(pkg.contributes.commands.map((c: { command: string }) => c.command));
+    const nls = JSON.parse(readFileSync('package.nls.json', 'utf8')) as Record<string, string>;
+    const linked = Object.entries(nls)
+      .filter(([k]) => k.startsWith('walkthrough.'))
+      .flatMap(([, v]) => [...v.matchAll(/\(command:([\w.]+)\)/g)].map((m) => m[1]));
+    expect(linked.length).toBeGreaterThan(0);
+    for (const c of linked) expect(declared.has(c), c).toBe(true);
   });
 });

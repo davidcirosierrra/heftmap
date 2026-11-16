@@ -29,5 +29,19 @@
   "config.hotspots.exclude": "Hotspot-etan kontatzen ez den kodea (hirugarrenengandik kopiatua, eskuz sortua…), heftmap.exclude-ren eredu berberekin. Aztertzen eta taulan agertzen jarraitzen du.",
   "config.panel.defaultArea": "Panela irekitzean treemap-aren azalera (Byteak, Orekatua edo Lerroak). Panelak egoera gordeta ez duenean bakarrik erabiltzen da: panelean aukeratzen duzunak agintzen du.",
   "config.panel.defaultColor": "Panela irekitzean kolorea (Luzapena, Erabilera, Antzinatasuna, Azken commitak edo Aldaketak). Panelak egoera gordeta ez duenean bakarrik erabiltzen da: panelean aukeratzen duzunak agintzen du.",
-  "command.exportTable": "Kopiatu taula…"
+  "command.exportTable": "Kopiatu taula…",
+  "walkthrough.title": "Lehen urratsak Heftmap-ekin",
+  "walkthrough.description": "Ikusi zer den astunena zure biltegian, erabiltzen den eta zein kode aldatzen den gehien.",
+  "walkthrough.panel.title": "Ireki panela",
+  "walkthrough.panel.description": "Fitxategi guztiekin taula bat (tamaina, lerroak, aldaketak, erabilera, azken aldaketa) treemap baten ondoan. Egin klik fitxategi batean nork erabiltzen duen eta zer erabiltzen duen ikusteko.\n[Ireki panela](command:heftmap.openPanel)\nLasterbidea: Ctrl+Shift+Alt+H (Cmd+Ctrl+Shift+H Mac-en).",
+  "walkthrough.panel.alt": "Heftmap panela: fitxategien taula, erabileraren araberako koloreko treemap-a eta aukeratutako fitxategiaren xehetasunak",
+  "walkthrough.scope.title": "Aukeratu esparruko karpetak",
+  "walkthrough.scope.description": "Monorepo batean, zentratu aplikazio edo pakete batean: markatu haren karpetak Karpetak ikuspegian, erabili «Mugatu Heftmap-en esparrua karpeta honetara» Arakatzailean edo aukeratu zerrenda batetik. Treemap-ean, karpeta batean klik eginez handitzen da.\n[Aukeratu karpetak](command:heftmap.pickScope)",
+  "walkthrough.scope.alt": "Karpeta batean handitutako treemap-a, azken aldaketaren antzinatasunaren arabera koloreztatua",
+  "walkthrough.noTrace.title": "Aurkitu arrastorik gabeko fitxategiak",
+  "walkthrough.noTrace.description": "«Arrastorik gabe» iragazki azkarrak inongo fitxategik erreferentziatzen edo aipatzen ez dituen baliabideak uzten ditu: ezabatzeko hautagaiak. Aukeratu bat: «Zergatik:»-ek zein arauk erabaki duen esaten du, eta alde batera utz dezakezu edo zakarrontzira eraman (beti berretsita).",
+  "walkthrough.noTrace.alt": "Erabileraren arabera koloreztatutako panela, arrastorik gabeko fitxategiak nabarmenduta",
+  "walkthrough.hotspots.title": "Ikusi hotspot-ak",
+  "walkthrough.hotspots.description": "«Hotspots» botoiak gehien aldatzen den kode handia erakusten du: azalera lerroen arabera, kolorea aldaketen arabera eta iturburu-kodea bakarrik. Git historia behar du.",
+  "walkthrough.hotspots.alt": "Hotspot-ak: treemap-a, azalera lerroen arabera eta kolorea aldaketa kopuruaren arabera"
 }

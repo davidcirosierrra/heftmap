@@ -29,5 +29,19 @@
   "config.hotspots.exclude": "Código que no cuenta en los hotspots (copiado de terceros, generado a mano…), con los mismos patrones que heftmap.exclude. Se sigue analizando y saliendo en la tabla.",
   "config.panel.defaultArea": "Área del treemap con la que abre el panel (Bytes, Equilibrado o Líneas). Solo se usa si el panel no tiene estado guardado: lo que elijas en el panel manda.",
   "config.panel.defaultColor": "Color con el que abre el panel (Extensión, Uso, Antigüedad, Commits recientes o Cambios). Solo se usa si el panel no tiene estado guardado: lo que elijas en el panel manda.",
-  "command.exportTable": "Copiar tabla…"
+  "command.exportTable": "Copiar tabla…",
+  "walkthrough.title": "Primeros pasos con Heftmap",
+  "walkthrough.description": "Mira qué pesa más en tu repositorio, si se usa y qué código cambia más.",
+  "walkthrough.panel.title": "Abrir el panel",
+  "walkthrough.panel.description": "Una tabla con todos los archivos (tamaño, líneas, cambios, uso, último cambio) junto a un treemap. Haz clic en un archivo para ver quién lo usa y qué usa.\n[Abrir panel](command:heftmap.openPanel)\nAtajo: Ctrl+Shift+Alt+H (Cmd+Ctrl+Shift+H en Mac).",
+  "walkthrough.panel.alt": "Panel de Heftmap: tabla de archivos, treemap coloreado por uso y el detalle del archivo elegido",
+  "walkthrough.scope.title": "Elegir las carpetas del ámbito",
+  "walkthrough.scope.description": "En un monorepo, céntrate en una app o un paquete: marca sus carpetas en la vista Carpetas, usa «Limitar el ámbito de Heftmap a esta carpeta» en el Explorador o elígelas de una lista. En el treemap, un clic en una carpeta la amplía.\n[Elegir carpetas](command:heftmap.pickScope)",
+  "walkthrough.scope.alt": "Treemap ampliado en una carpeta, coloreado por la antigüedad del último cambio",
+  "walkthrough.noTrace.title": "Encontrar archivos sin rastro",
+  "walkthrough.noTrace.description": "El filtro rápido «Sin rastro» deja los recursos que ningún archivo referencia ni menciona: candidatos a borrar. Elige uno: «Por qué:» dice qué regla lo decidió, y puedes ignorarlo o moverlo a la papelera (siempre con confirmación).",
+  "walkthrough.noTrace.alt": "Panel coloreado por uso, con los archivos sin rastro resaltados",
+  "walkthrough.hotspots.title": "Ver los hotspots",
+  "walkthrough.hotspots.description": "El botón «Hotspots» enseña el código grande que más cambia: área por líneas, color por cambios y solo código fuente. Necesita el historial de git.",
+  "walkthrough.hotspots.alt": "Hotspots: treemap con el área por líneas y el color por número de cambios"
 }
