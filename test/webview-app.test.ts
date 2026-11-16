@@ -1,14 +1,16 @@
 // @vitest-environment jsdom
 import { beforeAll, describe, expect, it } from 'vitest';
+import type { PanelFile, PanelRef } from '../src/extension/panel-protocol.js';
 import { mountPanel, status, type Harness } from './webview-harness.js';
 
 /** El panel de verdad (React) en jsdom: lo que la lógica pura de `model.ts` no cubre. */
-const files = [
-  { path: 'README.md', size: 300 },
-  { path: 'src/main.tsx', size: 120 },
-  { path: 'src/game/Kart.ts', size: 900 },
-  { path: 'public/models/kart.glb', size: 4000 },
+const files: PanelFile[] = [
+  { path: 'README.md', size: 300, usage: 'not-analyzed' },
+  { path: 'src/main.tsx', size: 120, usage: 'entry' },
+  { path: 'src/game/Kart.ts', size: 900, usage: 'referenced' },
+  { path: 'public/models/kart.glb', size: 4000, usage: 'none' },
 ];
+const refs: PanelRef[] = [[1, 2, 'import']];
 let p: Harness;
 const names = (): string[] => p.text('.body .row .name');
 
@@ -24,7 +26,7 @@ describe('panel (DOM): tabla', () => {
 
   it('pinta la tabla al recibir el índice', async () => {
     await p.send(status());
-    await p.send({ type: 'index', index: { rootName: 'kart', complete: true, files } });
+    await p.send({ type: 'index', index: { rootName: 'kart', complete: true, files, refs } });
     expect(names()).toEqual(['kart.glb', 'Kart.ts', 'main.tsx', 'README.md']);
   });
 
@@ -114,5 +116,71 @@ describe('panel (DOM): treemap y detalle', () => {
     await p.choose(p.$$('.select select')[0], 'balanced');
     expect(p.state).toMatchObject({ area: 'balanced' });
     expect(p.$$('.tm-file')).toHaveLength(4);
+  });
+});
+
+describe('panel (DOM): uso', () => {
+  const pill = (label: string) => p.$$('.pill').find((b) => b.textContent?.startsWith(label));
+  const selectRow = (name: string) => p.click(p.$$('.body .row').find((r) => r.querySelector('.name')?.textContent === name));
+
+  it('columna Uso con estado y nº de referencias', () => {
+    const cells = Object.fromEntries(p.$$('.body .row').map((r) => [r.querySelector('.name')!.textContent, r.querySelector('.cell.usage')!.textContent]));
+    expect(cells).toEqual({ 'kart.glb': 'Sin rastro', 'Kart.ts': 'Referenciado · 1', 'main.tsx': 'Punto de entrada', 'README.md': 'No analizado' });
+  });
+
+  it('filtros rápidos con recuento; recortan tabla y treemap', async () => {
+    expect(p.text('.pill')).toEqual(['Todos', 'Sin rastro1', 'Mencionados0', 'Puntos de entrada1']);
+    await p.click(pill('Sin rastro'));
+    expect(names()).toEqual(['kart.glb']);
+    expect(p.$$('.tm-file')).toHaveLength(1);
+    expect(p.$('.totals')?.textContent).toMatch(/^1 de 4 archivos/);
+    await p.click(pill('Todos'));
+    expect(names()).toHaveLength(4);
+  });
+
+  it('detalle de un archivo sin rastro: aviso y acciones, que piden permiso a la extensión', async () => {
+    await selectRow('kart.glb');
+    expect(p.$('.d-state')?.textContent).toBe('Sin rastro');
+    const actions = p.$$('.d-usage button');
+    expect(actions.map((b) => b.textContent)).toEqual(['Ignorar este archivo', 'Mover a la papelera…']);
+    await p.click(actions[0]);
+    expect(p.sent.at(-1)).toEqual({ type: 'ignoreUsage', path: 'public/models/kart.glb' });
+    await p.click(actions[1]);
+    expect(p.sent.at(-1)).toEqual({ type: 'trash', path: 'public/models/kart.glb' });
+  });
+
+  it('las acciones solo salen en «sin rastro»', async () => {
+    await selectRow('Kart.ts');
+    expect(p.$$('.d-usage button')).toHaveLength(0);
+  });
+
+  it('«Lo usan» y «Usa»: clic en una referencia la selecciona', async () => {
+    expect(p.text('.links h2')).toEqual(['Lo usan 1', 'Usa 0']);
+    expect(p.text('.links li')).toEqual(['src/main.tsximport']);
+    await p.click(p.$('.links li .link'));
+    expect(p.$('.d-path')?.textContent).toBe('src/main.tsx');
+    expect(p.text('.links li')).toEqual(['src/game/Kart.tsimport']);
+  });
+
+  it('con ámbito, una referencia de fuera sale marcada y se abre en vez de seleccionarse', async () => {
+    await p.send(status({ scope: ['src/game'] }));
+    await selectRow('Kart.ts');
+    expect(p.$('.links .outside')?.textContent).toBe('fuera del ámbito');
+    await p.click(p.$('.links li .link'));
+    expect(p.sent.at(-1)).toEqual({ type: 'open', path: 'src/main.tsx' });
+    expect(p.$('.d-path')?.textContent).toBe('src/game/Kart.ts');
+    await p.send(status());
+  });
+
+  it('color «Uso»: leyenda por estados', async () => {
+    await p.choose(p.$$('.select select')[1], 'usage');
+    expect(p.text('.leg')).toEqual(['Sin rastro', 'Referenciado', 'Punto de entrada', 'No analizado']);
+  });
+
+  it('con el índice a medias: uso pendiente y filtros rápidos apagados', async () => {
+    await p.send({ type: 'index', index: { rootName: 'kart', complete: false, files, refs: [] } });
+    expect(new Set(p.text('.body .row .cell.usage'))).toEqual(new Set(['Analizando…']));
+    expect(pill('Sin rastro')?.hasAttribute('disabled')).toBe(true);
+    expect(pill('Todos')?.hasAttribute('disabled')).toBe(false);
   });
 });

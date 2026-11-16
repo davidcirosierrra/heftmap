@@ -161,14 +161,31 @@ Marca cada punto. Si algo falla, abre **Heft: Mostrar registro** (`Ctrl+Shift+P`
 - [ ] El filtro de texto y el ámbito recortan también el treemap.
 - [ ] Estrecha el panel: por debajo de ~760 px el treemap pasa debajo de la tabla.
 
+**Uso (fase 4)**
+- [ ] Columna **Uso** con el estado y, si los hay, cuántos archivos lo referencian. Ordenar por ella
+      pone primero «Sin rastro».
+- [ ] Filtros rápidos con recuento: `Sin rastro`, `Mencionados`, `Puntos de entrada`. Recortan tabla y
+      treemap. En Feos pero majos los tres primeros recuentos deberían cuadrar con el CLI.
+- [ ] Color `Uso` en el treemap: leyenda por estados; clic en «Sin rastro» los resalta.
+- [ ] Selecciona un archivo referenciado: abajo salen **Lo usan** y **Usa** con el tipo (`import`,
+      `ruta en string`, `mención`…). Clic en uno lo selecciona.
+- [ ] Con un ámbito puesto, las referencias de fuera llevan la marca «fuera del ámbito» (y el clic
+      las abre). Un archivo usado solo desde fuera del ámbito **no** sale como «sin rastro».
+- [ ] En un archivo «sin rastro»: **Ignorar este archivo** lo añade a `heft.usage.ignore` (mira
+      `.vscode/settings.json`) y tras el reanálisis pasa a «Excepción».
+- [ ] **Mover a la papelera…** pide confirmación; al aceptar, el archivo va a la papelera del sistema
+      (recuperable) y desaparece de la tabla. Cancelar no hace nada.
+- [ ] Durante el primer análisis de un repo grande la columna dice «Analizando…» y los filtros
+      rápidos están apagados.
+
 **Estado**
-- [ ] Cambia a otra pestaña y vuelve: se conservan orden, filtro, selección, área y zoom.
+- [ ] Cambia a otra pestaña y vuelve: se conservan orden, filtro, selección, área, color y zoom.
 - [ ] Crea o borra un archivo: la tabla se actualiza sola; mientras, arriba dice «Actualizando: …».
 
 ## 7. Limitaciones conocidas
 
-- El panel tiene la tabla con tamaños y el treemap por extensión: las columnas y colores de uso,
-  git y líneas (fases 4 a 6) no están todavía.
+- Las columnas y colores de git y líneas (fases 5 y 6) no están todavía.
+- «Lo usan» y «Usa» están en el detalle inferior, no en una fila desplegable.
 - Al recargar la ventana el panel se cierra; hay que volver a abrirlo.
 - En un workspace con **varias carpetas raíz**, Heft analiza solo la primera (queda anotado en el registro).
 - El árbol siempre muestra el repo entero; el ámbito se ve con las casillas.

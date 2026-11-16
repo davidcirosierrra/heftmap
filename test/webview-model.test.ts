@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_SORT, filterRows, nextSort, sortRows, toRows, totalSize, visibleRange } from '../src/webview/model.js';
+import { coloring } from '../src/webview/colors.js';
+import { DEFAULT_SORT, filterRows, linksOf, nextSort, quickCounts, quickRows, sortRows, toRows, totalSize, visibleRange } from '../src/webview/model.js';
+import type { PanelFile, PanelRef } from '../src/extension/panel-protocol.js';
 
 const files = [
   { path: 'README.md', size: 300 },
@@ -16,7 +18,7 @@ describe('tabla del panel: filas', () => {
   it('sin ámbito entran todos; nombre y carpeta salen de la ruta', () => {
     const rows = toRows(files, []);
     expect(rows).toHaveLength(7);
-    expect(rows[0]).toEqual({ path: 'README.md', name: 'README.md', folder: '', ext: '.md', size: 300 });
+    expect(rows[0]).toMatchObject({ path: 'README.md', name: 'README.md', folder: '', ext: '.md', size: 300 });
     expect(toRows([{ path: '.gitignore', size: 1 }, { path: 'a/Logo.PNG', size: 1 }], []).map((r) => r.ext)).toEqual(['', '.png']);
     expect(rows[2]).toMatchObject({ name: 'Cámara.ts', folder: 'src/game' });
   });
@@ -84,5 +86,82 @@ describe('tabla del panel: lista virtual', () => {
     expect(visibleRange(0, 240, 24, 3)).toEqual({ start: 0, end: 3 });
     expect(visibleRange(99_999, 240, 24, 3)).toEqual({ start: 3, end: 3 });
     expect(visibleRange(0, 240, 24, 0)).toEqual({ start: 0, end: 0 });
+  });
+});
+
+describe('uso (fase 4)', () => {
+  const uFiles: PanelFile[] = [
+    { path: 'index.html', size: 300, usage: 'entry' },
+    { path: 'src/main.tsx', size: 120, usage: 'referenced' },
+    { path: 'src/App.tsx', size: 900, usage: 'referenced' },
+    { path: 'src/old.ts', size: 50, usage: 'no-importers' },
+    { path: 'public/kart.glb', size: 4000, usage: 'referenced' },
+    { path: 'public/trees.glb', size: 2800, usage: 'none' },
+    { path: 'public/grass.png', size: 1800, usage: 'mentioned' },
+    { path: 'README.md', size: 10, usage: 'not-analyzed' },
+  ];
+  const uRefs: PanelRef[] = [
+    [0, 1, 'src/href'],
+    [1, 2, 'import'],
+    [2, 4, 'ruta en string'],
+    [1, 4, 'ruta en string'],
+    [2, 6, 'mención'],
+  ];
+  const all = toRows(uFiles, [], { refs: uRefs });
+  const usageOf = (p: string) => all.find((r) => r.path === p)!;
+
+  it('cada fila lleva su estado y cuántos archivos la referencian', () => {
+    expect(usageOf('public/kart.glb')).toMatchObject({ usage: 'referenced', refsIn: 2 });
+    expect(usageOf('public/trees.glb')).toMatchObject({ usage: 'none', refsIn: 0 });
+    expect(usageOf('public/grass.png')).toMatchObject({ usage: 'mentioned', refsIn: 1 });
+  });
+
+  it('las referencias se cuentan sobre todo el repo, no sobre el ámbito', () => {
+    const scoped = toRows(uFiles, ['public'], { refs: uRefs });
+    expect(scoped.map((r) => r.path)).toEqual(['public/kart.glb', 'public/trees.glb', 'public/grass.png']);
+    expect(scoped[0]!.refsIn).toBe(2);
+  });
+
+  it('con el índice a medias el uso está pendiente, no «no analizado»', () => {
+    const partial = toRows(uFiles, [], { complete: false });
+    expect(new Set(partial.map((r) => r.usage))).toEqual(new Set(['pending']));
+    expect(quickCounts(partial)).toEqual({ all: 8, none: 0, mentioned: 0, entry: 0 });
+  });
+
+  it('filtros rápidos y sus recuentos', () => {
+    expect(quickCounts(all)).toEqual({ all: 8, none: 1, mentioned: 1, entry: 1 });
+    expect(quickRows(all, 'none').map((r) => r.path)).toEqual(['public/trees.glb']);
+    expect(quickRows(all, 'mentioned').map((r) => r.path)).toEqual(['public/grass.png']);
+    expect(quickRows(all, 'entry').map((r) => r.path)).toEqual(['index.html']);
+    expect(quickRows(all, 'all')).toHaveLength(8);
+  });
+
+  it('ordenar por Uso: lo más sospechoso primero', () => {
+    const order = sortRows(all, { key: 'usage', dir: 'asc' }).map((r) => r.usage);
+    expect(order).toEqual(['none', 'no-importers', 'mentioned', 'referenced', 'referenced', 'referenced', 'entry', 'not-analyzed']);
+    // Dentro de «referenciado», lo menos referenciado antes.
+    const referenced = sortRows(all, { key: 'usage', dir: 'asc' }).filter((r) => r.usage === 'referenced');
+    expect(referenced.at(-1)!.path).toBe('public/kart.glb');
+  });
+
+  it('«Lo usan» y «Usa», con el tipo y marcando lo de fuera del ámbito', () => {
+    const { usedBy, uses } = linksOf(uFiles, uRefs, 'public/kart.glb', ['public']);
+    expect(usedBy).toEqual([
+      { path: 'src/App.tsx', kind: 'ruta en string', inScope: false },
+      { path: 'src/main.tsx', kind: 'ruta en string', inScope: false },
+    ]);
+    expect(uses).toEqual([]);
+    const app = linksOf(uFiles, uRefs, 'src/App.tsx', []);
+    expect(app.usedBy).toEqual([{ path: 'src/main.tsx', kind: 'import', inScope: true }]);
+    expect(app.uses.map((l) => `${l.path} (${l.kind})`)).toEqual(['public/grass.png (mención)', 'public/kart.glb (ruta en string)']);
+    expect(linksOf(uFiles, uRefs, 'no/existe', [])).toEqual({ usedBy: [], uses: [] });
+  });
+
+  it('color «Uso»: un grupo por estado presente, en orden de sospecha', () => {
+    const c = coloring('usage', all);
+    expect(c.legend.map((l) => l.label)).toEqual(['Sin rastro', 'Sin importadores', 'Mencionado', 'Referenciado', 'Punto de entrada', 'No analizado']);
+    expect(c.legend[3]).toMatchObject({ count: 3, size: 5020 });
+    expect(c.colorOf(usageOf('public/trees.glb'))).not.toBe(c.colorOf(usageOf('public/kart.glb')));
+    expect(c.keyOf(usageOf('public/grass.png'))).toBe('mentioned');
   });
 });

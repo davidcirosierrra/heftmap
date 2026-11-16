@@ -1,5 +1,6 @@
 import { fileInScope, type Scope } from '../extension/scope.js';
-import type { PanelFile } from '../extension/panel-protocol.js';
+import type { Usage } from '../core/types.js';
+import type { PanelFile, PanelRef } from '../extension/panel-protocol.js';
 
 /**
  * Datos de la tabla (SPEC §2.2): filas, filtro y orden. Lógica pura, sin DOM ni React,
@@ -13,10 +14,16 @@ export interface Row {
   /** Extensión en minúsculas con punto ('.ts'); '' si no tiene. */
   ext: string;
   size: number;
+  /** 'pending' mientras el índice está a medias (primer análisis). */
+  usage: RowUsage;
+  /** Nº de archivos que lo referencian o mencionan, de todo el repo. */
+  refsIn: number;
 }
 
-export type SortKey = 'name' | 'folder' | 'size';
-export const SORT_KEYS: readonly SortKey[] = ['name', 'folder', 'size'];
+export type RowUsage = Usage | 'pending';
+
+export type SortKey = 'name' | 'folder' | 'size' | 'usage';
+export const SORT_KEYS: readonly SortKey[] = ['name', 'folder', 'size', 'usage'];
 export type SortDir = 'asc' | 'desc';
 export interface Sort {
   key: SortKey;
@@ -25,10 +32,20 @@ export interface Sort {
 
 export const DEFAULT_SORT: Sort = { key: 'name', dir: 'asc' };
 
-/** Archivos del ámbito como filas. */
-export function toRows(files: readonly PanelFile[], scope: Scope): Row[] {
+/** Datos del índice que no son la lista de archivos. Por defecto: completo y sin referencias. */
+export interface RowContext {
+  complete?: boolean;
+  refs?: readonly PanelRef[];
+}
+
+/** Archivos del ámbito como filas. Las referencias se cuentan sobre todo el repo. */
+export function toRows(files: readonly PanelFile[], scope: Scope, ctx: RowContext = {}): Row[] {
+  const complete = ctx.complete ?? true;
+  const refsIn = new Uint32Array(files.length);
+  for (const [, to] of ctx.refs ?? []) if (to < refsIn.length) refsIn[to]!++;
   const rows: Row[] = [];
-  for (const f of files) {
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i] as PanelFile;
     if (!fileInScope(scope, f.path)) continue;
     const slash = f.path.lastIndexOf('/');
     const name = f.path.slice(slash + 1);
@@ -40,6 +57,8 @@ export function toRows(files: readonly PanelFile[], scope: Scope): Row[] {
       // `.gitignore` no tiene extensión: es su nombre.
       ext: dot > 0 ? name.slice(dot).toLowerCase() : '',
       size: f.size,
+      usage: complete ? (f.usage ?? 'not-analyzed') : 'pending',
+      refsIn: refsIn[i] ?? 0,
     });
   }
   return rows;
@@ -60,6 +79,70 @@ export function filterRows(rows: readonly Row[], text: string): Row[] {
   });
 }
 
+const USAGE_ORDER: readonly RowUsage[] = ['none', 'no-importers', 'mentioned', 'referenced', 'entry', 'exception', 'not-analyzed', 'ignored-by-git', 'pending'];
+
+/** Filtros rápidos de la barra superior (SPEC §2.2). */
+export type Quick = 'all' | 'none' | 'mentioned' | 'entry';
+
+export const QUICK_LABEL: Record<Quick, string> = {
+  all: 'Todos',
+  none: 'Sin rastro',
+  mentioned: 'Mencionados',
+  entry: 'Puntos de entrada',
+};
+
+const QUICK_TEST: Record<Quick, (r: Row) => boolean> = {
+  all: () => true,
+  none: (r) => r.usage === 'none',
+  mentioned: (r) => r.usage === 'mentioned',
+  entry: (r) => r.usage === 'entry',
+};
+
+export function quickRows(rows: readonly Row[], quick: Quick): Row[] {
+  return quick === 'all' ? [...rows] : rows.filter(QUICK_TEST[quick]);
+}
+
+export function quickCounts(rows: readonly Row[]): Record<Quick, number> {
+  const out = { all: rows.length, none: 0, mentioned: 0, entry: 0 } satisfies Record<Quick, number>;
+  for (const r of rows) {
+    if (r.usage === 'none') out.none++;
+    else if (r.usage === 'mentioned') out.mentioned++;
+    else if (r.usage === 'entry') out.entry++;
+  }
+  return out;
+}
+
+/** Referencias de un archivo en los dos sentidos, con ruta y tipo. */
+export interface Link {
+  path: string;
+  kind: PanelRef[2];
+  /** false: el otro extremo está fuera del ámbito (se muestra marcado, SPEC §2.2). */
+  inScope: boolean;
+}
+
+export function linksOf(files: readonly PanelFile[], refs: readonly PanelRef[], path: string, scope: Scope): { usedBy: Link[]; uses: Link[] } {
+  const at = files.findIndex((f) => f.path === path);
+  const usedBy: Link[] = [];
+  const uses: Link[] = [];
+  if (at < 0) return { usedBy, uses };
+  const link = (i: number, kind: PanelRef[2]): Link | undefined => {
+    const f = files[i];
+    return f && { path: f.path, kind, inScope: fileInScope(scope, f.path) };
+  };
+  for (const [from, to, kind] of refs) {
+    if (to === at) {
+      const l = link(from, kind);
+      if (l) usedBy.push(l);
+    }
+    if (from === at) {
+      const l = link(to, kind);
+      if (l) uses.push(l);
+    }
+  }
+  const byPath = (a: Link, b: Link): number => collator.compare(a.path, b.path);
+  return { usedBy: usedBy.sort(byPath), uses: uses.sort(byPath) };
+}
+
 const collator = new Intl.Collator('es', { sensitivity: 'base', numeric: true });
 
 /** Devuelve una copia ordenada. A igualdad, por ruta, para que el orden sea estable. */
@@ -68,6 +151,8 @@ export function sortRows(rows: readonly Row[], sort: Sort): Row[] {
     name: (a, b) => collator.compare(a.name, b.name),
     folder: (a, b) => collator.compare(a.folder, b.folder) || collator.compare(a.name, b.name),
     size: (a, b) => a.size - b.size,
+    // Lo más sospechoso primero; dentro de cada estado, lo menos referenciado.
+    usage: (a, b) => USAGE_ORDER.indexOf(a.usage) - USAGE_ORDER.indexOf(b.usage) || a.refsIn - b.refsIn,
   };
   const cmp = by[sort.key];
   const sign = sort.dir === 'asc' ? 1 : -1;

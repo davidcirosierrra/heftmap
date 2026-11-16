@@ -7,7 +7,8 @@
 
 Nombre: **Heft** (antes «Workspace Files»). Repo `heft`; prefijo de ajustes y comandos `heft.*`.
 
-Estado: **fase 3 hecha** (vista «Carpetas», ámbito, comandos y panel con tabla y treemap; instalar y probar
+Estado: **fase 4 hecha**, producto mínimo completo (vista «Carpetas», ámbito, comandos y panel con
+tabla, treemap y uso; instalar y probar
 con [prepareextension.md](prepareextension.md)). Fase 0 en [docs/fase-0.md](docs/fase-0.md). Fecha: 16-11-2026.
 Las capturas son de la v1: valen como referencia visual, con las diferencias de la sección 8.
 
@@ -279,7 +280,16 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
    también el treemap. Doble clic en un rectángulo abre el archivo. Lo que mide menos de un píxel
    no se dibuja (en `Bytes`, el código junto a binarios grandes: para eso está `Equilibrado`).
    Errores del panel a la vista (§4.2).
-4. Uso: columna, estados, fila desplegable, color «Uso», acciones sobre «sin rastro».
+4. ~~Uso: columna, estados, fila desplegable, color «Uso», acciones sobre «sin rastro».~~ **Hecha**:
+   columna Uso (estado + nº de archivos que lo referencian, ordenable de más a menos sospechoso),
+   filtros rápidos Todos · Sin rastro (n) · Mencionados (n) · Puntos de entrada (n), color «Uso» y
+   acciones **Ignorar este archivo** (lo añade a `heft.usage.ignore` del workspace) y **Mover a la
+   papelera…** (confirmación modal, `useTrash`; la extensión solo acepta archivos que el índice
+   da por «sin rastro»). El grafo viaja al panel una arista por referencia, por posición.
+   **Cambio respecto al diseño**: «Lo usan» y «Usa» no van en una fila desplegable sino en el
+   detalle inferior (dos listas con el tipo y la marca «fuera del ámbito»): sirve igual al
+   seleccionar desde el treemap y no complica la lista virtual. Clic en una referencia la
+   selecciona; si está fuera del ámbito, la abre. Con el índice a medias el uso sale «Analizando…».
 5. Git: columna «Último cambio», colores «Antigüedad» y «Commits recientes», detalle del commit.
 6. Hotspots: columnas Líneas y Cambios, área «Líneas», color «Cambios», atajo «Hotspots».
 7. Opcionales: integración con Knip para código (verificar su salida JSON), ciudad 3D con Three.js.

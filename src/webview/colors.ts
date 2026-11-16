@@ -1,13 +1,15 @@
-import type { Row } from './model.js';
+import { USAGE_LABEL } from '../report.js';
+import type { Row, RowUsage } from './model.js';
 
 /**
  * Color de cada archivo según el modo activo (SPEC §2.2) y su leyenda. Lógica pura.
  * Cada modo reparte los archivos en grupos (`key`); la leyenda es la lista de grupos.
  */
-export type ColorMode = 'ext';
+export type ColorMode = 'ext' | 'usage';
 
 export const COLOR_LABEL: Record<ColorMode, string> = {
   ext: 'Extensión',
+  usage: 'Uso',
 };
 
 export interface LegendItem {
@@ -81,7 +83,38 @@ function byExt(rows: readonly Row[]): Coloring {
   return { mode: 'ext', keyOf, colorOf: (r) => color.get(extOf(r)) ?? NEUTRAL, legend };
 }
 
+/** Grupos fijos, en este orden; en la leyenda solo salen los que tienen archivos. */
+function fixedGroups(mode: ColorMode, rows: readonly Row[], keyOf: (r: Row) => string, groups: readonly { key: string; label: string; color: string }[]): Coloring {
+  const stats = groupLegend(rows, keyOf);
+  const color = new Map(groups.map((g) => [g.key, g.color]));
+  return {
+    mode,
+    keyOf,
+    colorOf: (r) => color.get(keyOf(r)) ?? NEUTRAL,
+    legend: groups.filter((g) => stats.has(g.key)).map((g) => ({ ...g, ...(stats.get(g.key) as { count: number; size: number }) })),
+  };
+}
+
+export const USAGE_COLOR: Record<RowUsage, string> = {
+  none: '#e15759',
+  'no-importers': '#f28e2b',
+  mentioned: '#edc948',
+  referenced: '#59a14f',
+  entry: '#4e79a7',
+  exception: '#b07aa1',
+  'not-analyzed': NEUTRAL,
+  'ignored-by-git': '#5c5c5c',
+  pending: '#6e6e6e',
+};
+
+export const usageLabel = (u: RowUsage): string => (u === 'pending' ? 'Analizando…' : USAGE_LABEL[u]);
+
+function byUsage(rows: readonly Row[]): Coloring {
+  const order: RowUsage[] = ['none', 'no-importers', 'mentioned', 'referenced', 'entry', 'exception', 'not-analyzed', 'ignored-by-git', 'pending'];
+  return fixedGroups('usage', rows, (r) => r.usage, order.map((u) => ({ key: u, label: usageLabel(u), color: USAGE_COLOR[u] })));
+}
+
 export function coloring(mode: ColorMode, rows: readonly Row[]): Coloring {
-  const modes: Record<ColorMode, (rows: readonly Row[]) => Coloring> = { ext: byExt };
+  const modes: Record<ColorMode, (rows: readonly Row[]) => Coloring> = { ext: byExt, usage: byUsage };
   return modes[mode](rows);
 }

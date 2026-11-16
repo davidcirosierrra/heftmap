@@ -326,6 +326,10 @@ class Heft implements vscode.Disposable, PanelHost {
       if (this.root && typeof m.path === 'string' && this.known.has(m.path)) {
         void vscode.commands.executeCommand('revealInExplorer', vscode.Uri.joinPath(this.root, m.path));
       }
+    } else if (m.type === 'ignoreUsage') {
+      if (typeof m.path === 'string' && this.known.has(m.path)) void this.ignoreUsage(m.path);
+    } else if (m.type === 'trash') {
+      if (typeof m.path === 'string') void this.trash(m.path);
     } else if (m.type === 'removeScope') {
       if (typeof m.folder === 'string') this.setScope(removeFolder(this.scope, m.folder));
     } else if (m.type === 'clearScope') this.setScope([]);
@@ -337,6 +341,43 @@ class Heft implements vscode.Disposable, PanelHost {
     } else if (m.type === 'error') {
       this.log.appendLine(`[${new Date().toLocaleTimeString('es-ES')}] Error en el panel (${String(m.where)}): ${String(m.message)}`);
       if (typeof m.stack === 'string') for (const line of m.stack.split('\n').slice(0, 30)) this.log.appendLine(`  ${line.trim()}`);
+    }
+  }
+
+  /** «Ignorar este archivo»: a `heft.usage.ignore` del workspace. El cambio de ajuste reanaliza. */
+  private async ignoreUsage(file: string): Promise<void> {
+    if (!this.root) return;
+    const cfg = vscode.workspace.getConfiguration('heft', this.root);
+    const list = cfg.get<string[]>('usage.ignore') ?? [];
+    if (list.includes(file)) return;
+    try {
+      await cfg.update('usage.ignore', [...list, file].sort(), vscode.ConfigurationTarget.Workspace);
+      this.log.appendLine(`Ignorado para el análisis de uso: ${file} (ajuste heft.usage.ignore)`);
+    } catch (err) {
+      void vscode.window.showErrorMessage(`Heft no pudo guardar el ajuste heft.usage.ignore: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  /**
+   * «Mover a la papelera…»: solo archivos que el índice actual da por «sin rastro», y
+   * siempre con confirmación. Nunca se borra nada sin preguntar (SPEC §2.2).
+   */
+  private async trash(file: string): Promise<void> {
+    const entry = this.index?.complete ? this.index.files.find((f) => f.path === file) : undefined;
+    if (!this.root || !entry || entry.usage !== 'none') return;
+    const action = 'Mover a la papelera';
+    const answer = await vscode.window.showWarningMessage(
+      `¿Mover «${file}» a la papelera?`,
+      { modal: true, detail: `${fmtSize(entry.size)}. Heft no ha encontrado ninguna referencia ni mención, pero no puede garantizar que no se use. Se puede recuperar desde la papelera.` },
+      action,
+    );
+    if (answer !== action) return;
+    try {
+      await vscode.workspace.fs.delete(vscode.Uri.joinPath(this.root, file), { useTrash: true });
+      this.log.appendLine(`A la papelera: ${file} (${fmtSize(entry.size)})`);
+      this.schedule('archivo a la papelera');
+    } catch (err) {
+      void vscode.window.showErrorMessage(`Heft no pudo mover «${file}» a la papelera: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 

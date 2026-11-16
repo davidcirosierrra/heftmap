@@ -91,7 +91,7 @@ describe('primer análisis: aviso sobre el árbol y panel de espera', () => {
     const index = last('index').index;
     expect(index.complete).toBe(false);
     expect(index.files).toHaveLength(full.files.length);
-    expect(index.files).toContainEqual({ path: 'public/models/kart.glb', size: full.files.find((f) => f.path === 'public/models/kart.glb')!.size });
+    expect(index.files.find((f: any) => f.path === 'public/models/kart.glb')).toMatchObject({ size: full.files.find((f) => f.path === 'public/models/kart.glb')!.size });
     runs[0]!.events.onProgress({ phase: 'git', done: 0, total: 0 });
     expect(message()).toBe('Tamaños listos. Falta el uso y el historial de git (historial de git…).');
     expect(last('status').status).toMatchObject({ building: true, progress: 'historial de git…', fraction: null });
@@ -103,6 +103,17 @@ describe('primer análisis: aviso sobre el árbol y panel de espera', () => {
     expect(message()).toBeUndefined();
     expect(last('index').index.complete).toBe(true);
     expect(last('status').status).toMatchObject({ building: false, progress: null, fraction: null });
+  });
+
+  it('con el índice completo viajan el estado de uso y el grafo de referencias', () => {
+    const { files, refs } = last('index').index;
+    const at = (p: string): number => files.findIndex((f: any) => f.path === p);
+    expect(files[at('public/models/trees.glb')].usage).toBe('none');
+    expect(files[at('public/textures/grass.png')].usage).toBe('mentioned');
+    expect(files[at('index.html')].usage).toBe('entry');
+    expect(refs).toContainEqual([at('src/main.tsx'), at('src/components/App.tsx'), 'import']);
+    // Una arista por referencia, no dos (entrada y salida).
+    expect(refs).toHaveLength(full.files.reduce((s, f) => s + f.refsOut.length, 0));
   });
 
   it('un reanálisis con datos en pantalla no vuelve a poner el aviso', async () => {
@@ -154,6 +165,46 @@ describe('panel: mensajes del webview', () => {
     expect(runs).toHaveLength(3);
     runs[2]!.resolve(full);
     await tick();
+  });
+});
+
+describe('panel: acciones sobre «sin rastro»', () => {
+  it('«Ignorar este archivo» lo añade a heft.usage.ignore del workspace', async () => {
+    panel().receive.fire({ type: 'ignoreUsage', path: 'public/models/trees.glb' });
+    await tick();
+    expect(fake.configUpdates).toEqual([{ key: 'usage.ignore', value: ['public/models/trees.glb'], target: 2 }]);
+    panel().receive.fire({ type: 'ignoreUsage', path: 'public/models/trees.glb' });
+    panel().receive.fire({ type: 'ignoreUsage', path: 'no/existe.glb' });
+    await tick();
+    expect(fake.configUpdates).toHaveLength(1);
+  });
+
+  it('«Mover a la papelera…» pregunta antes; sin confirmar no borra', async () => {
+    panel().receive.fire({ type: 'trash', path: 'public/audio/drift.mp3' });
+    await tick();
+    expect(fake.warnings).toHaveLength(1);
+    expect(fake.warnings[0]!.message).toBe('¿Mover «public/audio/drift.mp3» a la papelera?');
+    expect(fake.warnings[0]!.options.modal).toBe(true);
+    expect(fake.deleted).toEqual([]);
+  });
+
+  it('confirmado: a la papelera, nunca borrado definitivo', async () => {
+    fake.warningAnswer = 'Mover a la papelera';
+    panel().receive.fire({ type: 'trash', path: 'public/audio/drift.mp3' });
+    await tick();
+    expect(fake.deleted).toHaveLength(1);
+    expect(fake.deleted[0]!.path).toMatch(/public\/audio\/drift\.mp3$/);
+    expect(fake.deleted[0]!.options).toEqual({ useTrash: true });
+  });
+
+  it('no mueve a la papelera nada que no sea «sin rastro», aunque el panel lo pida', async () => {
+    const before = fake.warnings.length;
+    for (const path of ['src/main.tsx', 'public/models/kart.glb', 'public/textures/grass.png', '../fuera.txt', 42]) {
+      panel().receive.fire({ type: 'trash', path });
+    }
+    await tick();
+    expect(fake.warnings).toHaveLength(before);
+    expect(fake.deleted).toHaveLength(1);
   });
 });
 

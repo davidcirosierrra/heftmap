@@ -27,11 +27,11 @@ describe('panel (DOM): errores', () => {
 
   it('un fallo al pintar enseña el error con su traza en vez de dejar la pestaña en blanco', async () => {
     const quiet = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    // Datos imposibles: `files` no es una lista.
-    await p.send({ type: 'index', index: { rootName: 'kart', complete: true, files: 42 as never } });
+    // Datos imposibles: un archivo que no es un objeto.
+    await p.send({ type: 'index', index: { rootName: 'kart', complete: true, files: [null as never] } });
     quiet.mockRestore();
     expect(p.$('.crash h1')?.textContent).toBe('El panel de Heft ha fallado');
-    expect(p.$('.crash .stack')?.textContent).toMatch(/not iterable|is not a function/);
+    expect(p.$('.crash .stack')?.textContent).toMatch(/Cannot read properties of null/);
     expect(errorsSent().at(-1)?.where).toBe('al pintar');
   });
 
