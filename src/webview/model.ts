@@ -211,6 +211,16 @@ export function nextSort(current: Sort, key: SortKey): Sort {
   return { key, dir: DESC_FIRST.includes(key) ? 'desc' : 'asc' };
 }
 
+/** ¿Está la ruta dentro de la carpeta ampliada? Sin zoom (`''`), todo lo está. */
+export function inZoom(path: string, zoom: string): boolean {
+  return !zoom || path.startsWith(zoom + '/');
+}
+
+/** Filas dentro de la carpeta ampliada del treemap: lo que enseñan la tabla y los totales. */
+export function zoomRows(rows: readonly Row[], zoom: string): Row[] {
+  return zoom ? rows.filter((r) => inZoom(r.path, zoom)) : [...rows];
+}
+
 export function totalSize(rows: readonly Row[]): number {
   let total = 0;
   for (const r of rows) total += r.size;

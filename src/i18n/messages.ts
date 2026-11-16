@@ -172,6 +172,8 @@ export const en = {
   'bar.chartTip': 'Show or hide the treemap',
   'bar.hideChart': 'Hide chart',
   'bar.showChart': 'Show chart',
+  'bar.zoom': 'Zoom: {folder}/',
+  'bar.leaveZoom': 'Leave the zoom: whole scope in the table and the treemap',
 
   // ------------------------------------------------------------------ panel: tabla
   'col.name': 'Name',
@@ -398,6 +400,8 @@ export const es: Messages = {
   'bar.chartTip': 'Mostrar u ocultar el treemap',
   'bar.hideChart': 'Ocultar gráfico',
   'bar.showChart': 'Mostrar gráfico',
+  'bar.zoom': 'Zoom: {folder}/',
+  'bar.leaveZoom': 'Salir del zoom: todo el ámbito en la tabla y el treemap',
 
   'col.name': 'Nombre',
   'col.folder': 'Carpeta',
@@ -623,6 +627,8 @@ export const eu: Messages = {
   'bar.chartTip': 'Erakutsi edo ezkutatu treemap-a',
   'bar.hideChart': 'Ezkutatu grafikoa',
   'bar.showChart': 'Erakutsi grafikoa',
+  'bar.zoom': 'Zooma: {folder}/',
+  'bar.leaveZoom': 'Irten zoometik: esparru osoa taulan eta treemap-ean',
 
   'col.name': 'Izena',
   'col.folder': 'Karpeta',
