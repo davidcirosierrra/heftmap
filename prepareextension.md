@@ -221,7 +221,7 @@ Marca cada punto. Si algo falla, abre **Heft: Mostrar registro** (`Ctrl+Shift+P`
 - En un workspace con **varias carpetas raíz**, Heft analiza solo la primera (queda anotado en el registro).
 - El árbol siempre muestra el repo entero; el ámbito se ve con las casillas.
 - Cada cambio en disco vuelve a analizar todo el repo (con espera de 1,5 s), en segundo plano y
-  cancelando el análisis anterior si seguía en curso. El análisis incremental es trabajo pendiente.
+  cancelando el análisis anterior si seguía en curso. El análisis incremental está planificado (SPEC §10).
 
 ## 8. Si algo falla
 

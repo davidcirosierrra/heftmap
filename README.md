@@ -11,7 +11,8 @@ contextual del explorador, barra de estado y panel con la tabla de archivos (ord
 y el treemap enlazado (área, color por extensión o por uso, zoom), y el uso de cada archivo: estado,
 quién lo referencia, filtros «sin rastro» y acciones. También el último cambio en git (columna,
 colores por antigüedad y por commits recientes, detalle del commit) y los hotspots: líneas × cambios,
-con el botón «Hotspots». Quedan los opcionales de la fase 7 (Knip, ciudad 3D).
+con el botón «Hotspots». Lo siguiente es el análisis incremental (plan en la sección 10 del SPEC); la integración con Knip
+queda como opcional.
 Diseño completo en [SPEC.md](SPEC.md); resultados de la fase 0 en [docs/fase-0.md](docs/fase-0.md).
 
 **Instalar y probar en Cursor: [prepareextension.md](prepareextension.md).**
