@@ -4,12 +4,18 @@
   "description": "%description%",
   "version": "0.1.0",
   "publisher": "davidcirosierrra",
-  "private": true,
+  "author": {
+    "name": "David-Ciro Sierra Garcia"
+  },
   "type": "module",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/davidcirosierrra/Heft"
+  },
+  "homepage": "https://github.com/davidcirosierrra/Heft#readme",
+  "bugs": {
+    "url": "https://github.com/davidcirosierrra/Heft/issues"
   },
   "engines": {
     "node": ">=20",
@@ -20,9 +26,6 @@
     "Other"
   ],
   "main": "./dist/extension.cjs",
-  "bin": {
-    "heft": "dist/cli.js"
-  },
   "activationEvents": [
     "onStartupFinished"
   ],
