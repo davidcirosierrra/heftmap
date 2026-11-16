@@ -33,7 +33,7 @@ describe('idiomas: diccionarios', () => {
 });
 
 describe('idiomas: elección', () => {
-  it('del idioma del editor al de Heft; lo desconocido, inglés', () => {
+  it('del idioma del editor al de Heftmap; lo desconocido, inglés', () => {
     expect(resolveLocale('es')).toBe('es');
     expect(resolveLocale('es-419')).toBe('es');
     expect(resolveLocale('eu')).toBe('eu');
@@ -123,8 +123,8 @@ describe('idiomas: package.json', () => {
     }
   });
 
-  it('el ajuste heft.language ofrece los tres idiomas', () => {
-    const lang = JSON.parse(pkg).contributes.configuration.properties['heft.language'];
+  it('el ajuste heftmap.language ofrece los tres idiomas', () => {
+    const lang = JSON.parse(pkg).contributes.configuration.properties['heftmap.language'];
     expect(lang.enum).toEqual(['auto', 'en', 'es', 'eu']);
     expect(lang.default).toBe('auto');
   });

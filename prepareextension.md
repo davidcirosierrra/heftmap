@@ -1,4 +1,4 @@
-# Preparar y probar Heft en Cursor
+# Preparar y probar Heftmap en Cursor
 
 Guía para instalar la extensión y comprobar las **fases 1 a 6** (vista «Carpetas», ámbito y panel
 con tabla, treemap, uso, git y hotspots).
@@ -7,14 +7,14 @@ Funciona igual en VS Code.
 ## 1. Requisitos
 
 - Node.js 20 o superior (`node --version`).
-- Git en el `PATH`: Heft lo usa para listar archivos y leer el historial.
+- Git en el `PATH`: Heftmap lo usa para listar archivos y leer el historial.
 - Cursor (o VS Code 1.85 o superior).
 
 ## 2. Preparar el repo
 
 ```bash
 git clone https://github.com/davidcirosierrra/Heft.git
-cd Heft
+cd Heftmap
 npm install
 npm test                        # núcleo, ámbito, árbol, panel (lógica y DOM) y humo de la extensión
 ```
@@ -24,32 +24,32 @@ npm test                        # núcleo, ámbito, árbol, panel (lógica y DOM
 ### A. Instalar el `.vsix` (como la usarás de verdad)
 
 ```bash
-npm run package                 # genera heft.vsix (~1 MB)
+npm run package                 # genera heftmap.vsix (~1 MB)
 ```
 
 En Cursor:
 
 1. `Ctrl+Shift+P` (`Cmd+Shift+P` en Mac) → **Extensions: Install from VSIX…**
-2. Elige `heft.vsix`.
+2. Elige `heftmap.vsix`.
 3. Recarga la ventana si te lo pide (**Developer: Reload Window**).
 
 O desde la terminal:
 
 ```bash
-cursor --install-extension heft.vsix
+cursor --install-extension heftmap.vsix
 ```
 
 Para actualizar: vuelve a ejecutar `npm run package` e instala el `.vsix` nuevo encima.
 Un `.vsix` instalado a mano **no se actualiza solo**.
 
-Para desinstalar: panel de extensiones → Heft → **Uninstall**, o
-`cursor --uninstall-extension notime-labs.heft`.
+Para desinstalar: panel de extensiones → Heftmap → **Uninstall**, o
+`cursor --uninstall-extension notime-labs.heftmap`.
 
 ### B. Modo desarrollo con F5 (para depurar)
 
-1. Abre la carpeta `Heft` en Cursor.
-2. Pulsa **F5** (o *Run and Debug* → **Heft: probar la extensión**).
-3. Se abre otra ventana, el *Extension Development Host*, con Heft cargada desde el código.
+1. Abre la carpeta `Heftmap` en Cursor.
+2. Pulsa **F5** (o *Run and Debug* → **Heftmap: probar la extensión**).
+3. Se abre otra ventana, el *Extension Development Host*, con Heftmap cargada desde el código.
    Abre ahí el proyecto que quieras analizar (**File → Open Folder…**).
 4. Tras cambiar código: `Ctrl+R` en la ventana de pruebas para recargar (la tarea previa recompila).
 
@@ -68,11 +68,11 @@ git clone https://github.com/davidcirosierrra/FEOS_PERO_MAJOS_SURVIVAL.git
 
 ## 5. Qué comprobar (fase 1)
 
-Marca cada punto. Si algo falla, abre **Heft: Mostrar registro** (`Ctrl+Shift+P`) y copia lo que salga.
+Marca cada punto. Si algo falla, abre **Heftmap: Mostrar registro** (`Ctrl+Shift+P`) y copia lo que salga.
 
 **Arranque**
 - [ ] Aparece un icono nuevo en la barra de actividad (un cuadrado dividido, tipo treemap).
-- [ ] En la barra de estado, abajo a la izquierda: `Heft: Todo el repositorio · N archivos · X MB`.
+- [ ] En la barra de estado, abajo a la izquierda: `Heftmap: Todo el repositorio · N archivos · X MB`.
       Mientras analiza muestra un icono girando y la fase (`leyendo 40/79`, `uso 12/30`…).
 - [ ] Mientras analiza, una barra de progreso fina recorre la parte superior de la vista «Carpetas».
 - [ ] En un repo grande, antes de que aparezca el árbol la vista muestra el texto «Analizando el
@@ -80,8 +80,8 @@ Marca cada punto. Si algo falla, abre **Heft: Mostrar registro** (`Ctrl+Shift+P`
       visible cambia a «Tamaños listos. Falta el uso y el historial de git (…)» y desaparece al acabar.
 - [ ] En un repo grande, el árbol con tamaños aparece antes de que termine el análisis; hasta
       entonces el tooltip de un archivo dice «Analizando uso y git…».
-- [ ] El editor no se queda parado mientras Heft analiza (escribe en un archivo durante el análisis).
-- [ ] En el registro (*Output → Heft*) sale una línea `Índice (inicio)` con los tiempos.
+- [ ] El editor no se queda parado mientras Heftmap analiza (escribe en un archivo durante el análisis).
+- [ ] En el registro (*Output → Heftmap*) sale una línea `Índice (inicio)` con los tiempos.
 
 **Vista «Carpetas»**
 - [ ] Carpetas y archivos ordenados de mayor a menor tamaño.
@@ -100,7 +100,7 @@ Marca cada punto. Si algo falla, abre **Heft: Mostrar registro** (`Ctrl+Shift+P`
 
 **Ámbito con casillas**
 - [ ] Marca la casilla de una carpeta: la descripción de la vista y la barra de estado cambian
-      (en Feos pero majos: `Heft: src · 47 archivos · 339 KB`).
+      (en Feos pero majos: `Heftmap: src · 47 archivos · 339 KB`).
 - [ ] Sus subcarpetas aparecen marcadas; el tooltip de la casilla dice «En el ámbito por «src/»».
 - [ ] Desmarcar una subcarpeta así muestra un aviso («Quita primero «src/»») y no cambia nada.
 - [ ] Marca una segunda carpeta: el ámbito pasa a `public + src`.
@@ -108,28 +108,28 @@ Marca cada punto. Si algo falla, abre **Heft: Mostrar registro** (`Ctrl+Shift+P`
       `.vscode/settings.json`).
 
 **Comandos y menús**
-- [ ] Botón del embudo en la cabecera (o `Heft: Elegir carpetas del ámbito…`): lista de carpetas
+- [ ] Botón del embudo en la cabecera (o `Heftmap: Elegir carpetas del ámbito…`): lista de carpetas
       con casillas; las del ámbito vienen marcadas.
-- [ ] Botón «limpiar» (o `Heft: Todo el repositorio`): vuelve a `Todo el repositorio`.
+- [ ] Botón «limpiar» (o `Heftmap: Todo el repositorio`): vuelve a `Todo el repositorio`.
 - [ ] Clic en la barra de estado: abre el selector de carpetas.
-- [ ] Explorador nativo → clic derecho en una carpeta → **Añadir al ámbito de Heft**.
+- [ ] Explorador nativo → clic derecho en una carpeta → **Añadir al ámbito de Heftmap**.
 - [ ] Selecciona varias carpetas en el explorador (`Ctrl`+clic) → clic derecho → **Añadir…**: se añaden todas.
-- [ ] Clic derecho → **Limitar el ámbito de Heft a esta carpeta**: el ámbito queda solo en esa.
-- [ ] En la vista de Heft, clic derecho en una carpeta → **Limitar el ámbito…** y **Revelar en el explorador**.
+- [ ] Clic derecho → **Limitar el ámbito de Heftmap a esta carpeta**: el ámbito queda solo en esa.
+- [ ] En la vista de Heftmap, clic derecho en una carpeta → **Limitar el ámbito…** y **Revelar en el explorador**.
 
 **Actualización**
 - [ ] Crea o borra un archivo: en 1–2 s la vista se actualiza sola.
 - [ ] Lanza un build del proyecto (escribe en `dist/`, ignorado por git): en el registro **no** aparece
       un `Índice (cambios en disco)` nuevo.
 - [ ] Haz un commit: el tooltip del archivo muestra el commit nuevo.
-- [ ] Cambia un ajuste `heft.*` (*Settings → Heft*): se vuelve a analizar.
+- [ ] Cambia un ajuste `heftmap.*` (*Settings → Heftmap*): se vuelve a analizar.
 - [ ] Botón «refrescar» de la cabecera: vuelve a analizar.
 
 ## 6. Qué comprobar (fases 2 a 6: panel)
 
 **Abrir**
-- [ ] Botón de la tabla en la cabecera de la vista «Carpetas», o `Heft: Abrir panel` en la paleta:
-      se abre una pestaña «Heft».
+- [ ] Botón de la tabla en la cabecera de la vista «Carpetas», o `Heftmap: Abrir panel` en la paleta:
+      se abre una pestaña «Heftmap».
 - [ ] Pulsarlo otra vez no abre una segunda pestaña: trae la que hay al frente.
 - [ ] Recarga la ventana con un repo grande abierto y abre el panel enseguida: pantalla de espera
       con spinner, «Analizando el repositorio…», la fase con su avance y una barra. La tabla
@@ -175,7 +175,7 @@ Marca cada punto. Si algo falla, abre **Heft: Mostrar registro** (`Ctrl+Shift+P`
       `ruta en string`, `mención`…). Clic en uno lo selecciona.
 - [ ] Con un ámbito puesto, las referencias de fuera llevan la marca «fuera del ámbito» (y el clic
       las abre). Un archivo usado solo desde fuera del ámbito **no** sale como «sin rastro».
-- [ ] En un archivo «sin rastro»: **Ignorar este archivo** lo añade a `heft.usage.ignore` (mira
+- [ ] En un archivo «sin rastro»: **Ignorar este archivo** lo añade a `heftmap.usage.ignore` (mira
       `.vscode/settings.json`) y tras el reanálisis pasa a «Excepción».
 - [ ] **Mover a la papelera…** pide confirmación; al aceptar, el archivo va a la papelera del sistema
       (recuperable) y desaparece de la tabla. Cancelar no hace nada.
@@ -204,14 +204,14 @@ Marca cada punto. Si algo falla, abre **Heft: Mostrar registro** (`Ctrl+Shift+P`
 - [ ] En área `Líneas` los binarios desaparecen del treemap y las cabeceras de carpeta dan líneas.
 - [ ] `package-lock.json` sale en gris oscuro («Generado o lockfile») aunque tenga muchos cambios.
 - [ ] La leyenda de `Cambios` da los tramos (`12 o más cambios`, `5–11`…); clic resalta uno.
-- [ ] Con `heft.git.since` = `1.month`, los cambios cuentan solo ese periodo.
+- [ ] Con `heftmap.git.since` = `1.month`, los cambios cuentan solo ese periodo.
 - [ ] En una carpeta sin git: el botón Hotspots y los colores de git están apagados; `Líneas` funciona.
 - [ ] Con el panel estrecho la tabla se desplaza en horizontal en vez de aplastar las columnas.
 
 **Idiomas**
 - [ ] Con el editor en castellano, todo sale en castellano (panel, vista, barra de estado, avisos,
       comandos de la paleta y ajustes).
-- [ ] Ajuste `Heft: Language` = `English`: el panel y la vista pasan a inglés al momento, sin
+- [ ] Ajuste `Heftmap: Language` = `English`: el panel y la vista pasan a inglés al momento, sin
       reanalizar. Los nombres de los comandos y ajustes siguen en el idioma del editor (VS Code no
       deja cambiarlos por extensión).
 - [ ] `Euskara`: textos en euskera, números `1,5 MB`, porcentajes `% 51`, fechas `2026/11/12`.
@@ -220,7 +220,7 @@ Marca cada punto. Si algo falla, abre **Heft: Mostrar registro** (`Ctrl+Shift+P`
 
 **Modo restringido**
 - [ ] Abre una carpeta y elige «No confío» (o *Workspaces: Manage Workspace Trust* → no confiar):
-      Heft muestra tamaños y uso, la vista dice «Modo restringido: se analiza sin git…» y no hay
+      Heftmap muestra tamaños y uso, la vista dice «Modo restringido: se analiza sin git…» y no hay
       columnas de git con datos.
 - [ ] Confía en la carpeta: se reanaliza sola y aparecen el historial y los cambios.
 
@@ -238,7 +238,7 @@ Marca cada punto. Si algo falla, abre **Heft: Mostrar registro** (`Ctrl+Shift+P`
 
 - «Lo usan» y «Usa» están en el detalle inferior, no en una fila desplegable.
 - Al recargar la ventana el panel se cierra; hay que volver a abrirlo.
-- En un workspace con **varias carpetas raíz**, Heft analiza solo la primera (queda anotado en el registro).
+- En un workspace con **varias carpetas raíz**, Heftmap analiza solo la primera (queda anotado en el registro).
 - El árbol siempre muestra el repo entero; el ámbito se ve con las casillas.
 - Cada cambio en disco vuelve a analizar todo el repo (con espera de 1,5 s), en segundo plano y
   cancelando el análisis anterior si seguía en curso. El análisis incremental está planificado (SPEC §10).
@@ -247,13 +247,13 @@ Marca cada punto. Si algo falla, abre **Heft: Mostrar registro** (`Ctrl+Shift+P`
 
 | Síntoma | Qué mirar |
 |---------|-----------|
-| Aviso «Heft: error interno en …» | Es un fallo de Heft. Pulsa **Copiar informe** (o `Heft: Copiar informe de errores`) y pégalo en una incidencia. El registro completo está en *Output → Heft* y en disco: *Developer: Open Extension Logs Folder*. |
-| No aparece el icono de Heft | *Extensions*: ¿está Heft instalada y activada? Recarga la ventana. |
-| La vista sale vacía | ¿Tienes una carpeta abierta? Mira **Heft: Mostrar registro**. |
+| Aviso «Heftmap: error interno en …» | Es un fallo de Heftmap. Pulsa **Copiar informe** (o `Heftmap: Copiar informe de errores`) y pégalo en una incidencia. El registro completo está en *Output → Heftmap* y en disco: *Developer: Open Extension Logs Folder*. |
+| No aparece el icono de Heftmap | *Extensions*: ¿está Heftmap instalada y activada? Recarga la ventana. |
+| La vista sale vacía | ¿Tienes una carpeta abierta? Mira **Heftmap: Mostrar registro**. |
 | «No se pudo analizar el repositorio» | El mensaje completo está en el registro. Si menciona `worker.cjs`, el `.vsix` está incompleto: vuelve a ejecutar `npm run package`. |
-| No hay datos de git (commits, `●`) | Si `git` no está en el `PATH`, Heft analiza sin git y lo avisa en el registro (`aviso: No se encuentra «git»…`). |
-| `Install from VSIX` falla | Comprueba la versión: Heft pide VS Code ≥ 1.85 (*Help → About*). |
-| El panel enseña «El panel de Heft ha fallado» o una banda roja | Es un error del propio panel: pulsa **Copiar el error** (o **Ver el registro**) y pásalo. **Reintentar** vuelve a pintar. |
+| No hay datos de git (commits, `●`) | Si `git` no está en el `PATH`, Heftmap analiza sin git y lo avisa en el registro (`aviso: No se encuentra «git»…`). |
+| `Install from VSIX` falla | Comprueba la versión: Heftmap pide VS Code ≥ 1.85 (*Help → About*). |
+| El panel enseña «El panel de Heftmap ha fallado» o una banda roja | Es un error del propio panel: pulsa **Copiar el error** (o **Ver el registro**) y pásalo. **Reintentar** vuelve a pintar. |
 | El panel se abre en blanco | Falta `dist/webview.js` o `dist/webview.css` en el `.vsix`: vuelve a ejecutar `npm run package`. Mira también *Developer: Open Webview Developer Tools*. |
 | No hay casillas en las carpetas | Versión del editor demasiado antigua: las casillas en vistas existen desde VS Code 1.80. |
 

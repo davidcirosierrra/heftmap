@@ -9,7 +9,7 @@ import { cssUrls, globToRegExp, htmlAttrs, mdLinks, quotedStrings } from '../src
 
 /**
  * Seguridad (docs/seguridad.md): un repo malicioso no debe ejecutar código, colgar el análisis
- * ni hacer que Heft lea fuera de él.
+ * ni hacer que Heftmap lea fuera de él.
  */
 const dirs: string[] = [];
 const tmp = (name: string): string => {

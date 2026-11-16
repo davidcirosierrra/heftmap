@@ -8,7 +8,7 @@ import { CancelledError, workerRunner, type IndexEvents, type IndexRunner } from
 import { fake, makeContext } from './fake-vscode.js';
 import { createKartGame } from './fixture.js';
 
-/** Registro de errores: que un fallo de Heft quede escrito, con su origen y su traza, y avise. */
+/** Registro de errores: que un fallo de Heftmap quede escrito, con su origen y su traza, y avise. */
 interface Run {
   events: IndexEvents;
   resolve: (i: HeftIndex) => void;
@@ -49,7 +49,7 @@ afterAll(() => {
 
 describe('registro', () => {
   it('empieza con versión, editor, sistema, idioma y confianza', () => {
-    expect(fake.log[0]).toMatch(/^Heft dev · heft=dev · vscode=1\.99\.0-test · app=Fake Code · platform=\w+ \w+ · node=[\d.]+ · locale=es · trusted=true · folders=1$/);
+    expect(fake.log[0]).toMatch(/^Heftmap dev · heftmap=dev · vscode=1\.99\.0-test · app=Fake Code · platform=\w+ \w+ · node=[\d.]+ · locale=es · trusted=true · folders=1$/);
   });
 
   it('un comando que falla queda registrado con su origen y su traza, y avisa', async () => {
@@ -59,22 +59,22 @@ describe('registro', () => {
         throw new Error('boom');
       },
     };
-    await fake.commands.get('heft.revealInExplorer')!(boom);
+    await fake.commands.get('heftmap.revealInExplorer')!(boom);
     const entry = errorsInLog().at(-1)!;
-    expect(entry).toMatch(/^\[error\] \[command heft\.revealInExplorer\] boom/);
+    expect(entry).toMatch(/^\[error\] \[command heftmap\.revealInExplorer\] boom/);
     expect(entry).toMatch(/at /);
-    expect(fake.errors).toEqual(['Heft: error interno en command heft.revealInExplorer: boom']);
+    expect(fake.errors).toEqual(['Heftmap: error interno en command heftmap.revealInExplorer: boom']);
   });
 
   it('los avisos no se repiten más de uno por minuto; el registro sí lo guarda todo', async () => {
     const before = errorsInLog().length;
-    await fake.commands.get('heft.revealInExplorer')!({ kind: 'dir', get path(): string { throw new Error('otra'); } });
+    await fake.commands.get('heftmap.revealInExplorer')!({ kind: 'dir', get path(): string { throw new Error('otra'); } });
     expect(errorsInLog()).toHaveLength(before + 1);
     expect(fake.errors).toHaveLength(1);
   });
 
   it('un análisis que falla: error con la traza del worker y en la vista', async () => {
-    void fake.commands.get('heft.refresh')!();
+    void fake.commands.get('heftmap.refresh')!();
     await tick();
     const err = Object.assign(new Error('se rompió'), { stack: 'Error: se rompió\n    at buildIndex (worker.cjs:1:1)' });
     runs.at(-1)!.reject(err);
@@ -94,11 +94,11 @@ describe('registro', () => {
   });
 
   it('«Copiar informe de errores» lleva la cabecera y los errores', async () => {
-    await fake.commands.get('heft.copyReport')!();
-    expect(fake.clipboard).toMatch(/^Heft — error report\nheft=dev · vscode=1\.99\.0-test/);
-    expect(fake.clipboard).toContain('[error] [command heft.revealInExplorer] boom');
+    await fake.commands.get('heftmap.copyReport')!();
+    expect(fake.clipboard).toMatch(/^Heftmap — error report\nheftmap=dev · vscode=1\.99\.0-test/);
+    expect(fake.clipboard).toContain('[error] [command heftmap.revealInExplorer] boom');
     expect(fake.clipboard).toContain('se rompió');
-    expect(fake.infos.at(-1)).toBe('Heft: informe de error copiado. Pégalo en una incidencia de GitHub.');
+    expect(fake.infos.at(-1)).toBe('Heftmap: informe de error copiado. Pégalo en una incidencia de GitHub.');
   });
 });
 

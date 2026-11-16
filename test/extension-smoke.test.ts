@@ -46,13 +46,13 @@ afterAll(() => {
 
 describe('extensión (humo)', () => {
   it('registra los comandos del package.json', () => {
-    for (const id of ['heft.refresh', 'heft.pickScope', 'heft.clearScope', 'heft.addToScope', 'heft.limitScope', 'heft.revealInExplorer', 'heft.showLog']) {
+    for (const id of ['heftmap.refresh', 'heftmap.pickScope', 'heftmap.clearScope', 'heftmap.addToScope', 'heftmap.limitScope', 'heftmap.revealInExplorer', 'heftmap.showLog']) {
       expect(fake.commands.has(id)).toBe(true);
     }
     expect(fake.treeView!.options.manageCheckboxStateManually).toBe(true);
   });
 
-  it('el nombre se colorea por peso solo en la vista de Heft, no en el explorador', () => {
+  it('el nombre se colorea por peso solo en la vista de Heftmap, no en el explorador', () => {
     const top = items();
     const pub = top[0]!.item;
     expect(pub.resourceUri!.query).toBe('heft=heavy');
@@ -85,9 +85,9 @@ describe('extensión (humo)', () => {
 
   it('marcar una casilla cambia el ámbito, la descripción y la barra de estado', () => {
     check(find('src').node, true);
-    expect(fake.state.get('heft.scope')).toEqual(['src']);
+    expect(fake.state.get('heftmap.scope')).toEqual(['src']);
     expect(fake.treeView!.description).toBe('src · 13 KB · 12 archivos');
-    expect(fake.status.text).toMatch(/Heft: src · 12 archivos · \d+ KB/);
+    expect(fake.status.text).toMatch(/Heftmap: src · 12 archivos · \d+ KB/);
     // Las subcarpetas salen marcadas por el ancestro
     const game = find('game', find('src').node);
     expect(game.item.checkboxState?.state).toBe(TreeItemCheckboxState.Checked);
@@ -97,24 +97,24 @@ describe('extensión (humo)', () => {
   it('desmarcar una subcarpeta cubierta por un ancestro avisa y no cambia nada', () => {
     const game = find('game', find('src').node);
     check(game.node, false);
-    expect(fake.state.get('heft.scope')).toEqual(['src']);
+    expect(fake.state.get('heftmap.scope')).toEqual(['src']);
     expect(fake.infos.at(-1)).toContain('Quita primero «src/»');
   });
 
   it('menú contextual del explorador: añadir y limitar, con selección múltiple', async () => {
     const u = (p: string) => Uri.file(path.join(root, p));
-    await fake.commands.get('heft.addToScope')!(u('public/models'), [u('public/models'), u('public/audio')]);
-    expect(fake.state.get('heft.scope')).toEqual(['public/audio', 'public/models', 'src']);
-    await fake.commands.get('heft.limitScope')!(u('public'));
-    expect(fake.state.get('heft.scope')).toEqual(['public']);
+    await fake.commands.get('heftmap.addToScope')!(u('public/models'), [u('public/models'), u('public/audio')]);
+    expect(fake.state.get('heftmap.scope')).toEqual(['public/audio', 'public/models', 'src']);
+    await fake.commands.get('heftmap.limitScope')!(u('public'));
+    expect(fake.state.get('heftmap.scope')).toEqual(['public']);
   });
 
   it('selector de carpetas (QuickPick) y «Todo el repositorio»', async () => {
     fake.quickPickAnswer = (list) => list.filter((i) => i.path === 'src/game' || i.path === 'docs');
-    await fake.commands.get('heft.pickScope')!();
-    expect(fake.state.get('heft.scope')).toEqual(['docs', 'src/game']);
-    await fake.commands.get('heft.clearScope')!();
-    expect(fake.state.get('heft.scope')).toEqual([]);
+    await fake.commands.get('heftmap.pickScope')!();
+    expect(fake.state.get('heftmap.scope')).toEqual(['docs', 'src/game']);
+    await fake.commands.get('heftmap.clearScope')!();
+    expect(fake.state.get('heftmap.scope')).toEqual([]);
     expect(fake.treeView!.description).toMatch(/^Todo el repositorio · \d+ MB · 30 archivos$/);
   });
 });

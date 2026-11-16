@@ -4,23 +4,23 @@ Revisión previa a la publicación (16-11-2026). Cómo avisar de un problema: [S
 
 ## Modelo de amenaza
 
-Heft se activa sola al abrir cualquier carpeta y la analiza: lee sus archivos, ejecuta `git` y,
+Heftmap se activa sola al abrir cualquier carpeta y la analiza: lee sus archivos, ejecuta `git` y,
 con TypeScript, resuelve imports. **La carpeta es la entrada no fiable**: puede ser un repo
 descargado o preparado a propósito. Lo que no debe pasar:
 
 1. Que abrir una carpeta ejecute código que trae la propia carpeta.
 2. Que su contenido cuelgue el análisis o se coma la máquina.
-3. Que Heft lea, borre o envíe algo fuera de ella.
+3. Que Heftmap lea, borre o envíe algo fuera de ella.
 4. Que el panel (un webview) ejecute código o haga cosas en nombre del usuario sin que este lo pida.
 
-Heft no hace peticiones de red ni tiene telemetría: no hay `fetch`, `http`, `net` ni sockets en el código.
+Heftmap no hace peticiones de red ni tiene telemetría: no hay `fetch`, `http`, `net` ni sockets en el código.
 
 ## Encontrado y corregido
 
 | # | Problema | Gravedad | Arreglo |
 |---|----------|----------|---------|
 | 1 | **Ejecución de código con `core.fsmonitor`**. Un `.git/config` con `core.fsmonitor = <programa>` hace que `git status` lo ejecute. Abrir una carpeta descargada (zip, tarball, carpeta compartida: no un `git clone`, que no copia la config) ejecutaba ese programa. Reproducido. | Crítica | `-c core.fsmonitor=false` en cada llamada a git (`src/core/git.ts`), con un test que lo comprueba |
-| 2 | **Otras formas de ejecutar código desde `.git/config`**: filtros de `.gitattributes` (`filter.*.clean`), `gpg.program` con `log.showSignature`, submódulos. Los filtros no se pueden desactivar en general. | Alta | **Workspace Trust**: en una carpeta sin confianza Heft no ejecuta git (analiza como carpeta sin repo) y lo dice en la vista. Al confiar, se reanaliza con git. Además: `log.showSignature=false`, `submodule.recurse=false`, `--ignore-submodules=all` |
+| 2 | **Otras formas de ejecutar código desde `.git/config`**: filtros de `.gitattributes` (`filter.*.clean`), `gpg.program` con `log.showSignature`, submódulos. Los filtros no se pueden desactivar en general. | Alta | **Workspace Trust**: en una carpeta sin confianza Heftmap no ejecuta git (analiza como carpeta sin repo) y lo dice en la vista. Al confiar, se reanaliza con git. Además: `log.showSignature=false`, `submodule.recurse=false`, `--ignore-submodules=all` |
 | 3 | **`git.exe` plantado en el repo (Windows)**. Lanzar `git` con `cwd` en el repo hace que Windows busque primero `git.exe` en esa carpeta. | Alta | Git se busca a mano en el `PATH`: solo carpetas absolutas, nunca la analizada ni sus subcarpetas, y solo `git.exe` (nunca `.cmd`/`.bat`) |
 | 4 | **ReDoS**: las expresiones de `url()` en CSS y de enlaces Markdown eran cuadráticas con miles de aperturas sin cerrar (20.000 `url(` → 5 s; un CSS de 5 MB, horas). Un `import.meta.glob` con 11 `**/` colgaba el análisis más de un minuto (exponencial). | Media | Repeticiones acotadas y que paran en el siguiente corchete o paréntesis (1 MB hostil < 0,2 s). Los `**/` seguidos se juntan y se rechazan patrones con más de 3 `**` o más de 300 caracteres. Tests con entradas hostiles |
 | 5 | **Enlaces simbólicos**: un enlace a `~/.ssh/id_rsa` o a `/dev/zero` se seguía y se leía. | Baja | No se siguen: cuentan como el enlace en sí, igual que en git |
@@ -30,7 +30,7 @@ Heft no hace peticiones de red ni tiene telemetría: no hay `fetch`, `http`, `ne
 ## Revisado sin cambios
 
 - **Inyección de órdenes**: git se lanza con `execFile` (sin intérprete) y argumentos en lista. El
-  único valor del usuario que llega a git, `heft.git.since`, va pegado a `--since=` como un solo
+  único valor del usuario que llega a git, `heftmap.git.since`, va pegado a `--since=` como un solo
   argumento.
 - **Panel (webview)**: CSP `default-src 'none'`, scripts solo con nonce, recursos solo de `dist/`.
   React escapa todo lo que pinta; no hay `innerHTML` ni `eval`. Los estilos en línea los pone React

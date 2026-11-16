@@ -1,6 +1,6 @@
-# Heft — qué pesa en tu repo y si se usa
+# Heftmap — qué pesa en tu repo y si se usa
 
-Heft enseña cuánto pesa cada archivo y carpeta, qué recursos ya no referencia nadie y dónde está
+Heftmap enseña cuánto pesa cada archivo y carpeta, qué recursos ya no referencia nadie y dónde está
 el código grande que más se toca. Pensada para proyectos web con recursos pesados (modelos `.glb`,
 audio, texturas), sirve en cualquier repo con git, también en monorepos.
 
@@ -33,25 +33,25 @@ audio, texturas), sirve en cualquier repo con git, también en monorepos.
 ## Requisitos
 
 - Cursor, VS Code 1.85 o posterior, o cualquier editor que instale desde Open VSX.
-- `git` en el `PATH` para el historial y los cambios. Sin git, Heft enseña tamaños y uso.
-- En modo restringido (carpetas sin confianza) Heft no ejecuta git. Ver [SECURITY.md](SECURITY.md).
+- `git` en el `PATH` para el historial y los cambios. Sin git, Heftmap enseña tamaños y uso.
+- En modo restringido (carpetas sin confianza) Heftmap no ejecuta git. Ver [SECURITY.md](SECURITY.md).
 
 ## Ajustes
 
 | Ajuste | Por defecto | Para qué |
 |--------|-------------|----------|
-| `heft.language` | `auto` | `en`, `es` o `eu`; `auto` sigue al editor |
-| `heft.publicDir` | `public` | Carpeta contra la que se resuelven las rutas absolutas (`/models/x.glb`) |
-| `heft.git.since` | vacío | Limitar el historial en repos grandes, p. ej. `1.year` |
-| `heft.usage.ignore` | `[]` | Archivos que nunca cuentan como huérfanos |
-| `heft.usage.entryPoints` | `[]` | Puntos de entrada extra (rutas de un framework, por ejemplo) |
+| `heftmap.language` | `auto` | `en`, `es` o `eu`; `auto` sigue al editor |
+| `heftmap.publicDir` | `public` | Carpeta contra la que se resuelven las rutas absolutas (`/models/x.glb`) |
+| `heftmap.git.since` | vacío | Limitar el historial en repos grandes, p. ej. `1.year` |
+| `heftmap.usage.ignore` | `[]` | Archivos que nunca cuentan como huérfanos |
+| `heftmap.usage.entryPoints` | `[]` | Puntos de entrada extra (rutas de un framework, por ejemplo) |
 
 ## Monorepos
 
 Cada app usa su propio `tsconfig.json` (alias como `@/…`), y los paquetes del repo importados por
 nombre (`@scope/pkg`) se resuelven a su código fuente, con o sin `node_modules`. Los alias que solo
 están en la configuración del bundler (Vite, Metro, Babel) no se pueden seguir: el registro
-(*Output → Heft*) los lista, y declararlos en `paths` de un tsconfig lo arregla.
+(*Output → Heftmap*) los lista, y declararlos en `paths` de un tsconfig lo arregla.
 
 ## Límites conocidos
 
@@ -62,7 +62,7 @@ están en la configuración del bundler (Vite, Metro, Babel) no se pueden seguir
 
 ## Problemas
 
-El registro está en *Output → Heft*. Si Heft falla lo dice y ofrece **Copiar informe**: pégalo en
+El registro está en *Output → Heftmap*. Si Heftmap falla lo dice y ofrece **Copiar informe**: pégalo en
 una [incidencia](https://github.com/davidcirosierrra/Heft/issues). Problemas de seguridad: ver
 [SECURITY.md](SECURITY.md).
 

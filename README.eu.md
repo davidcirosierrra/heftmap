@@ -1,8 +1,8 @@
-# Heft — zerk pisatzen duen zure biltegian eta erabiltzen den
+# Heftmap — zerk pisatzen duen zure biltegian eta erabiltzen den
 
 > Itzulpen hau berrikusteke dago.
 
-Heft-ek fitxategi eta karpeta bakoitzaren pisua erakusten du, inork erreferentziatzen ez dituen
+Heftmap-ek fitxategi eta karpeta bakoitzaren pisua erakusten du, inork erreferentziatzen ez dituen
 baliabideak, eta gehien aldatzen den kode handia non dagoen. Baliabide astunak dituzten web
 proiektuetarako pentsatua (`.glb` modeloak, audioa, testurak), git duen edozein biltegitan
 balio du, monorepoetan ere bai.
@@ -38,26 +38,26 @@ balio du, monorepoetan ere bai.
 ## Baldintzak
 
 - Cursor, VS Code 1.85 edo berriagoa, edo Open VSX-etik instalatzen duen edozein editore.
-- `git` `PATH`-ean, historiarako eta aldaketetarako. Git gabe, Heft-ek tamainak eta erabilera
+- `git` `PATH`-ean, historiarako eta aldaketetarako. Git gabe, Heftmap-ek tamainak eta erabilera
   erakusten ditu.
-- Modu mugatuan (konfiantzarik gabeko karpetak) Heft-ek ez du git exekutatzen. Ikus [SECURITY.md](SECURITY.md).
+- Modu mugatuan (konfiantzarik gabeko karpetak) Heftmap-ek ez du git exekutatzen. Ikus [SECURITY.md](SECURITY.md).
 
 ## Ezarpenak
 
 | Ezarpena | Lehenetsia | Zertarako |
 |----------|------------|-----------|
-| `heft.language` | `auto` | `en`, `es` edo `eu`; `auto`-k editorea jarraitzen du |
-| `heft.publicDir` | `public` | Bide-izen absolutuak (`/models/x.glb`) ebazteko karpeta |
-| `heft.git.since` | hutsik | Git historia mugatu biltegi handietan, adib. `1.year` |
-| `heft.usage.ignore` | `[]` | Inoiz umezurtz gisa kontatzen ez diren fitxategiak |
-| `heft.usage.entryPoints` | `[]` | Sarrera-puntu gehigarriak (framework baten bideak, adibidez) |
+| `heftmap.language` | `auto` | `en`, `es` edo `eu`; `auto`-k editorea jarraitzen du |
+| `heftmap.publicDir` | `public` | Bide-izen absolutuak (`/models/x.glb`) ebazteko karpeta |
+| `heftmap.git.since` | hutsik | Git historia mugatu biltegi handietan, adib. `1.year` |
+| `heftmap.usage.ignore` | `[]` | Inoiz umezurtz gisa kontatzen ez diren fitxategiak |
+| `heftmap.usage.entryPoints` | `[]` | Sarrera-puntu gehigarriak (framework baten bideak, adibidez) |
 
 ## Monorepoak
 
 Aplikazio bakoitzak bere `tsconfig.json` erabiltzen du (`@/…` bezalako aliasak), eta izenez
 inportatutako biltegiko paketeak (`@scope/pkg`) bere iturburu-kodera ebazten dira, `node_modules`
 izan zein ez. Bundler-aren konfigurazioan bakarrik dauden aliasak (Vite, Metro, Babel) ezin dira
-jarraitu: erregistroak (*Output → Heft*) zerrendatzen ditu, eta tsconfig baten `paths` atalean
+jarraitu: erregistroak (*Output → Heftmap*) zerrendatzen ditu, eta tsconfig baten `paths` atalean
 deklaratzeak konpontzen du.
 
 ## Muga ezagunak
@@ -69,7 +69,7 @@ deklaratzeak konpontzen du.
 
 ## Arazoak
 
-Erregistroa *Output → Heft* atalean dago. Heft-ek huts egiten badu, esan egiten du eta
+Erregistroa *Output → Heftmap* atalean dago. Heftmap-ek huts egiten badu, esan egiten du eta
 **Kopiatu txostena** eskaintzen du: itsatsi [intzidentzia](https://github.com/davidcirosierrra/Heft/issues)
 batean. Segurtasun-arazoak: ikus [SECURITY.md](SECURITY.md).
 

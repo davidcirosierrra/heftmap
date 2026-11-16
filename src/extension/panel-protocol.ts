@@ -61,7 +61,7 @@ export interface PanelStatus {
   /** Avance de la fase entre 0 y 1; null si la fase no se puede medir. */
   fraction: number | null;
   error: string | null;
-  /** Idioma de la interfaz: el panel lo sigue si cambia el ajuste `heft.language`. */
+  /** Idioma de la interfaz: el panel lo sigue si cambia el ajuste `heftmap.language`. */
   locale?: Locale;
 }
 
@@ -76,7 +76,7 @@ export type WebviewMessage =
   | { type: 'reveal'; path: string }
   /** «Ver diff» de un archivo con cambios sin commit. */
   | { type: 'diff'; path: string }
-  /** Añade el archivo a `heft.usage.ignore`: deja de salir como «sin rastro». */
+  /** Añade el archivo a `heftmap.usage.ignore`: deja de salir como «sin rastro». */
   | { type: 'ignoreUsage'; path: string }
   /** Pide mover a la papelera un archivo «sin rastro». La extensión confirma antes. */
   | { type: 'trash'; path: string }
@@ -86,5 +86,5 @@ export type WebviewMessage =
   | { type: 'refresh' }
   | { type: 'showLog' }
   | { type: 'copy'; text: string }
-  /** Fallo dentro del panel: va al registro de Heft. */
+  /** Fallo dentro del panel: va al registro de Heftmap. */
   | { type: 'error'; where: string; message: string; stack?: string };

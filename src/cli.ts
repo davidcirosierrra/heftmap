@@ -18,7 +18,7 @@ const { values, positionals } = parseArgs({
 });
 
 if (values.help) {
-  console.log(`Uso: heft [ruta] [opciones]
+  console.log(`Uso: heftmap [ruta] [opciones]
 
   --json               Índice completo en JSON
   --since <fecha>      Limitar el historial de git (p. ej. 1.year)

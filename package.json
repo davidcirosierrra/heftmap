@@ -1,5 +1,5 @@
 {
-  "name": "heft",
+  "name": "heftmap",
   "displayName": "%displayName%",
   "description": "%description%",
   "icon": "media/icon.png",
@@ -50,17 +50,17 @@
   "main": "./dist/extension.cjs",
   "activationEvents": [
     "onStartupFinished",
-    "onWebviewPanel:heft.panel"
+    "onWebviewPanel:heftmap.panel"
   ],
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": "limited",
       "description": "%capabilities.untrusted%",
       "restrictedConfigurations": [
-        "heft.publicDir",
-        "heft.git.since",
-        "heft.usage.ignore",
-        "heft.usage.entryPoints"
+        "heftmap.publicDir",
+        "heftmap.git.since",
+        "heftmap.usage.ignore",
+        "heftmap.usage.entryPoints"
       ]
     }
   },
@@ -68,16 +68,16 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "heft",
+          "id": "heftmap",
           "title": "%container.title%",
           "icon": "media/heft.svg"
         }
       ]
     },
     "views": {
-      "heft": [
+      "heftmap": [
         {
-          "id": "heft.folders",
+          "id": "heftmap.folders",
           "name": "%view.folders%",
           "icon": "media/heft.svg"
         }
@@ -85,128 +85,128 @@
     },
     "viewsWelcome": [
       {
-        "view": "heft.folders",
+        "view": "heftmap.folders",
         "contents": "%view.welcome%",
         "when": "workbenchState == empty"
       }
     ],
     "commands": [
       {
-        "command": "heft.openPanel",
+        "command": "heftmap.openPanel",
         "title": "%command.openPanel%",
-        "category": "Heft",
+        "category": "Heftmap",
         "icon": "$(table)"
       },
       {
-        "command": "heft.refresh",
+        "command": "heftmap.refresh",
         "title": "%command.refresh%",
-        "category": "Heft",
+        "category": "Heftmap",
         "icon": "$(refresh)"
       },
       {
-        "command": "heft.pickScope",
+        "command": "heftmap.pickScope",
         "title": "%command.pickScope%",
-        "category": "Heft",
+        "category": "Heftmap",
         "icon": "$(filter)"
       },
       {
-        "command": "heft.clearScope",
+        "command": "heftmap.clearScope",
         "title": "%command.clearScope%",
-        "category": "Heft",
+        "category": "Heftmap",
         "icon": "$(clear-all)"
       },
       {
-        "command": "heft.addToScope",
+        "command": "heftmap.addToScope",
         "title": "%command.addToScope%",
-        "category": "Heft"
+        "category": "Heftmap"
       },
       {
-        "command": "heft.limitScope",
+        "command": "heftmap.limitScope",
         "title": "%command.limitScope%",
-        "category": "Heft"
+        "category": "Heftmap"
       },
       {
-        "command": "heft.revealInExplorer",
+        "command": "heftmap.revealInExplorer",
         "title": "%command.revealInExplorer%",
-        "category": "Heft"
+        "category": "Heftmap"
       },
       {
-        "command": "heft.showLog",
+        "command": "heftmap.showLog",
         "title": "%command.showLog%",
-        "category": "Heft"
+        "category": "Heftmap"
       },
       {
-        "command": "heft.copyReport",
+        "command": "heftmap.copyReport",
         "title": "%command.copyReport%",
-        "category": "Heft"
+        "category": "Heftmap"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "heft.openPanel",
-          "when": "view == heft.folders",
+          "command": "heftmap.openPanel",
+          "when": "view == heftmap.folders",
           "group": "navigation@0"
         },
         {
-          "command": "heft.pickScope",
-          "when": "view == heft.folders",
+          "command": "heftmap.pickScope",
+          "when": "view == heftmap.folders",
           "group": "navigation@1"
         },
         {
-          "command": "heft.clearScope",
-          "when": "view == heft.folders",
+          "command": "heftmap.clearScope",
+          "when": "view == heftmap.folders",
           "group": "navigation@2"
         },
         {
-          "command": "heft.refresh",
-          "when": "view == heft.folders",
+          "command": "heftmap.refresh",
+          "when": "view == heftmap.folders",
           "group": "navigation@3"
         },
         {
-          "command": "heft.showLog",
-          "when": "view == heft.folders"
+          "command": "heftmap.showLog",
+          "when": "view == heftmap.folders"
         },
         {
-          "command": "heft.copyReport",
-          "when": "view == heft.folders"
+          "command": "heftmap.copyReport",
+          "when": "view == heftmap.folders"
         }
       ],
       "view/item/context": [
         {
-          "command": "heft.limitScope",
-          "when": "view == heft.folders && viewItem == heftDir",
+          "command": "heftmap.limitScope",
+          "when": "view == heftmap.folders && viewItem == heftDir",
           "group": "heft@1"
         },
         {
-          "command": "heft.revealInExplorer",
-          "when": "view == heft.folders && viewItem =~ /^heft(Dir|File)$/",
+          "command": "heftmap.revealInExplorer",
+          "when": "view == heftmap.folders && viewItem =~ /^heft(Dir|File)$/",
           "group": "heft@2"
         }
       ],
       "explorer/context": [
         {
-          "command": "heft.addToScope",
+          "command": "heftmap.addToScope",
           "when": "explorerResourceIsFolder",
           "group": "heft@1"
         },
         {
-          "command": "heft.limitScope",
+          "command": "heftmap.limitScope",
           "when": "explorerResourceIsFolder",
           "group": "heft@2"
         }
       ],
       "commandPalette": [
         {
-          "command": "heft.addToScope",
+          "command": "heftmap.addToScope",
           "when": "false"
         },
         {
-          "command": "heft.limitScope",
+          "command": "heftmap.limitScope",
           "when": "false"
         },
         {
-          "command": "heft.revealInExplorer",
+          "command": "heftmap.revealInExplorer",
           "when": "false"
         }
       ]
@@ -214,7 +214,7 @@
     "configuration": {
       "title": "%config.title%",
       "properties": {
-        "heft.language": {
+        "heftmap.language": {
           "type": "string",
           "enum": [
             "auto",
@@ -231,17 +231,17 @@
           ],
           "description": "%config.language%"
         },
-        "heft.publicDir": {
+        "heftmap.publicDir": {
           "type": "string",
           "default": "public",
           "description": "%config.publicDir%"
         },
-        "heft.git.since": {
+        "heftmap.git.since": {
           "type": "string",
           "default": "",
           "description": "%config.git.since%"
         },
-        "heft.usage.ignore": {
+        "heftmap.usage.ignore": {
           "type": "array",
           "items": {
             "type": "string"
@@ -249,7 +249,7 @@
           "default": [],
           "description": "%config.usage.ignore%"
         },
-        "heft.usage.entryPoints": {
+        "heftmap.usage.entryPoints": {
           "type": "array",
           "items": {
             "type": "string"
@@ -268,10 +268,10 @@
     "build:worker": "esbuild src/extension/worker.ts --bundle --platform=node --format=cjs --target=node20 --minify --sourcemap --outfile=dist/worker.cjs",
     "build:webview": "esbuild src/webview/main.tsx --bundle --platform=browser --format=iife --target=es2022 --minify --outfile=dist/webview.js",
     "watch:ext": "npm run build:worker && npm run build:webview && npm run build:host -- --watch",
-    "package": "npm run build:ext && vsce package --no-dependencies --out heft.vsix",
+    "package": "npm run build:ext && vsce package --no-dependencies --out heftmap.vsix",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "heft": "node dist/cli.js"
+    "heftmap": "node dist/cli.js"
   },
   "dependencies": {
     "d3-hierarchy": "^3.1.3",

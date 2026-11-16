@@ -1,4 +1,4 @@
-# Publicar Heft
+# Publicar Heftmap
 
 Guía paso a paso. Fecha: 16-11-2026. Lo marcado **(David)** solo lo puedes hacer tú; el resto ya
 está en el repo.
@@ -68,11 +68,11 @@ el Marketplace solo hace falta para llegar a usuarios de VS Code (sección 6).
    release. Si algo falla, el registro de la acción lo dice.
 5. Open VSX revisa cada extensión al publicar (secretos, archivos maliciosos conocidos, nombres
    parecidos a otros). Si la rechaza, el error dice qué comprobación falló.
-6. Comprueba la página en https://open-vsx.org/extension/notime-labs/heft y búscala en Cursor
-   (*Extensions* → «Heft»). Puede tardar un rato en aparecer en Cursor.
+6. Comprueba la página en https://open-vsx.org/extension/notime-labs/heftmap y búscala en Cursor
+   (*Extensions* → «Heftmap»). Puede tardar un rato en aparecer en Cursor.
 
 **Alternativa sin GitHub Actions**: genera un token en *Settings* → *Access Tokens* (solo para
-esto, y bórralo después), `npm run package` y `npx ovsx publish heft.vsix -p <token>` desde tu
+esto, y bórralo después), `npm run package` y `npx ovsx publish heftmap.vsix -p <token>` desde tu
 equipo.
 
 ## 5. Versiones siguientes
@@ -86,7 +86,7 @@ Para usuarios de VS Code. Hace falta una cuenta de Microsoft, crear el publisher
 `notime-labs` en https://marketplace.visualstudio.com/manage y un token de Azure DevOps con
 permiso *Marketplace (Manage)*. Microsoft está cambiando estos tokens por otro sistema de
 identidad a finales de 2026: mirar la documentación del momento antes de hacerlo. Luego se añade
-un paso `npx vsce publish -i heft.vsix` a `publish.yml` con su secreto.
+un paso `npx vsce publish -i heftmap.vsix` a `publish.yml` con su secreto.
 
 ## 7. Pendiente
 
@@ -94,6 +94,6 @@ un paso `npx vsce publish -i heft.vsix` a `publish.yml` con su secreto.
 - [ ] (David) Una captura de la ventana completa de Cursor con la vista «Carpetas» y el panel, y si
       puedes un GIF corto (abrir panel → *Hotspots* → clic en el treemap). Se guardan en
       `docs/images/` y se añaden al README.
-- [ ] Nombre visible: «Heft» coincide con el sistema de build de Rush Stack (Microsoft). El
-      identificador `notime-labs.heft` es único; si Open VSX lo rechazara por parecido, se
-      cambia `name`.
+- [x] Nombre visible: «Heft» coincidía con el sistema de build de Rush Stack (Microsoft); se
+      renombró a «Heftmap», con id `notime-labs.heftmap` y claves `heftmap.*`. El repositorio de
+      GitHub sigue siendo `davidcirosierrra/Heft`.

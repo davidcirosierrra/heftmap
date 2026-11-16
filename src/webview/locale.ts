@@ -3,7 +3,7 @@ import { i18n, LOCALES, type I18n, type Locale } from '../i18n/index.js';
 
 /**
  * Idioma del panel. Arranca con el que la extensión escribe en la página (`data-heft-locale`)
- * y cambia si llega otro en el estado (ajuste `heft.language`).
+ * y cambia si llega otro en el estado (ajuste `heftmap.language`).
  */
 function initial(): Locale {
   const attr = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-heft-locale') ?? document.documentElement.lang : '';

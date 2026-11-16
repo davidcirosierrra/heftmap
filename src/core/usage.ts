@@ -13,7 +13,7 @@ import { loadWorkspace, packageNameOf, probeFile, type Workspace } from './works
  *  2. Menciones: recursos sin referencia cuyo nombre aparece en algún archivo de texto.
  *
  * Nota: el `typescript` del proyecto analizado puede ser la 7 (nativa, sin API de
- * compilador). Heft usa su propia copia de TypeScript 5.x solo para leer imports.
+ * compilador). Heftmap usa su propia copia de TypeScript 5.x solo para leer imports.
  */
 
 const posix = path.posix;
@@ -87,7 +87,7 @@ export function analyzeUsage(input: UsageInput): UsageResult {
 
   /**
    * Un import no relativo sin destino que no es una dependencia declarada, ni un módulo de
-   * Node, ni un módulo virtual: casi seguro un alias que Heft no sabe resolver (definido solo
+   * Node, ni un módulo virtual: casi seguro un alias que Heftmap no sabe resolver (definido solo
    * en el bundler) o un paquete del repo cuyo archivo de entrada no se encuentra.
    */
   const isUnresolvedAlias = (spec: string, from: string): boolean => {

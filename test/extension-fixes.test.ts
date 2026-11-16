@@ -41,7 +41,7 @@ beforeAll(async () => {
     'src/main.ts': 'export {}\n',
   });
   fake.reset(root);
-  fake.state.set('heft.scope', ['src/old', 'src/borrada']);
+  fake.state.set('heftmap.scope', ['src/old', 'src/borrada']);
   context = makeContext();
   activate(context as never, inProcessRunner);
   await waitFor(() => rebuilds() === 1);
@@ -67,13 +67,13 @@ describe('extensión: arreglos de la revisión', () => {
   });
 
   it('al arrancar se quitan del ámbito las carpetas que ya no existen', () => {
-    expect(fake.state.get('heft.scope')).toEqual(['src/old']);
+    expect(fake.state.get('heftmap.scope')).toEqual(['src/old']);
   });
 
   it('no se añaden al ámbito carpetas sin archivos en el índice', async () => {
     mkdirSync(path.join(root, 'node_modules/x'), { recursive: true });
-    await fake.commands.get('heft.addToScope')!(u('node_modules'));
-    expect(fake.state.get('heft.scope')).toEqual(['src/old']);
+    await fake.commands.get('heftmap.addToScope')!(u('node_modules'));
+    expect(fake.state.get('heftmap.scope')).toEqual(['src/old']);
     expect(fake.infos.at(-1)).toContain('«node_modules»');
   });
 

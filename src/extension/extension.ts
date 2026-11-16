@@ -25,22 +25,22 @@ import { allFolders, buildFolderTree, childrenOf, share, type DirNode, type Fold
 
 /**
  * Vista lateral «Carpetas», comandos, menú contextual del explorador, barra de estado y panel
- * (`panel.ts`). Los textos salen de src/i18n en el idioma del editor o el de `heft.language`.
+ * (`panel.ts`). Los textos salen de src/i18n en el idioma del editor o el de `heftmap.language`.
  *
  * El análisis no corre aquí: se lanza en un worker (`runner.ts`, `worker.ts`) para no
  * bloquear el proceso de extensiones. Este archivo no debe importar el núcleo salvo tipos,
  * o TypeScript acabaría también en este bundle.
  */
 
-const VIEW_ID = 'heft.folders';
-const SCOPE_KEY = 'heft.scope';
+const VIEW_ID = 'heftmap.folders';
+const SCOPE_KEY = 'heftmap.scope';
 const REBUILD_DELAY_MS = 1500;
 
 type Reason = Extract<MessageKey, `reason.${string}`>;
 
-/** Idioma de Heft: el ajuste `heft.language` o, en «auto», el del editor. */
+/** Idioma de Heftmap: el ajuste `heftmap.language` o, en «auto», el del editor. */
 export function currentLocale(): Locale {
-  const chosen = vscode.workspace.getConfiguration('heft').get<string>('language');
+  const chosen = vscode.workspace.getConfiguration('heftmap').get<string>('language');
   return chosen && chosen !== 'auto' ? resolveLocale(chosen) : resolveLocale(vscode.env.language);
 }
 
@@ -109,32 +109,32 @@ class Heft implements vscode.Disposable, PanelHost {
       showCollapseAll: true,
       manageCheckboxStateManually: true,
     });
-    this.status = vscode.window.createStatusBarItem('heft.status', vscode.StatusBarAlignment.Left, 0);
-    this.status.name = 'Heft';
-    this.status.command = 'heft.pickScope';
+    this.status = vscode.window.createStatusBarItem('heftmap.status', vscode.StatusBarAlignment.Left, 0);
+    this.status.name = 'Heftmap';
+    this.status.command = 'heftmap.pickScope';
     this.panel = new HeftPanel(context.extensionUri, this);
 
     const cmd = (id: string, fn: (...args: any[]) => unknown): void => {
       this.disposables.push(vscode.commands.registerCommand(id, guard(log, `command ${id}`, fn)));
     };
     const on = <A extends unknown[]>(where: string, fn: (...args: A) => unknown) => guard(log, where, fn);
-    cmd('heft.refresh', () => this.rebuild('reason.manual'));
-    cmd('heft.clearScope', () => this.setScope([]));
-    cmd('heft.pickScope', () => this.pickScope());
-    cmd('heft.addToScope', (uri?: vscode.Uri, uris?: vscode.Uri[]) =>
+    cmd('heftmap.refresh', () => this.rebuild('reason.manual'));
+    cmd('heftmap.clearScope', () => this.setScope([]));
+    cmd('heftmap.pickScope', () => this.pickScope());
+    cmd('heftmap.addToScope', (uri?: vscode.Uri, uris?: vscode.Uri[]) =>
       this.setScope(addFolders(this.scope, this.foldersFromArgs(uri, uris))),
     );
-    cmd('heft.limitScope', (arg?: vscode.Uri | TreeNode, uris?: vscode.Uri[]) => {
+    cmd('heftmap.limitScope', (arg?: vscode.Uri | TreeNode, uris?: vscode.Uri[]) => {
       const folders = isTreeNode(arg) ? (arg.kind === 'dir' ? [arg.path] : []) : this.foldersFromArgs(arg, uris);
       if (folders.length) this.setScope(addFolders([], folders));
     });
-    cmd('heft.revealInExplorer', (node?: TreeNode) => {
+    cmd('heftmap.revealInExplorer', (node?: TreeNode) => {
       const uri = node && this.uriOf(node);
       if (uri) return vscode.commands.executeCommand('revealInExplorer', uri);
     });
-    cmd('heft.showLog', () => this.log.show());
-    cmd('heft.openPanel', () => this.panel.show());
-    cmd('heft.copyReport', async () => {
+    cmd('heftmap.showLog', () => this.log.show());
+    cmd('heftmap.openPanel', () => this.panel.show());
+    cmd('heftmap.copyReport', async () => {
       await vscode.env.clipboard.writeText(this.log.report());
       void vscode.window.showInformationMessage(this.I.t('error.reportCopied'));
     });
@@ -152,14 +152,14 @@ class Heft implements vscode.Disposable, PanelHost {
       }),
       this.view.onDidChangeCheckboxState(on('checkbox', (e: vscode.TreeCheckboxChangeEvent<TreeNode>) => this.onCheckboxes(e))),
       vscode.workspace.onDidChangeConfiguration(on('settings change', (e: vscode.ConfigurationChangeEvent) => {
-        if (e.affectsConfiguration('heft.language')) {
+        if (e.affectsConfiguration('heftmap.language')) {
           // Solo cambia cómo se dice: se repinta sin volver a analizar.
           this.I = i18n(currentLocale());
           this.render();
           this.panel.indexChanged();
           return;
         }
-        if (e.affectsConfiguration('heft')) this.schedule('reason.settings');
+        if (e.affectsConfiguration('heftmap')) this.schedule('reason.settings');
       })),
       vscode.workspace.onDidChangeWorkspaceFolders(on('workspace folders', () => this.start())),
       vscode.workspace.onDidGrantWorkspaceTrust(on('workspace trust', () => this.rebuild('reason.trust'))),
@@ -263,7 +263,7 @@ class Heft implements vscode.Disposable, PanelHost {
     this.progress = undefined;
     this.render();
 
-    const cfg = vscode.workspace.getConfiguration('heft', root);
+    const cfg = vscode.workspace.getConfiguration('heftmap', root);
     const job = this.runner(
       root.fsPath,
       {
@@ -329,7 +329,7 @@ class Heft implements vscode.Disposable, PanelHost {
       if (!current() || err instanceof CancelledError) return;
       this.error =
         err instanceof WorkerExitError ? this.I.t('error.workerExit', { code: err.code }) : err instanceof Error ? err.message : String(err);
-      // Ya se enseña en la vista y en el panel; el aviso es para saber que el fallo es de Heft.
+      // Ya se enseña en la vista y en el panel; el aviso es para saber que el fallo es de Heftmap.
       this.log.error(`analysis (${reason})`, err, { notify: true, detail: this.I.t('log.indexError', { error: this.error }) });
     } finally {
       if (current()) {
@@ -418,10 +418,10 @@ class Heft implements vscode.Disposable, PanelHost {
     }
   }
 
-  /** «Ignorar este archivo»: a `heft.usage.ignore` del workspace. El cambio de ajuste reanaliza. */
+  /** «Ignorar este archivo»: a `heftmap.usage.ignore` del workspace. El cambio de ajuste reanaliza. */
   private async ignoreUsage(file: string): Promise<void> {
     if (!this.root) return;
-    const cfg = vscode.workspace.getConfiguration('heft', this.root);
+    const cfg = vscode.workspace.getConfiguration('heftmap', this.root);
     const list = cfg.get<string[]>('usage.ignore') ?? [];
     if (list.includes(file)) return;
     try {
@@ -545,7 +545,7 @@ class Heft implements vscode.Disposable, PanelHost {
     if (this.building) {
       this.status.text = `$(sync~spin) ${I.t('status.analyzing', { progress: progressLabel(this.progress, I) })}`;
     } else if (!this.index) {
-      this.status.text = '$(layers) Heft';
+      this.status.text = '$(layers) Heftmap';
     } else {
       const t = totals ?? { size: 0, count: 0 };
       this.status.text = `$(layers) ${I.t('status.text', { scope: label, files: I.tp('files', t.count), size: I.size(t.size) })}`;
@@ -578,7 +578,7 @@ class Heft implements vscode.Disposable, PanelHost {
 
   /**
    * Texto sobre el árbol durante el primer análisis: en un repo grande el árbol tarda en
-   * aparecer y la barra de progreso nativa sola no deja claro que Heft está trabajando.
+   * aparecer y la barra de progreso nativa sola no deja claro que Heftmap está trabajando.
    */
   private firstScanMessage(): string | undefined {
     if (!this.building || this.index?.complete) return undefined;

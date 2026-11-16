@@ -1,6 +1,6 @@
 # Glosario de la interfaz (en · es · eu)
 
-Términos fijos de Heft en los tres idiomas. Los textos completos están en
+Términos fijos de Heftmap en los tres idiomas. Los textos completos están en
 [`src/i18n/messages.ts`](../src/i18n/messages.ts) (panel, vista lateral, avisos y registro) y en
 `package.nls*.json` (comandos, vista y ajustes).
 
@@ -31,7 +31,7 @@ Términos fijos de Heft en los tres idiomas. Los textos completos están en
 | Papelera | Trash | papelera | zakarrontzia |
 | Registro (Output) | log | registro | erregistroa |
 
-Sin traducir en ningún idioma: Heft, treemap, hotspots, commit, hash, diff, lockfile, import.
+Sin traducir en ningún idioma: Heftmap, treemap, hotspots, commit, hash, diff, lockfile, import.
 
 ## Formatos
 
@@ -43,5 +43,5 @@ Sin traducir en ningún idioma: Heft, treemap, hotspots, commit, hash, diff, loc
 | Fecha | 11/12/2026 | 12/11/2026 | 2026/11/12 |
 
 Chromium (y con él el panel dentro de VS Code) no trae datos de euskera para `Intl`. En ese caso
-Heft usa los separadores del castellano y monta a mano el porcentaje y la fecha
+Heftmap usa los separadores del castellano y monta a mano el porcentaje y la fecha
 (`src/i18n/index.ts`).

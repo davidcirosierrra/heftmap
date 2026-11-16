@@ -75,15 +75,15 @@ describe('extensión: análisis asíncrono', () => {
 
   it('mientras analiza: barra de progreso sobre la vista y árbol vacío', () => {
     expect(runs).toHaveLength(1);
-    expect(fake.progress).toEqual([{ location: { viewId: 'heft.folders' }, done: false }]);
-    expect(fake.status.text).toBe('$(sync~spin) Heft: analizando…');
+    expect(fake.progress).toEqual([{ location: { viewId: 'heftmap.folders' }, done: false }]);
+    expect(fake.status.text).toBe('$(sync~spin) Heftmap: analizando…');
     expect(fake.treeView!.description).toBe('Todo el repositorio · analizando…');
     expect(provider().getChildren()).toEqual([]);
   });
 
   it('el avance se ve en la barra de estado', () => {
     runs[0]!.events.onProgress({ phase: 'read', done: 5, total: 27 });
-    expect(fake.status.text).toBe('$(sync~spin) Heft: leyendo 5/27');
+    expect(fake.status.text).toBe('$(sync~spin) Heftmap: leyendo 5/27');
   });
 
   it('con el índice a medias ya hay árbol con tamaños, sin veredicto de uso', () => {
@@ -93,7 +93,7 @@ describe('extensión: análisis asíncrono', () => {
     expect(physicsTip()).not.toContain('Referenciado');
     expect(physicsTip()).not.toContain('No analizado');
     runs[0]!.events.onProgress({ phase: 'usage', done: 12, total: 30 });
-    expect(fake.status.text).toBe('$(sync~spin) Heft: uso 12/30');
+    expect(fake.status.text).toBe('$(sync~spin) Heftmap: uso 12/30');
   });
 
   it('al terminar: datos completos y la barra de progreso se cierra', async () => {
@@ -101,22 +101,22 @@ describe('extensión: análisis asíncrono', () => {
     await tick();
     expect(physicsTip()).toContain('Referenciado');
     expect(physicsTip()).toContain('3 cambios');
-    expect(fake.status.text).toMatch(/^\$\(layers\) Heft: Todo el repositorio · \d+ archivos/);
+    expect(fake.status.text).toMatch(/^\$\(layers\) Heftmap: Todo el repositorio · \d+ archivos/);
     expect(fake.treeView!.description).toMatch(/^Todo el repositorio · \d+ MB · 30 archivos$/);
     expect(fake.progress[0]!.done).toBe(true);
     expect(logged()).toBe(1);
   });
 
   it('un análisis nuevo cancela el que estaba en curso y descarta su resultado', async () => {
-    void fake.commands.get('heft.refresh')!();
-    void fake.commands.get('heft.refresh')!();
+    void fake.commands.get('heftmap.refresh')!();
+    void fake.commands.get('heftmap.refresh')!();
     await tick();
     expect(runs).toHaveLength(3);
     expect(runs[1]!.cancelled).toBe(true);
     expect(runs[2]!.cancelled).toBe(false);
     // Lo que diga el cancelado ya no cuenta.
     runs[1]!.events.onProgress({ phase: 'usage', done: 1, total: 2 });
-    expect(fake.status.text).toBe('$(sync~spin) Heft: analizando…');
+    expect(fake.status.text).toBe('$(sync~spin) Heftmap: analizando…');
     runs[2]!.resolve(full);
     await tick();
     expect(logged()).toBe(2);
@@ -124,7 +124,7 @@ describe('extensión: análisis asíncrono', () => {
   });
 
   it('durante un reanálisis se mantiene el índice completo: uno a medias no lo sustituye', async () => {
-    void fake.commands.get('heft.refresh')!();
+    void fake.commands.get('heftmap.refresh')!();
     await tick();
     runs[3]!.events.onPartial(partial);
     expect(physicsTip()).toContain('Referenciado');
@@ -133,7 +133,7 @@ describe('extensión: análisis asíncrono', () => {
   });
 
   it('un error se muestra en la vista y no deja la extensión «analizando»', async () => {
-    void fake.commands.get('heft.refresh')!();
+    void fake.commands.get('heftmap.refresh')!();
     await tick();
     runs[4]!.reject(new Error('se rompió'));
     await tick();

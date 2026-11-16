@@ -5,7 +5,7 @@ import { post } from './vscode.js';
 /**
  * Errores del panel a la vista. Sin esto, un fallo al pintar deja la pestaña en blanco
  * (React desmonta todo) y uno en un manejador pasa desapercibido. Los dos se mandan además
- * al registro de Heft (*Output → Heft*).
+ * al registro de Heftmap (*Output → Heftmap*).
  */
 export interface PanelError {
   message: string;
