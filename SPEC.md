@@ -7,8 +7,8 @@
 
 Nombre: **Heft** (antes «Workspace Files»). Repo `heft`; prefijo de ajustes y comandos `heft.*`.
 
-Estado: **fase 1 hecha** (vista «Carpetas», ámbito, comandos; instalar y probar con
-[prepareextension.md](prepareextension.md)). Fase 0 en [docs/fase-0.md](docs/fase-0.md). Fecha: 13-11-2026.
+Estado: **fase 2 hecha** (vista «Carpetas», ámbito, comandos y panel con la tabla; instalar y probar
+con [prepareextension.md](prepareextension.md)). Fase 0 en [docs/fase-0.md](docs/fase-0.md). Fecha: 16-11-2026.
 Las capturas son de la v1: valen como referencia visual, con las diferencias de la sección 8.
 
 ---
@@ -178,7 +178,8 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
 ## 4. Implementación
 
 ### 4.1 Stack
-- TypeScript, API `vscode`. Build con **esbuild**, dos bundles: extensión (Node) y webview (navegador).
+- TypeScript, API `vscode`. Build con **esbuild**, tres bundles: extensión y worker (Node) y webview
+  (navegador, `dist/webview.js` + `dist/webview.css`).
 - Webview: React + `d3-hierarchy`. Sin Three.js en el producto mínimo.
 - Análisis de imports con **`typescript@5.9.3` propia**: TypeScript 7 (nativa) ya no expone
   `preProcessFile`, `resolveModuleName` ni `createSourceFile`. No depende de la versión del proyecto.
@@ -201,7 +202,14 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
   - Resultado en dos tiempos: en el primer análisis el árbol con tamaños aparece al acabar la
     lectura (`onPartial`, índice con `complete: false`); uso y git llegan al final. En un
     reanálisis se mantiene el índice completo anterior hasta tener el nuevo.
-  - El panel de la fase 2 debe colgarse de los mismos avisos (`IndexEvents`).
+  - Durante el primer análisis la vista muestra un texto sobre el árbol (`TreeView.message`) con
+    la fase y el avance, y el panel una pantalla de espera con spinner y barra. En un repo grande
+    la barra nativa sola no dejaba claro que Heft estaba trabajando.
+  - El panel cuelga de los mismos avisos: `panel.ts` crea el webview y pasa mensajes
+    (`panel-protocol.ts`). El índice (pesado) solo se manda cuando cambia; ámbito, avance y error
+    van en un mensaje de estado aparte. Como el webview se descarga al ocultar la pestaña, no se
+    le manda nada hasta que avisa con `ready`.
+  - Lo que llega del webview no se da por bueno: solo se abren rutas que están en el índice.
 - **`webview/`**: tabla, treemap y detalle. CSP con nonce, recursos con `asWebviewUri`, comunicación
   por `postMessage`, estado (orden, zoom, selección) con `getState/setState`.
 - Índice en memoria:
@@ -251,7 +259,13 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
    espera de 1,5 s; el incremental queda pendiente). Multi-root: solo la primera carpeta.
    Los cambios en archivos ignorados por git (`dist/`, `node_modules/`) no relanzan el análisis.
    El análisis corre en un worker, con progreso y cancelación (§4.2).
-2. Panel con la tabla (tamaño, orden, filtro, ámbito).
+2. ~~Panel con la tabla (tamaño, orden, filtro, ámbito).~~ **Hecha**: comando y botón `Abrir panel`,
+   chips del ámbito (con ✕), totales, filtro por nombre o ruta (sin tildes ni mayúsculas, varias
+   palabras), columnas Nombre, Carpeta y Tamaño (+ % del ámbito), orden por cualquiera, lista
+   virtual, teclado (↑ ↓, Re/Av Pág, Inicio/Fin, Enter abre) y botón **Abrir** en la fila
+   seleccionada. Orden, filtro y selección se guardan con `getState/setState`. Añadido: aviso y
+   pantalla de espera del primer análisis (§4.2). Las demás columnas llegan con sus fases (4, 5, 6).
+   Pendiente: el panel no se restaura al recargar la ventana (haría falta un serializador).
 3. Treemap 2D enlazado con la tabla (área, color por extensión, zoom).
 4. Uso: columna, estados, fila desplegable, color «Uso», acciones sobre «sin rastro».
 5. Git: columna «Último cambio», colores «Antigüedad» y «Commits recientes», detalle del commit.

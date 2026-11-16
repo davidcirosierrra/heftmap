@@ -1,0 +1,115 @@
+/* Colores del tema activo de VS Code: el panel no define ninguno propio. */
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  padding: 0;
+  color: var(--vscode-foreground);
+  background: var(--vscode-editor-background);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+}
+button { font: inherit; color: inherit; }
+
+.app { display: flex; flex-direction: column; height: 100%; }
+
+/* ------------------------------------------------------------ barra superior */
+.bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--vscode-panel-border, transparent);
+}
+.chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 10px;
+  background: var(--vscode-badge-background); color: var(--vscode-badge-foreground);
+  white-space: nowrap;
+}
+.chip button { border: 0; background: none; padding: 0 2px; cursor: pointer; opacity: 0.8; }
+.chip button:hover { opacity: 1; }
+.link { border: 0; background: none; padding: 0; cursor: pointer; color: var(--vscode-textLink-foreground); }
+.link:hover { text-decoration: underline; }
+.totals { color: var(--vscode-descriptionForeground); white-space: nowrap; }
+.filter {
+  flex: 1 1 200px; min-width: 140px; margin-left: auto; max-width: 360px;
+  padding: 4px 8px; font: inherit;
+  color: var(--vscode-input-foreground); background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, transparent); border-radius: 2px;
+}
+.filter::placeholder { color: var(--vscode-input-placeholderForeground); }
+:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px; }
+
+.working, .error { display: flex; align-items: center; gap: 8px; padding: 4px 12px; }
+.working { color: var(--vscode-descriptionForeground); }
+.error { color: var(--vscode-errorForeground); }
+
+/* ------------------------------------------------------------ tabla */
+.table { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.row {
+  display: grid; grid-template-columns: minmax(140px, 2fr) minmax(120px, 3fr) 150px;
+  align-items: center; height: 24px; box-sizing: border-box; padding: 0 12px;
+}
+.cell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 12px; }
+.cell.folder { color: var(--vscode-descriptionForeground); }
+.cell.size { text-align: right; padding-right: 0; font-variant-numeric: tabular-nums; }
+.share { display: inline-block; width: 4.5em; color: var(--vscode-descriptionForeground); }
+
+.head { border-bottom: 1px solid var(--vscode-panel-border, transparent); height: 28px; padding-right: 22px; }
+.head .cell {
+  border: 0; background: none; text-align: left; cursor: pointer; height: 100%;
+  font-weight: 600; color: var(--vscode-foreground);
+}
+.head .cell.size { text-align: right; }
+.head .cell:hover { background: var(--vscode-list-hoverBackground); }
+.arrow { display: inline-block; width: 1.2em; font-size: 0.75em; text-align: center; }
+
+.body { flex: 1; min-height: 0; overflow-y: scroll; position: relative; }
+.spacer { position: relative; }
+.body .row { position: absolute; left: 0; right: 0; cursor: default; }
+.body .row:hover { background: var(--vscode-list-hoverBackground); }
+.body .row.selected {
+  background: var(--vscode-list-inactiveSelectionBackground);
+  color: var(--vscode-list-inactiveSelectionForeground, inherit);
+}
+.body:focus .row.selected, .body:focus-within .row.selected {
+  background: var(--vscode-list-activeSelectionBackground);
+  color: var(--vscode-list-activeSelectionForeground);
+}
+.body:focus .row.selected .cell.folder, .body:focus .row.selected .share,
+.body:focus-within .row.selected .cell.folder, .body:focus-within .row.selected .share { color: inherit; }
+.open {
+  position: absolute; right: 170px; top: 2px; height: 20px; padding: 0 10px; cursor: pointer;
+  border: 1px solid var(--vscode-button-border, transparent); border-radius: 2px;
+  color: var(--vscode-button-foreground); background: var(--vscode-button-background);
+}
+.open:hover { background: var(--vscode-button-hoverBackground); }
+.empty { padding: 24px 12px; color: var(--vscode-descriptionForeground); }
+.foot {
+  padding: 4px 12px; color: var(--vscode-descriptionForeground);
+  border-top: 1px solid var(--vscode-panel-border, transparent);
+}
+
+/* ------------------------------------------------------------ espera */
+.splash {
+  height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; padding: 24px; box-sizing: border-box; text-align: center;
+}
+.splash h1 { margin: 6px 0 0; font-size: 1.3em; font-weight: 600; }
+.splash p { margin: 0; }
+.splash .detail { font-variant-numeric: tabular-nums; }
+.splash .hint { max-width: 36em; color: var(--vscode-descriptionForeground); }
+.splash progress { width: min(320px, 80%); height: 4px; accent-color: var(--vscode-progressBar-background); }
+.splash button {
+  margin-top: 6px; padding: 4px 14px; cursor: pointer; border-radius: 2px;
+  border: 1px solid var(--vscode-button-border, transparent);
+  color: var(--vscode-button-foreground); background: var(--vscode-button-background);
+}
+.spinner {
+  width: 32px; height: 32px; box-sizing: border-box; border-radius: 50%;
+  border: 3px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.35));
+  border-top-color: var(--vscode-progressBar-background, currentColor);
+  animation: spin 0.9s linear infinite;
+}
+.spinner.small { width: 12px; height: 12px; border-width: 2px; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } }

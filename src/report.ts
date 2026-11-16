@@ -21,6 +21,13 @@ export function fmtSize(b: number): string {
   return `${m >= 100 ? Math.round(m) : m.toFixed(1).replace('.', ',')} MB`;
 }
 
+/** Porcentaje como en el SPEC §2.1: «51 %»; un decimal solo por debajo del 10 %. */
+export function pct(x: number): string {
+  if (x <= 0) return '0 %';
+  if (x < 0.001) return '<0,1 %';
+  return `${(x * 100).toFixed(x >= 0.0995 ? 0 : 1).replace('.', ',')} %`;
+}
+
 export function fmtMs(ms: number): string {
   return ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(2).replace('.', ',')} s`;
 }

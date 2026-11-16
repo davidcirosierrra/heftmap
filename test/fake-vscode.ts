@@ -52,6 +52,10 @@ export enum TreeItemCheckboxState {
   Unchecked = 0,
   Checked = 1,
 }
+export enum ViewColumn {
+  Active = -1,
+  One = 1,
+}
 export enum StatusBarAlignment {
   Left = 1,
   Right = 2,
@@ -119,6 +123,18 @@ export const fake = {
       }
     | undefined,
   status: { text: '', tooltip: '', visible: false },
+  /** Paneles webview abiertos: lo que la extensión les manda y un emisor para contestarle. */
+  panels: [] as {
+    viewType: string;
+    title: string;
+    options: any;
+    html: string;
+    posted: any[];
+    receive: EventEmitter<any>;
+    revealed: number;
+    disposed: boolean;
+    close(): void;
+  }[],
   state: new Map<string, unknown>(),
   reset(root: string): void {
     this.root = root;
@@ -132,6 +148,7 @@ export const fake = {
     this.progress = [];
     this.folderListeners = [];
     this.treeView = undefined;
+    this.panels = [];
     this.state.clear();
   },
 };
@@ -175,6 +192,49 @@ export const window = {
   showInformationMessage: async (msg: string) => {
     fake.infos.push(msg);
     return undefined;
+  },
+  createWebviewPanel: (viewType: string, title: string, _column: unknown, options: any) => {
+    const receive = new EventEmitter<any>();
+    const onDispose = new EventEmitter<void>();
+    const record = {
+      viewType,
+      title,
+      options,
+      html: '',
+      posted: [] as any[],
+      receive,
+      revealed: 0,
+      disposed: false,
+      close: () => panel.dispose(),
+    };
+    const panel = {
+      iconPath: undefined as unknown,
+      webview: {
+        cspSource: 'vscode-webview://fake',
+        asWebviewUri: (u: Uri) => u,
+        set html(v: string) {
+          record.html = v;
+        },
+        get html() {
+          return record.html;
+        },
+        postMessage: async (m: unknown) => {
+          // Como el real: lo que cruza es una copia serializada.
+          record.posted.push(JSON.parse(JSON.stringify(m)));
+          return true;
+        },
+        onDidReceiveMessage: receive.event,
+      },
+      onDidDispose: onDispose.event,
+      reveal: () => void record.revealed++,
+      dispose: () => {
+        if (record.disposed) return;
+        record.disposed = true;
+        onDispose.fire();
+      },
+    };
+    fake.panels.push(record);
+    return panel;
   },
   showQuickPick: async (items: any[]) => fake.quickPickAnswer?.(items),
   withProgress: async <T>(options: { location: unknown }, task: () => Promise<T>): Promise<T> => {
@@ -225,6 +285,7 @@ export const workspace = {
 export function makeContext() {
   return {
     subscriptions: [] as { dispose(): unknown }[],
+    extensionUri: Uri.file('/ext/heft'),
     workspaceState: {
       get: (k: string) => fake.state.get(k),
       update: async (k: string, v: unknown) => void fake.state.set(k, v),
