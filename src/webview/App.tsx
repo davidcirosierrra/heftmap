@@ -57,7 +57,7 @@ export function App() {
   const coloring = useMemo(() => buildColoring(saved.color, base, I), [saved.color, base, I]);
   const zoom = useMemo(() => effectiveZoom(filtered, saved.zoom), [filtered, saved.zoom]);
   // La tabla y los totales enseñan lo mismo que el treemap: lo de dentro de la carpeta ampliada.
-  const rows = useMemo(() => zoomRows(sorted, zoom), [sorted, zoom]);
+  const zoomed = useMemo(() => zoomRows(sorted, zoom), [sorted, zoom]);
   const selectedRow = useMemo(() => (saved.selected ? scoped.find((r) => r.path === saved.selected) : undefined), [scoped, saved.selected]);
   const links = useMemo(
     () => (index && selectedRow ? linksOf(index.files, index.refs ?? [], selectedRow.path, scope) : { usedBy: [], uses: [] }),
@@ -67,6 +67,9 @@ export function App() {
   useEffect(() => {
     if (highlight != null && !coloring.legend.some((l) => l.key === highlight)) setHighlight(null);
   }, [coloring, highlight]);
+  // Grupo de la leyenda pulsado: atenúa el resto en el treemap y recorta la tabla a ese grupo.
+  const group = highlight != null ? coloring.legend.find((l) => l.key === highlight) : undefined;
+  const rows = useMemo(() => (group ? zoomed.filter((r) => coloring.keyOf(r) === group.key) : zoomed), [zoomed, group, coloring]);
 
   const split = useSplit(setSaved);
 
@@ -92,7 +95,7 @@ export function App() {
 
   const columns = tableColumns(I, coloring, scopeBytes);
 
-  const isFiltered = saved.filter.trim() !== '' || quick !== 'all' || inHotspots || zoom !== '';
+  const isFiltered = saved.filter.trim() !== '' || quick !== 'all' || inHotspots || zoom !== '' || !!group;
   return (
     <div className="app">
       <header className="bar">
@@ -154,6 +157,15 @@ export function App() {
         <button className="pill" aria-pressed={saved.chart} title={I.t('bar.chartTip')} onClick={() => set({ chart: !saved.chart })}>
           {I.t(saved.chart ? 'bar.hideChart' : 'bar.showChart')}
         </button>
+        {group && (
+          <span className="chip group">
+            <i className="swatch" style={{ background: group.color }} />
+            {I.t('bar.group', { label: group.label })}
+            <button title={I.t('bar.leaveGroup')} aria-label={I.t('bar.leaveGroup')} onClick={() => setHighlight(null)}>
+              ✕
+            </button>
+          </span>
+        )}
         {zoom && (
           <span className="chip zoom">
             {I.t('bar.zoom', { folder: zoom })}

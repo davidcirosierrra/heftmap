@@ -183,6 +183,8 @@ export const en = {
   'bar.showChart': 'Show chart',
   'bar.zoom': 'Zoom: {folder}/',
   'bar.leaveZoom': 'Leave the zoom: whole scope in the table and the treemap',
+  'bar.group': 'Group: {label}',
+  'bar.leaveGroup': 'Show every group again',
 
   // ------------------------------------------------------------------ panel: tabla
   'col.name': 'Name',
@@ -207,7 +209,7 @@ export const en = {
   'tm.area': 'Area',
   'tm.color': 'Color',
   'tm.legend': 'Legend: {mode}',
-  'tm.legendTip': '{files} · {size}. Click to highlight',
+  'tm.legendTip': '{files} · {size}. Click to highlight it and show only this group in the table; click again to show everything',
   'tm.aria': 'Treemap of files by size',
   'tm.dirTip': '{path}/ · {size}{lines} · {files}. Click to zoom in',
   'tm.linesShort': '{n} ln',
@@ -420,6 +422,8 @@ export const es: Messages = {
   'bar.showChart': 'Mostrar gráfico',
   'bar.zoom': 'Zoom: {folder}/',
   'bar.leaveZoom': 'Salir del zoom: todo el ámbito en la tabla y el treemap',
+  'bar.group': 'Grupo: {label}',
+  'bar.leaveGroup': 'Volver a enseñar todos los grupos',
 
   'col.name': 'Nombre',
   'col.folder': 'Carpeta',
@@ -442,7 +446,7 @@ export const es: Messages = {
   'tm.area': 'Área',
   'tm.color': 'Color',
   'tm.legend': 'Leyenda: {mode}',
-  'tm.legendTip': '{files} · {size}. Clic para resaltar',
+  'tm.legendTip': '{files} · {size}. Clic para resaltarlo y dejar en la tabla solo este grupo; otro clic lo enseña todo',
   'tm.aria': 'Treemap de archivos por tamaño',
   'tm.dirTip': '{path}/ · {size}{lines} · {files}. Clic para ampliar',
   'tm.linesShort': '{n} lín.',
@@ -656,6 +660,8 @@ export const eu: Messages = {
   'bar.showChart': 'Erakutsi grafikoa',
   'bar.zoom': 'Zooma: {folder}/',
   'bar.leaveZoom': 'Irten zoometik: esparru osoa taulan eta treemap-ean',
+  'bar.group': 'Taldea: {label}',
+  'bar.leaveGroup': 'Erakutsi berriro talde guztiak',
 
   'col.name': 'Izena',
   'col.folder': 'Karpeta',
@@ -678,7 +684,7 @@ export const eu: Messages = {
   'tm.area': 'Azalera',
   'tm.color': 'Kolorea',
   'tm.legend': 'Legenda: {mode}',
-  'tm.legendTip': '{files} · {size}. Egin klik nabarmentzeko',
+  'tm.legendTip': '{files} · {size}. Egin klik nabarmentzeko eta taulan talde hau bakarrik uzteko; beste klik batek dena erakusten du',
   'tm.aria': 'Fitxategien treemap-a tamainaren arabera',
   'tm.dirTip': '{path}/ · {size}{lines} · {files}. Egin klik handitzeko',
   'tm.linesShort': '{n} lerro',
