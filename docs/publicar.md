@@ -42,7 +42,7 @@ el Marketplace solo hace falta para llegar a usuarios de VS Code (sección 6).
    *Show Publisher Agreement*, léelo hasta el final y *Agree*. No es el «Eclipse Contributor
    Agreement» (ECA): ese es para contribuir código a Eclipse y no sirve aquí.
 4. **Namespace** (tiene que coincidir con `publisher` del `package.json`): en *Settings*, junto
-   a *Namespaces*, el botón **+** → `davidcirosierrra`. Sin namespace no se puede registrar el
+   a *Namespaces*, el botón **+** → `notime-labs`. Sin namespace no se puede registrar el
    *Trusted Publisher*.
 5. **Trusted Publisher** (en vez de token): *Settings* → *Trusted Publishers* → registrar
    repositorio `davidcirosierrra/heft`, workflow `publish.yml` y entorno `openvsx`. Así GitHub
@@ -68,7 +68,7 @@ el Marketplace solo hace falta para llegar a usuarios de VS Code (sección 6).
    release. Si algo falla, el registro de la acción lo dice.
 5. Open VSX revisa cada extensión al publicar (secretos, archivos maliciosos conocidos, nombres
    parecidos a otros). Si la rechaza, el error dice qué comprobación falló.
-6. Comprueba la página en https://open-vsx.org/extension/davidcirosierrra/heft y búscala en Cursor
+6. Comprueba la página en https://open-vsx.org/extension/notime-labs/heft y búscala en Cursor
    (*Extensions* → «Heft»). Puede tardar un rato en aparecer en Cursor.
 
 **Alternativa sin GitHub Actions**: genera un token en *Settings* → *Access Tokens* (solo para
@@ -83,7 +83,7 @@ equipo.
 ## 6. Marketplace de Microsoft (opcional, más adelante)
 
 Para usuarios de VS Code. Hace falta una cuenta de Microsoft, crear el publisher
-`davidcirosierrra` en https://marketplace.visualstudio.com/manage y un token de Azure DevOps con
+`notime-labs` en https://marketplace.visualstudio.com/manage y un token de Azure DevOps con
 permiso *Marketplace (Manage)*. Microsoft está cambiando estos tokens por otro sistema de
 identidad a finales de 2026: mirar la documentación del momento antes de hacerlo. Luego se añade
 un paso `npx vsce publish -i heft.vsix` a `publish.yml` con su secreto.
@@ -95,5 +95,5 @@ un paso `npx vsce publish -i heft.vsix` a `publish.yml` con su secreto.
       puedes un GIF corto (abrir panel → *Hotspots* → clic en el treemap). Se guardan en
       `docs/images/` y se añaden al README.
 - [ ] Nombre visible: «Heft» coincide con el sistema de build de Rush Stack (Microsoft). El
-      identificador `davidcirosierrra.heft` es único; si Open VSX lo rechazara por parecido, se
+      identificador `notime-labs.heft` es único; si Open VSX lo rechazara por parecido, se
       cambia `name`.

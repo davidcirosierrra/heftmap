@@ -43,7 +43,7 @@ Para actualizar: vuelve a ejecutar `npm run package` e instala el `.vsix` nuevo 
 Un `.vsix` instalado a mano **no se actualiza solo**.
 
 Para desinstalar: panel de extensiones → Heft → **Uninstall**, o
-`cursor --uninstall-extension davidcirosierrra.heft`.
+`cursor --uninstall-extension notime-labs.heft`.
 
 ### B. Modo desarrollo con F5 (para depurar)
 
