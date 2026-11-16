@@ -134,6 +134,8 @@ export const fake = {
   warnings: [] as { message: string; options: any; items: string[] }[],
   warningAnswer: undefined as string | undefined,
   errors: [] as string[],
+  /** Botón que «pulsa» el test en un aviso de error. */
+  errorAnswer: undefined as string | undefined,
   deleted: [] as { path: string; options: any }[],
   configUpdates: [] as { key: string; value: unknown; target: unknown }[],
   logShown: 0,
@@ -168,6 +170,7 @@ export const fake = {
     this.warnings = [];
     this.warningAnswer = undefined;
     this.errors = [];
+    this.errorAnswer = undefined;
     this.deleted = [];
     this.configUpdates = [];
     this.state.clear();
@@ -175,8 +178,13 @@ export const fake = {
 };
 
 export const window = {
-  createOutputChannel: (_name: string) => ({
+  createOutputChannel: (_name: string, _opts?: unknown) => ({
     appendLine: (s: string) => fake.log.push(s),
+    info: (s: string) => fake.log.push(s),
+    warn: (s: string) => fake.log.push(`[warn] ${s}`),
+    error: (s: string) => fake.log.push(`[error] ${s}`),
+    debug: (s: string) => fake.log.push(s),
+    trace: (s: string) => fake.log.push(s),
     show: () => void fake.logShown++,
     dispose: () => undefined,
   }),
@@ -261,9 +269,9 @@ export const window = {
     fake.warnings.push({ message, options, items });
     return fake.warningAnswer;
   },
-  showErrorMessage: async (msg: string) => {
+  showErrorMessage: async (msg: string, ..._items: string[]) => {
     fake.errors.push(msg);
-    return undefined;
+    return fake.errorAnswer;
   },
   showQuickPick: async (items: any[]) => fake.quickPickAnswer?.(items),
   withProgress: async <T>(options: { location: unknown }, task: () => Promise<T>): Promise<T> => {
@@ -277,7 +285,10 @@ export const window = {
   },
 };
 
+export const version = '1.99.0-test';
+
 export const env = {
+  appName: 'Fake Code',
   /** Idioma del editor. Los tests van en castellano salvo que digan otra cosa. */
   language: 'es',
   clipboard: { writeText: async (s: string) => void (fake.clipboard = s) },

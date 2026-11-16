@@ -108,6 +108,11 @@
         "command": "heft.showLog",
         "title": "%command.showLog%",
         "category": "Heft"
+      },
+      {
+        "command": "heft.copyReport",
+        "title": "%command.copyReport%",
+        "category": "Heft"
       }
     ],
     "menus": {
@@ -134,6 +139,10 @@
         },
         {
           "command": "heft.showLog",
+          "when": "view == heft.folders"
+        },
+        {
+          "command": "heft.copyReport",
           "when": "view == heft.folders"
         }
       ],
