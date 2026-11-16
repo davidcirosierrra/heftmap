@@ -2,13 +2,14 @@ import path from 'node:path';
 import * as vscode from 'vscode';
 import type { BuildOptions, HeftIndex, Progress } from '../core/index.js';
 import { i18n, resolveLocale, type I18n, type Locale } from '../i18n/index.js';
-import { warningText } from '../i18n/warnings.js';
+import { invalidPatternsText, warningText } from '../i18n/warnings.js';
 import { Analysis, type Reason } from './analysis.js';
 import { HeftDecorations } from './decorations.js';
 import { addUsageIgnore, readSettings, toBuildOptions } from './settings.js';
 import { FoldersProvider } from './folders-view.js';
 import { guard, HeftLog } from './log.js';
 import { HeftPanel, PANEL_VIEW_TYPE, type PanelHost } from './panel.js';
+import { pathMatcher } from '../core/glob.js';
 import { toPanelIndex } from './panel-data.js';
 import type { PanelIndex, PanelStatus, WebviewMessage } from './panel-protocol.js';
 import { WorkerExitError, workerRunner, type IndexRunner } from './runner.js';
@@ -181,6 +182,12 @@ class Heft implements vscode.Disposable, PanelHost {
           this.panel.indexChanged();
           return;
         }
+        if (e.affectsConfiguration('heftmap.hotspots.exclude')) {
+          // Solo cambia qué cuenta como hotspot: se recalcula lo que va al panel, sin analizar.
+          this.warnInvalidPatterns('heftmap.hotspots.exclude', pathMatcher(readSettings(this.root).hotspotsExclude).invalid);
+          this.panel.indexChanged();
+          return;
+        }
         if (e.affectsConfiguration('heftmap')) this.analysis.schedule('reason.settings');
       })),
       vscode.workspace.onDidChangeWorkspaceFolders(on('workspace folders', () => this.start())),
@@ -266,6 +273,11 @@ class Heft implements vscode.Disposable, PanelHost {
       }),
     );
     for (const w of index.warnings) this.log.warn(warningText(w, I));
+    this.warnInvalidPatterns('heftmap.hotspots.exclude', pathMatcher(readSettings(this.root).hotspotsExclude).invalid);
+  }
+
+  private warnInvalidPatterns(setting: string, invalid: readonly string[]): void {
+    if (invalid.length) this.log.warn(invalidPatternsText(setting, invalid, this.I));
   }
 
   private onAnalysisError(err: unknown, reason: Reason): void {
@@ -294,7 +306,8 @@ class Heft implements vscode.Disposable, PanelHost {
 
   panelIndex(): PanelIndex | null {
     if (!this.index || !this.root) return null;
-    return toPanelIndex(this.index, path.basename(this.root.fsPath), this.indexAt);
+    const notHotspot = pathMatcher(readSettings(this.root).hotspotsExclude);
+    return toPanelIndex(this.index, path.basename(this.root.fsPath), this.indexAt, notHotspot.matches);
   }
 
   panelStatus(): PanelStatus {

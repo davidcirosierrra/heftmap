@@ -56,6 +56,7 @@ balio du, monorepoetan ere bai.
 | `heftmap.maxTextFileSize` | `5` | Tamaina hau (MB) baino handiagoak diren testuak ez dira irakurtzen: lerrorik eta erabilerarik gabe (1–50) |
 | `heftmap.usage.weakSources` | `["scripts", "tools", "bin"]` | Tooling karpetak: izendatzen dutena aipamena da, ez erabilera |
 | `heftmap.exclude` | `[]` | Erabat kanpoan uzten dena, .gitignore-n bezala (`*.snap`, `fixtures`, `docs/images`) |
+| `heftmap.hotspots.exclude` | `[]` | Hotspot-etatik kanpo uzten den kodea, `heftmap.exclude`-ren eredu berberak |
 
 ## Monorepoak
 

@@ -103,6 +103,14 @@ describe('exclude', () => {
   });
 });
 
+describe('hotspots.exclude', () => {
+  it('lista de patrones; no viaja al análisis (solo cambia lo que va al panel)', () => {
+    fake.config['hotspots.exclude'] = ['vendor', null];
+    expect(readSettings().hotspotsExclude).toEqual(['vendor']);
+    expect(toBuildOptions(readSettings(), true)).not.toHaveProperty('hotspotsExclude');
+  });
+});
+
 describe('toBuildOptions', () => {
   it('pasa los ajustes al análisis y la confianza decide si se usa git', () => {
     const s = readSettings();
