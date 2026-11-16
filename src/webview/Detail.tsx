@@ -8,6 +8,16 @@ import { post } from './vscode.js';
 /** Detalle del archivo seleccionado (SPEC §2.2): datos, acciones y quién lo usa. */
 const MAX_LINKS = 200;
 
+type HintUsage = Exclude<Row['usage'], 'referenced' | 'ignored-by-git'>;
+
+/**
+ * La pista bajo el estado. Con regla («Por qué:») solo se deja donde aconseja algo (borrar,
+ * Knip, rutas construidas al vuelo); en los demás estados repetiría la regla.
+ */
+function showHint(row: Row): boolean {
+  if (row.usage === 'referenced' || row.usage === 'ignored-by-git') return false;
+  return !row.rule || row.usage === 'none' || row.usage === 'mentioned' || row.usage === 'no-importers';
+}
 
 export function Detail(props: {
   row: Row | undefined;
@@ -43,7 +53,7 @@ export function Detail(props: {
           <i className="dot" style={{ background: USAGE_COLOR[row.usage] }} />
           {usageLabel(row.usage, I)}
         </span>
-        {row.usage !== 'referenced' && row.usage !== 'ignored-by-git' && <span className="d-hint">{I.t(`usageHint.${row.usage}`)}</span>}
+        {showHint(row) && <span className="d-hint">{I.t(`usageHint.${row.usage as HintUsage}`)}</span>}
         {row.usage === 'none' && (
           <span className="d-actions">
             <button className="secondary" title={I.t('detail.ignoreTip')} onClick={() => post({ type: 'ignoreUsage', path: row.path })}>
@@ -55,6 +65,11 @@ export function Detail(props: {
           </span>
         )}
       </div>
+      {row.rule && (
+        <div className="d-why">
+          <span className="d-why-label">{I.t('why.label')}</span> {I.t(`why.${row.rule}`)}
+        </div>
+      )}
       <Commit row={row} />
       {row.usage !== 'pending' && (links.usedBy.length > 0 || links.uses.length > 0) && (
         <div className="d-links">
