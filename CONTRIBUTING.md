@@ -47,7 +47,9 @@ npm run package   # heftmap.vsix
   análisis (planificar, cancelar, progreso, vigilancia del disco). El análisis corre en un
   worker: `runner.ts` lo lanza y `worker.ts` ejecuta el núcleo (bundle aparte,
   `dist/worker.cjs`). `panel.ts` crea el webview del panel y `panel-protocol.ts` define los mensajes que se cruzan con él.
-- `src/webview/`: interfaz del panel (React, bundle de navegador `dist/webview.js`). `model.ts` es
+- `src/webview/`: interfaz del panel (React, bundle de navegador `dist/webview.js`). `App.tsx`
+  compone el panel; `columns.tsx` son las columnas de la tabla, `saved.ts` el estado que se
+  guarda (`useSaved`) y `split.ts` el divisor (`useSplit`). `model.ts` es
   la lógica de la tabla (filas, filtro, orden), `treemap-layout.ts` la del treemap y `colors.ts` la
   de los colores: puras y con tests. Los `test/webview-*.test.ts` con jsdom prueban el panel real.
 - `src/i18n/`: textos en los tres idiomas y formatos (números, tamaños, fechas). Términos fijos en

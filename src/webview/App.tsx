@@ -1,55 +1,19 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import type { HostMessage, PanelIndex, PanelStatus } from '../extension/panel-protocol.js';
 import type { I18n, MessageKey } from '../i18n/index.js';
 import { setLocale, useI18n } from './locale.js';
-import { COLOR_LABEL, USAGE_COLOR, coloring as buildColoring, usageLabel, type ColorMode } from './colors.js';
+import { COLOR_LABEL, coloring as buildColoring } from './colors.js';
+import { tableColumns } from './columns.js';
 import { Detail } from './Detail.js';
-import { DEFAULT_SORT, QUICK_LABEL, SORT_KEYS, filterRows, hotspotRows, linksOf, nextSort, quickCounts, quickRows, sortRows, toRows, totalSize, type Quick, type Sort } from './model.js';
-import { Table, type Column } from './Table.js';
+import { QUICK_LABEL, filterRows, hotspotRows, linksOf, nextSort, quickCounts, quickRows, sortRows, toRows, totalSize, type Quick } from './model.js';
+import { SPLIT_DEFAULT, SPLIT_MAX, SPLIT_MIN, useSaved } from './saved.js';
+import { useSplit } from './split.js';
+import { Table } from './Table.js';
 import { Treemap } from './Treemap.js';
-import { AREA_LABEL, crumbs, effectiveZoom, type AreaMode } from './treemap-layout.js';
-import { post, vscode } from './vscode.js';
+import { AREA_LABEL, crumbs, effectiveZoom } from './treemap-layout.js';
+import { post } from './vscode.js';
 
 /** Panel «Heftmap» (SPEC §2.2): barra superior · tabla · treemap · detalle. */
-
-/** Lo que sobrevive a ocultar y volver a mostrar la pestaña. */
-interface Saved {
-  sort: Sort;
-  filter: string;
-  quick: Quick;
-  selected: string | null;
-  area: AreaMode;
-  color: ColorMode;
-  zoom: string;
-  /** Parte del ancho para la tabla, entre SPLIT_MIN y SPLIT_MAX. */
-  split: number;
-  /** false: gráficos ocultos, la tabla ocupa todo. */
-  chart: boolean;
-  /** Modo hotspots pedido con su botón (solo código). Se sale al cambiar área, color u orden. */
-  hot: boolean;
-}
-
-const SPLIT_MIN = 0.2;
-const SPLIT_MAX = 0.85;
-const SPLIT_DEFAULT = 0.6;
-const clampSplit = (x: number): number => Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, x));
-
-function loadSaved(): Saved {
-  const s = (vscode.getState() ?? {}) as Partial<Saved>;
-  const sort = s.sort && SORT_KEYS.includes(s.sort.key) && (s.sort.dir === 'asc' || s.sort.dir === 'desc') ? s.sort : DEFAULT_SORT;
-  return {
-    sort,
-    filter: typeof s.filter === 'string' ? s.filter : '',
-    quick: s.quick && s.quick in QUICK_LABEL ? s.quick : 'all',
-    selected: typeof s.selected === 'string' ? s.selected : null,
-    area: s.area && s.area in AREA_LABEL ? s.area : 'bytes',
-    color: s.color && s.color in COLOR_LABEL ? s.color : 'ext',
-    zoom: typeof s.zoom === 'string' ? s.zoom : '',
-    split: typeof s.split === 'number' && Number.isFinite(s.split) ? clampSplit(s.split) : SPLIT_DEFAULT,
-    chart: s.chart !== false,
-    hot: s.hot === true,
-  };
-}
 
 export function App() {
   const I = useI18n();
@@ -57,9 +21,7 @@ export function App() {
   // undefined: el panel aún no ha recibido nada de la extensión.
   const [index, setIndex] = useState<PanelIndex | null | undefined>(undefined);
   const [status, setStatus] = useState<PanelStatus | undefined>(undefined);
-  const [saved, setSaved] = useState<Saved>(loadSaved);
   const [highlight, setHighlight] = useState<string | null>(null);
-  const set = (patch: Partial<Saved>): void => setSaved((s) => ({ ...s, ...patch }));
 
   useEffect(() => {
     const onMessage = (e: MessageEvent<HostMessage>): void => {
@@ -73,12 +35,8 @@ export function App() {
     post({ type: 'ready' });
     return () => window.removeEventListener('message', onMessage);
   }, []);
-
-  // Con llaves: `setState` devuelve el estado y React tomaría ese valor por la función de
-  // limpieza del efecto («destroy is not a function» al siguiente cambio: panel en blanco).
-  useEffect(() => {
-    vscode.setState(saved);
-  }, [saved]);
+  // Después del efecto de mensajes, para que el orden de los efectos sea el de siempre.
+  const [saved, set, setSaved] = useSaved();
 
   const scope = status?.scope ?? [];
   const scoped = useMemo(() => toRows(index?.files ?? [], scope, { complete: index?.complete, refs: index?.refs, commits: index?.commits }), [index, scope.join('\n')]);
@@ -107,31 +65,7 @@ export function App() {
     if (highlight != null && !coloring.legend.some((l) => l.key === highlight)) setHighlight(null);
   }, [coloring, highlight]);
 
-  // Divisor entre la tabla y el gráfico: se arrastra (con captura del puntero, para no perderlo
-  // al pasar sobre el SVG) o se mueve con las flechas.
-  const main = useRef<HTMLDivElement>(null);
-  const dragging = useRef(false);
-  const onSplitDown = (e: PointerEvent<HTMLDivElement>): void => {
-    dragging.current = true;
-    e.currentTarget.setPointerCapture?.(e.pointerId);
-    e.preventDefault();
-  };
-  const onSplitMove = (e: PointerEvent<HTMLDivElement>): void => {
-    const box = main.current?.getBoundingClientRect();
-    if (!dragging.current || !box || box.width <= 0) return;
-    set({ split: clampSplit((e.clientX - box.left) / box.width) });
-  };
-  const onSplitUp = (e: PointerEvent<HTMLDivElement>): void => {
-    dragging.current = false;
-    e.currentTarget.releasePointerCapture?.(e.pointerId);
-  };
-  const onSplitKey = (e: KeyboardEvent): void => {
-    const step = e.key === 'ArrowLeft' ? -0.02 : e.key === 'ArrowRight' ? 0.02 : 0;
-    if (e.key === 'Home') setSaved((s) => ({ ...s, split: SPLIT_DEFAULT }));
-    else if (step) setSaved((s) => ({ ...s, split: clampSplit(s.split + step) }));
-    else return;
-    e.preventDefault();
-  };
+  const split = useSplit(setSaved);
 
   if (!status || index === undefined) return <Splash title={I.t('panel.loading')} />;
   if (!status.hasRoot) return <Splash title={I.t('panel.noFolder')} idle />;
@@ -153,78 +87,7 @@ export function App() {
     );
   }
 
-  const columns: Column[] = [
-    {
-      key: 'name',
-      label: I.t('col.name'),
-      width: 'minmax(120px, 2fr)',
-      render: (r) => (
-        <>
-          <i className="swatch" style={{ background: coloring.colorOf(r) }} />
-          {r.name}
-        </>
-      ),
-    },
-    { key: 'folder', label: I.t('col.folder'), width: 'minmax(90px, 2fr)', render: (r) => r.folder },
-    {
-      key: 'size',
-      label: I.t('col.size'),
-      width: '122px',
-      align: 'right',
-      title: I.t('col.sizeTip'),
-      render: (r) => (
-        <>
-          {I.size(r.size)} <span className="share">{I.pct(scopeBytes > 0 ? r.size / scopeBytes : 0)}</span>
-        </>
-      ),
-    },
-    {
-      key: 'lines',
-      label: I.t('col.lines'),
-      width: '72px',
-      align: 'right',
-      title: I.t('col.linesTip'),
-      render: (r) => (r.lines == null ? '' : I.num(r.lines)),
-    },
-    {
-      key: 'changes',
-      label: I.t('col.changes'),
-      width: '88px',
-      align: 'right',
-      title: I.t('col.changesTip'),
-      render: (r) => (r.usage === 'pending' ? '…' : r.changes > 0 ? <span className={r.generated ? 'share auto' : undefined}>{I.num(r.changes)}</span> : ''),
-    },
-    {
-      key: 'usage',
-      label: I.t('col.usage'),
-      width: '170px',
-      title: I.t('col.usageTip'),
-      render: (r) => (
-        <span title={r.usage === 'no-importers' ? I.t('usageHint.no-importers') : undefined}>
-          <i className="dot" style={{ background: USAGE_COLOR[r.usage] }} />
-          {usageLabel(r.usage, I)}
-          {r.refsIn > 0 && <span className="share">{' '}· {r.refsIn}</span>}
-        </span>
-      ),
-    },
-    {
-      key: 'changed',
-      label: I.t('col.changed'),
-      width: '166px',
-      title: I.t('col.changedTip'),
-      render: (r) =>
-        r.untracked ? (
-          <span className="new">{I.t('common.new')}</span>
-        ) : r.commit ? (
-          <span title={`${r.commit.short} ${r.commit.subject} — ${r.commit.author}`}>
-            {I.rel(r.commit.time)} <span className="hash">{r.commit.short}</span>
-            {r.dirty && <span className="dirty" title={I.t('common.uncommitted')}> ●</span>}
-          </span>
-        ) : (
-          <span className="share">{r.usage === 'pending' ? '…' : '—'}</span>
-        ),
-    },
-  ];
+  const columns = tableColumns(I, coloring, scopeBytes);
 
   const isFiltered = saved.filter.trim() !== '' || quick !== 'all' || inHotspots;
   return (
@@ -307,7 +170,7 @@ export function App() {
           </span>
         )}
       </div>
-      <div className={`main${saved.chart ? '' : ' no-chart'}`} ref={main} style={{ '--split': `${(saved.split * 100).toFixed(2)}%` } as CSSProperties}>
+      <div className={`main${saved.chart ? '' : ' no-chart'}`} ref={split.main} style={{ '--split': `${(saved.split * 100).toFixed(2)}%` } as CSSProperties}>
         <Table
           rows={rows}
           columns={columns}
@@ -329,12 +192,12 @@ export function App() {
             aria-valuenow={Math.round(saved.split * 100)}
             tabIndex={0}
             title={I.t('tm.splitterTip')}
-            onPointerDown={onSplitDown}
-            onPointerMove={onSplitMove}
-            onPointerUp={onSplitUp}
-            onPointerCancel={onSplitUp}
+            onPointerDown={split.onPointerDown}
+            onPointerMove={split.onPointerMove}
+            onPointerUp={split.onPointerUp}
+            onPointerCancel={split.onPointerUp}
             onDoubleClick={() => set({ split: SPLIT_DEFAULT })}
-            onKeyDown={onSplitKey}
+            onKeyDown={split.onKeyDown}
           />
         )}
         {saved.chart && (
