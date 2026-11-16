@@ -132,6 +132,18 @@ describe('primer análisis: aviso sobre el árbol y panel de espera', () => {
     expect(full.files.some((f) => f.untracked)).toBe(true);
   });
 
+  it('y líneas, cambios y generados para los hotspots', () => {
+    const { files } = last('index').index;
+    for (const f of full.files) {
+      const sent = files.find((x: any) => x.path === f.path);
+      expect(sent.lines ?? null).toBe(f.lines);
+      expect(sent.changes ?? 0).toBe(f.changes);
+      expect(!!sent.generated).toBe(f.generated);
+    }
+    expect(files.find((f: any) => f.path === 'src/game/Physics.ts')).toMatchObject({ changes: 3 });
+    expect(files.find((f: any) => f.path === 'public/models/kart.glb').lines).toBeUndefined();
+  });
+
   it('un reanálisis con datos en pantalla no vuelve a poner el aviso', async () => {
     void fake.commands.get('heft.refresh')!();
     await tick();

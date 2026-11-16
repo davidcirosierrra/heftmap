@@ -8,10 +8,10 @@ const commits: PanelCommit[] = [
   { hash: 'e41d0b7' + 'a'.repeat(33), short: 'e41d0b7', author: 'David', time: Date.now() - 3 * 86_400_000, subject: 'Añade el kart' },
 ];
 const files: PanelFile[] = [
-  { path: 'README.md', size: 300, usage: 'not-analyzed', commit: 0 },
-  { path: 'src/main.tsx', size: 120, usage: 'entry', dirty: true, untracked: true },
-  { path: 'src/game/Kart.ts', size: 900, usage: 'referenced', commit: 0, dirty: true },
-  { path: 'public/models/kart.glb', size: 4000, usage: 'none', commit: 0 },
+  { path: 'README.md', size: 300, usage: 'not-analyzed', commit: 0, lines: 12, changes: 1 },
+  { path: 'src/main.tsx', size: 120, usage: 'entry', dirty: true, untracked: true, lines: 5 },
+  { path: 'src/game/Kart.ts', size: 900, usage: 'referenced', commit: 0, dirty: true, lines: 1746, changes: 19 },
+  { path: 'public/models/kart.glb', size: 4000, usage: 'none', commit: 0, changes: 2 },
 ];
 const refs: PanelRef[] = [[1, 2, 'import']];
 let p: Harness;
@@ -132,7 +132,7 @@ describe('panel (DOM): uso', () => {
   });
 
   it('filtros rápidos con recuento; recortan tabla y treemap', async () => {
-    expect(p.text('.pill')).toEqual(['Todos', 'Sin rastro1', 'Mencionados0', 'Puntos de entrada1', 'Con cambios sin commit2']);
+    expect(p.text('.pill')).toEqual(['Todos', 'Sin rastro1', 'Mencionados0', 'Puntos de entrada1', 'Con cambios sin commit2', 'Hotspots']);
     await p.click(pill('Sin rastro'));
     expect(names()).toEqual(['kart.glb']);
     expect(p.$$('.tm-file')).toHaveLength(1);
@@ -208,6 +208,43 @@ describe('panel (DOM): uso', () => {
     expect(p.text('.leg')).toEqual(['Nuevo (sin commit)', 'e41d0b7 Añade el kart']);
     await p.choose(p.$$('.select select')[1], 'age');
     expect(p.text('.leg')).toEqual(['Nuevo (sin commit)', 'hasta hace 3 d']);
+  });
+
+  it('columnas Líneas y Cambios: vacías en binarios y en archivos sin commits', () => {
+    const cell = (name: string, col: string) => p.$$('.body .row').find((r) => r.querySelector('.name')?.textContent === name)!.querySelector(`.cell.${col}`)!.textContent;
+    expect([cell('Kart.ts', 'lines'), cell('Kart.ts', 'changes')]).toEqual(['1746', '19']);
+    expect([cell('kart.glb', 'lines'), cell('kart.glb', 'changes')]).toEqual(['', '2']);
+    expect([cell('main.tsx', 'lines'), cell('main.tsx', 'changes')]).toEqual(['5', '']);
+  });
+
+  it('atajo «Hotspots»: área Líneas, color Cambios y tabla por Cambios', async () => {
+    const hot = pill('Hotspots')!;
+    expect(hot.getAttribute('aria-pressed')).toBe('false');
+    await p.click(hot);
+    expect(p.state).toMatchObject({ area: 'lines', color: 'changes', sort: { key: 'changes', dir: 'desc' } });
+    expect(names()).toEqual(['Kart.ts', 'kart.glb', 'README.md', 'main.tsx']);
+    // En «Líneas» el binario no se dibuja.
+    expect(p.$$('.tm-file')).toHaveLength(3);
+    expect(p.text('.leg')).toEqual(['19 o más cambios', '2–18', '1 cambio', 'Sin cambios registrados']);
+    expect(pill('Hotspots')!.getAttribute('aria-pressed')).toBe('true');
+    expect(p.$('.tm-dir title')?.textContent).toContain('líneas');
+    await p.click(p.$('.head .cell.lines'));
+    expect(pill('Hotspots')!.getAttribute('aria-pressed')).toBe('false');
+    expect(names()[0]).toBe('Kart.ts');
+  });
+
+  it('el detalle lleva líneas y cambios', async () => {
+    await selectRow('Kart.ts');
+    expect(p.$('.d-main .d-meta')?.textContent).toMatch(/1746 líneas · 19 cambios$/);
+  });
+
+  it('sin git: hotspots y colores de git apagados; el área Líneas sigue', async () => {
+    await p.send({ type: 'index', index: { rootName: 'kart', complete: true, isGit: false, files: files.map(({ path, size, lines }) => ({ path, size, lines })), refs: [] } });
+    expect(pill('Hotspots')?.hasAttribute('disabled')).toBe(true);
+    const options = [...p.$$('.select select')[1]!.querySelectorAll('option')].filter((o) => o.disabled).map((o) => o.textContent);
+    expect(options).toEqual(['Antigüedad', 'Commits recientes', 'Cambios']);
+    expect(p.$$('.tm-file')).toHaveLength(3);
+    await p.send({ type: 'index', index: { rootName: 'kart', complete: true, isGit: true, files, refs, commits } });
   });
 
   it('con el índice a medias: uso pendiente y filtros rápidos apagados', async () => {

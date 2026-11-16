@@ -244,3 +244,9 @@ button { font: inherit; color: inherit; }
 .table .head, .table .body { min-width: 730px; box-sizing: border-box; }
 .cell.usage .share { margin-left: 0.3em; }
 @media (max-width: 760px) { .main { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); } }
+
+/* ------------------------------------------------------------ hotspots (fase 6) */
+.table .head, .table .body { min-width: 864px; }
+.cell.lines, .cell.changes { padding-left: 8px; }
+.share.auto { width: auto; }
+.pill.hot { margin-left: auto; }

@@ -7,7 +7,8 @@
 
 Nombre: **Heft** (antes «Workspace Files»). Repo `heft`; prefijo de ajustes y comandos `heft.*`.
 
-Estado: **fase 5 hecha** (vista «Carpetas», ámbito, comandos y panel con tabla, treemap, uso y git; instalar y probar
+Estado: **fases 0 a 6 hechas** (vista «Carpetas», ámbito, comandos y panel con tabla, treemap, uso,
+git y hotspots; instalar y probar
 con [prepareextension.md](prepareextension.md)). Fase 0 en [docs/fase-0.md](docs/fase-0.md). Fecha: 16-11-2026.
 Las capturas son de la v1: valen como referencia visual, con las diferencias de la sección 8.
 
@@ -300,7 +301,13 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
    - «Commits recientes»: los 8 últimos entre los que son el último cambio de algún archivo del
      ámbito (un commit cuyos archivos se han vuelto a tocar todos después no aparece).
    - Con todas las columnas la tabla tiene ancho mínimo y se desplaza en horizontal si no cabe.
-6. Hotspots: columnas Líneas y Cambios, área «Líneas», color «Cambios», atajo «Hotspots».
+6. ~~Hotspots: columnas Líneas y Cambios, área «Líneas», color «Cambios», atajo «Hotspots».~~
+   **Hecha**: columnas Líneas (vacía en binarios) y Cambios, ordenables de mayor a menor; área
+   `Líneas` (los binarios no se dibujan; las cabeceras de carpeta pasan a dar líneas); color
+   `Cambios` en un solo tono por cuantiles, con «Sin cambios registrados» y «Generado o lockfile»
+   aparte y fuera del cálculo; botón **Hotspots** que aplica las tres cosas. Sin git: el botón y
+   los colores de git quedan apagados y el área `Líneas` sigue funcionando. El detalle lleva
+   líneas y cambios.
 7. Opcionales: integración con Knip para código (verificar su salida JSON), ciudad 3D con Three.js.
 
 Producto mínimo útil = fases 0 a 4. Para proyectos sin archivos grandes, el valor llega en la fase 6.
@@ -337,7 +344,7 @@ Proyecto ficticio `kart-game` (24 archivos, ~30 MB), tal como está en el diseñ
 - **Mencionado**: grass.png (1,8 MB): `Track.ts` monta su ruta en ejecución. En la v1 era un falso
   huérfano.
 
-El diseño interactivo todavía no incluye los hotspots (líneas y cambios).
+El diseño interactivo no incluye los hotspots (líneas y cambios); la extensión sí.
 
 ## 8. Capturas de la v1 y qué cambia
 

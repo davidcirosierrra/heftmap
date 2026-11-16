@@ -119,7 +119,7 @@ export function App() {
     {
       key: 'size',
       label: 'Tamaño',
-      width: '130px',
+      width: '122px',
       align: 'right',
       title: 'Tamaño y % del ámbito',
       render: (r) => (
@@ -129,9 +129,25 @@ export function App() {
       ),
     },
     {
+      key: 'lines',
+      label: 'Líneas',
+      width: '64px',
+      align: 'right',
+      title: 'Nº de líneas (vacío en binarios)',
+      render: (r) => (r.lines == null ? '' : r.lines.toLocaleString('es-ES')),
+    },
+    {
+      key: 'changes',
+      label: 'Cambios',
+      width: '88px',
+      align: 'right',
+      title: 'Nº de commits que han tocado el archivo. No sigue renombrados',
+      render: (r) => (r.usage === 'pending' ? '…' : r.changes > 0 ? <span className={r.generated ? 'share auto' : undefined}>{r.changes.toLocaleString('es-ES')}</span> : ''),
+    },
+    {
       key: 'usage',
       label: 'Uso',
-      width: '176px',
+      width: '170px',
       title: 'Estado de uso y nº de archivos que lo referencian',
       render: (r) => (
         <span title={r.usage === 'no-importers' ? 'Código sin importadores: aviso de baja confianza. Para código muerto, usa Knip.' : undefined}>
@@ -144,7 +160,7 @@ export function App() {
     {
       key: 'changed',
       label: 'Último cambio',
-      width: '172px',
+      width: '166px',
       title: 'Fecha y hash del último commit. ● = cambios sin commit',
       render: (r) =>
         r.untracked ? (
@@ -161,6 +177,9 @@ export function App() {
   ];
 
   const isFiltered = saved.filter.trim() !== '' || quick !== 'all';
+  // Hotspots (SPEC §3.5): área Líneas + color Cambios + tabla por Cambios. Necesita git.
+  const canHotspots = index.complete && index.isGit !== false;
+  const inHotspots = saved.area === 'lines' && saved.color === 'changes' && saved.sort.key === 'changes' && saved.sort.dir === 'desc';
   return (
     <div className="app">
       <header className="bar">
@@ -206,6 +225,15 @@ export function App() {
             {q !== 'all' && index.complete && <span className="n">{counts[q].toLocaleString('es-ES')}</span>}
           </button>
         ))}
+        <button
+          className={`pill hot${inHotspots ? ' on' : ''}`}
+          aria-pressed={inHotspots}
+          disabled={!canHotspots}
+          title={canHotspots ? 'Área «Líneas» + color «Cambios» + tabla ordenada por Cambios: el código grande que más se toca' : 'Los hotspots necesitan el historial de git'}
+          onClick={() => set({ area: 'lines', color: 'changes', sort: { key: 'changes', dir: 'desc' }, zoom: '' })}
+        >
+          Hotspots
+        </button>
       </div>
       {status.building && (
         <div className="working" role="status">
@@ -245,7 +273,13 @@ export function App() {
               )}
             </nav>
             <Select label="Área" value={saved.area} options={AREA_LABEL} onChange={(area) => set({ area })} />
-            <Select label="Color" value={saved.color} options={COLOR_LABEL} onChange={(color) => set({ color })} />
+            <Select
+              label="Color"
+              value={saved.color}
+              options={COLOR_LABEL}
+              disabled={index.isGit === false ? ['age', 'recent', 'changes'] : []}
+              onChange={(color) => set({ color })}
+            />
           </div>
           <Treemap
             rows={filtered}
@@ -279,14 +313,14 @@ export function App() {
   );
 }
 
-function Select<T extends string>(props: { label: string; value: T; options: Record<T, string>; onChange(v: T): void }) {
+function Select<T extends string>(props: { label: string; value: T; options: Record<T, string>; disabled?: T[]; onChange(v: T): void }) {
   const keys = Object.keys(props.options) as T[];
   return (
     <label className="select">
       {props.label}
       <select value={props.value} onChange={(e) => props.onChange(e.target.value as T)} disabled={keys.length < 2}>
         {keys.map((k) => (
-          <option key={k} value={k}>
+          <option key={k} value={k} disabled={props.disabled?.includes(k)}>
             {props.options[k]}
           </option>
         ))}

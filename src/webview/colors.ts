@@ -6,13 +6,14 @@ import type { Row, RowUsage } from './model.js';
  * Color de cada archivo según el modo activo (SPEC §2.2) y su leyenda. Lógica pura.
  * Cada modo reparte los archivos en grupos (`key`); la leyenda es la lista de grupos.
  */
-export type ColorMode = 'ext' | 'usage' | 'age' | 'recent';
+export type ColorMode = 'ext' | 'usage' | 'age' | 'recent' | 'changes';
 
 export const COLOR_LABEL: Record<ColorMode, string> = {
   ext: 'Extensión',
   usage: 'Uso',
   age: 'Antigüedad',
   recent: 'Commits recientes',
+  changes: 'Cambios',
 };
 
 export interface LegendItem {
@@ -239,7 +240,37 @@ function byRecent(rows: readonly Row[]): Coloring {
   ]);
 }
 
+/** Un solo tono, de intenso (muy tocado) a apagado (poco tocado). */
+export const CHANGE_COLORS = ['#e8590c', '#f08c3f', '#f2ae7b', '#d9bfa8', '#a79c93'];
+const STABLE = 'estable';
+const GENERATED = 'generado';
+
+/**
+ * Cambios (SPEC §2.2 y §3.5): de gris (estable) a intenso (muy tocado), por cuantiles del
+ * repo. Lockfiles y generados quedan fuera: cambian mucho y no dicen nada.
+ */
+function byChanges(rows: readonly Row[]): Coloring {
+  const floors = quantileFloors(rows.filter((r) => !r.generated && r.changes > 0).map((r) => r.changes), CHANGE_COLORS.length);
+  const keyOf = (r: Row): string => {
+    if (r.generated) return GENERATED;
+    if (r.changes <= 0) return STABLE;
+    return `c${Math.max(0, floors.findIndex((f) => r.changes >= f))}`;
+  };
+  const n = (x: number): string => x.toLocaleString('es-ES');
+  const groups = floors.map((floor, i) => {
+    const top = i === 0 ? null : (floors[i - 1] as number) - 1;
+    const label = top === null ? `${n(floor)} o más` : top === floor ? `${n(floor)} ${floor === 1 ? 'cambio' : 'cambios'}` : `${n(floor)}–${n(top)}`;
+    const color = CHANGE_COLORS[floors.length === 1 ? 0 : Math.round((i * (CHANGE_COLORS.length - 1)) / (floors.length - 1))] as string;
+    return { key: `c${i}`, label: i === 0 && top === null ? `${label} cambios` : label, color };
+  });
+  return fixedGroups('changes', rows, keyOf, [
+    ...groups,
+    { key: STABLE, label: 'Sin cambios registrados', color: '#6b6b6b' },
+    { key: GENERATED, label: 'Generado o lockfile', color: '#4d4d4d' },
+  ]);
+}
+
 export function coloring(mode: ColorMode, rows: readonly Row[], now = Date.now()): Coloring {
-  const modes: Record<ColorMode, (rows: readonly Row[]) => Coloring> = { ext: byExt, usage: byUsage, age: (r) => byAge(r, now), recent: byRecent };
+  const modes: Record<ColorMode, (rows: readonly Row[]) => Coloring> = { ext: byExt, usage: byUsage, age: (r) => byAge(r, now), recent: byRecent, changes: byChanges };
   return modes[mode](rows);
 }

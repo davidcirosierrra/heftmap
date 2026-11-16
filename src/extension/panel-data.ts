@@ -29,6 +29,9 @@ export function toPanelIndex(index: HeftIndex, rootName: string): PanelIndex {
     }
     if (f.dirty) out.dirty = true;
     if (f.untracked) out.untracked = true;
+    if (f.lines != null) out.lines = f.lines;
+    if (f.changes) out.changes = f.changes;
+    if (f.generated) out.generated = true;
     return out;
   });
   return { rootName, complete: index.complete, isGit: index.isGit, files, refs, commits };

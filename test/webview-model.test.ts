@@ -276,3 +276,68 @@ describe('git (fase 5)', () => {
     expect(c.legend.at(-1)).toMatchObject({ count: 3 });
   });
 });
+
+describe('hotspots (fase 6)', () => {
+  const hFiles: PanelFile[] = [
+    { path: 'src/index.css', size: 40_000, lines: 1746, changes: 19 },
+    { path: 'src/store.ts', size: 20_000, lines: 681, changes: 17 },
+    { path: 'src/util.ts', size: 2_000, lines: 60, changes: 2 },
+    { path: 'src/estable.ts', size: 30_000, lines: 900, changes: 1 },
+    { path: 'src/nuevo.ts', size: 500, lines: 20 },
+    { path: 'package-lock.json', size: 118_000, lines: 3562, changes: 40, generated: true },
+    { path: 'public/kart.glb', size: 4_000_000, changes: 3 },
+  ];
+  const rows = toRows(hFiles, []);
+  const row = (p: string) => rows.find((r) => r.path === p)!;
+
+  it('líneas y cambios en cada fila; los binarios no tienen líneas', () => {
+    expect(row('src/index.css')).toMatchObject({ lines: 1746, changes: 19, generated: false });
+    expect(row('public/kart.glb')).toMatchObject({ lines: null, changes: 3 });
+    expect(row('src/nuevo.ts').changes).toBe(0);
+    expect(row('package-lock.json').generated).toBe(true);
+  });
+
+  it('con el índice a medias hay líneas pero aún no cambios', () => {
+    const partial = toRows(hFiles, [], { complete: false });
+    expect(partial[0]).toMatchObject({ lines: 1746, changes: 0 });
+  });
+
+  it('ordenar por Líneas y por Cambios empieza por lo grande; los binarios, al final', () => {
+    expect(nextSort(DEFAULT_SORT, 'lines')).toEqual({ key: 'lines', dir: 'desc' });
+    expect(nextSort(DEFAULT_SORT, 'changes')).toEqual({ key: 'changes', dir: 'desc' });
+    const byLines = sortRows(rows, { key: 'lines', dir: 'desc' }).map((r) => r.path);
+    expect(byLines[0]).toBe('package-lock.json');
+    expect(byLines.at(-1)).toBe('public/kart.glb');
+    expect(sortRows(rows, { key: 'changes', dir: 'desc' }).map((r) => r.changes)).toEqual([40, 19, 17, 3, 2, 1, 0]);
+  });
+
+  it('área «Líneas»: solo texto, proporcional a las líneas', async () => {
+    const { layoutTreemap, areaValue } = await import('../src/webview/treemap-layout.js');
+    expect(areaValue(row('src/index.css'), 'lines')).toBe(1746);
+    expect(areaValue(row('public/kart.glb'), 'lines')).toBe(0);
+    const cells = layoutTreemap(rows, { width: 800, height: 600, area: 'lines', zoom: '' });
+    expect(cells.some((c) => c.path === 'public/kart.glb')).toBe(false);
+    const css = cells.find((c) => c.path === 'src/index.css')!;
+    const store = cells.find((c) => c.path === 'src/store.ts')!;
+    expect((css.w * css.h) / (store.w * store.h)).toBeGreaterThan(2);
+    // Las carpetas suman las líneas de lo dibujado.
+    expect(cells.find((c) => c.kind === 'dir' && c.path === 'src')!.lines).toBe(1746 + 681 + 60 + 900 + 20);
+  });
+
+  it('color «Cambios»: tramos por cuantiles; lockfiles y generados quedan fuera', () => {
+    const c = coloring('changes', rows);
+    expect(c.keyOf(row('package-lock.json'))).toBe('generado');
+    expect(c.keyOf(row('src/nuevo.ts'))).toBe('estable');
+    // El lockfile (40 cambios) no entra en el cálculo: el tramo más intenso empieza en 19.
+    expect(c.legend[0]!.label).toBe('19 o más cambios');
+    expect(c.keyOf(row('src/index.css'))).toBe('c0');
+    expect(c.keyOf(row('src/estable.ts'))).toBe(`c${c.legend.filter((l) => l.key.startsWith('c')).length - 1}`);
+    expect(c.legend.map((l) => l.label).slice(-2)).toEqual(['Sin cambios registrados', 'Generado o lockfile']);
+    expect(c.colorOf(row('src/index.css'))).not.toBe(c.colorOf(row('src/estable.ts')));
+  });
+
+  it('etiquetas de los tramos de cambios: rangos sin huecos', () => {
+    const many = toRows(Array.from({ length: 50 }, (_, i) => ({ path: `f${i}.ts`, size: 1, lines: 1, changes: i + 1 })), []);
+    expect(coloring('changes', many).legend.map((l) => l.label)).toEqual(['41 o más cambios', '31–40', '21–30', '11–20', '1–10']);
+  });
+});
