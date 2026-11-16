@@ -4,6 +4,17 @@ import { textOn, type Coloring } from './colors.js';
 import type { Row } from './model.js';
 import { fitText, HEADER_HEIGHT, layoutTreemap, type AreaMode } from './treemap-layout.js';
 
+interface Size {
+  width: number;
+  height: number;
+}
+
+/** Actualización del tamaño a lo que mide `el`; si no ha cambiado, el mismo objeto (no repinta). */
+const measured =
+  (el: HTMLElement) =>
+  (s: Size): Size =>
+    s.width === el.clientWidth && s.height === el.clientHeight ? s : { width: el.clientWidth, height: el.clientHeight };
+
 /** Treemap 2D (SPEC §2.2): pinta en SVG lo que calcula `treemap-layout.ts`. */
 export function Treemap(props: {
   rows: Row[];
@@ -22,13 +33,12 @@ export function Treemap(props: {
   const { rows, coloring, selected, highlight, area } = props;
   const I = useI18n();
   const box = useRef<HTMLDivElement>(null);
-  const [size, setSize] = useState({ width: 0, height: 0 });
+  const [size, setSize] = useState<Size>({ width: 0, height: 0 });
 
   useLayoutEffect(() => {
     const el = box.current;
     if (!el) return;
-    const measure = (): void =>
-      setSize((s) => (s.width === el.clientWidth && s.height === el.clientHeight ? s : { width: el.clientWidth, height: el.clientHeight }));
+    const measure = (): void => setSize(measured(el));
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
@@ -42,7 +52,7 @@ export function Treemap(props: {
   // Al mover el divisor se mide en el mismo pintado, sin esperar al ResizeObserver.
   useLayoutEffect(() => {
     const el = box.current;
-    if (el) setSize((s) => (s.width === el.clientWidth && s.height === el.clientHeight ? s : { width: el.clientWidth, height: el.clientHeight }));
+    if (el) setSize(measured(el));
   }, [props.layoutKey]);
 
   const cells = useMemo(
