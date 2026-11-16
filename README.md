@@ -6,11 +6,12 @@ Extensión para Cursor (y VS Code) que responde a una pregunta: **¿qué pesa en
 - Uso: quién referencia cada archivo y qué recursos no tienen rastro de uso.
 - Último cambio en git y **hotspots** (líneas × frecuencia de cambio).
 
-Estado: **fase 2**. Vista lateral «Carpetas» con tamaños y casillas de ámbito, comandos, menú
+Estado: **fases 0 a 6 hechas**. Vista lateral «Carpetas» con tamaños y casillas de ámbito, comandos, menú
 contextual del explorador, barra de estado y panel con la tabla de archivos (orden, filtro, ámbito)
 y el treemap enlazado (área, color por extensión o por uso, zoom), y el uso de cada archivo: estado,
 quién lo referencia, filtros «sin rastro» y acciones. También el último cambio en git (columna,
-colores por antigüedad y por commits recientes, detalle del commit). Los hotspots llegan en la fase 6.
+colores por antigüedad y por commits recientes, detalle del commit) y los hotspots: líneas × cambios,
+con el botón «Hotspots». Quedan los opcionales de la fase 7 (Knip, ciudad 3D).
 Diseño completo en [SPEC.md](SPEC.md); resultados de la fase 0 en [docs/fase-0.md](docs/fase-0.md).
 
 **Instalar y probar en Cursor: [prepareextension.md](prepareextension.md).**

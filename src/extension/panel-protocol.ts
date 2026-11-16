@@ -5,7 +5,7 @@
 
 import type { CommitInfo, RefKind, Usage } from '../core/types.js';
 
-/** Lo que el panel necesita de cada archivo. Crece con las fases (líneas). */
+/** Lo que el panel necesita de cada archivo. */
 export interface PanelFile {
   /** Ruta relativa a la raíz, con `/`. */
   path: string;
@@ -18,6 +18,12 @@ export interface PanelFile {
   dirty?: boolean;
   /** Todavía no seguido por git: «nuevo». */
   untracked?: boolean;
+  /** Nº de líneas; sin definir en binarios. Vale también con el índice a medias. */
+  lines?: number;
+  /** Nº de commits que lo tocan (dentro de `git.since`); sin definir = 0. */
+  changes?: number;
+  /** Lockfile o generado: fuera del cálculo de hotspots (SPEC §3.5). */
+  generated?: boolean;
 }
 
 /** Un commit que es el último cambio de algún archivo. */

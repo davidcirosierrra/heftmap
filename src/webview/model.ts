@@ -23,12 +23,18 @@ export interface Row {
   /** Cambios sin commit, incluidos los archivos nuevos. */
   dirty: boolean;
   untracked: boolean;
+  /** Nº de líneas; null en binarios. */
+  lines: number | null;
+  /** Nº de commits que lo tocan; 0 sin git o con el índice a medias. */
+  changes: number;
+  /** Lockfile o generado: no cuenta para los hotspots. */
+  generated: boolean;
 }
 
 export type RowUsage = Usage | 'pending';
 
-export type SortKey = 'name' | 'folder' | 'size' | 'usage' | 'changed';
-export const SORT_KEYS: readonly SortKey[] = ['name', 'folder', 'size', 'usage', 'changed'];
+export type SortKey = 'name' | 'folder' | 'size' | 'lines' | 'changes' | 'changed' | 'usage';
+export const SORT_KEYS: readonly SortKey[] = ['name', 'folder', 'size', 'lines', 'changes', 'changed', 'usage'];
 export type SortDir = 'asc' | 'desc';
 export interface Sort {
   key: SortKey;
@@ -36,6 +42,7 @@ export interface Sort {
 }
 
 export const DEFAULT_SORT: Sort = { key: 'name', dir: 'asc' };
+const DESC_FIRST: readonly SortKey[] = ['size', 'lines', 'changes', 'changed'];
 
 /** Datos del índice que no son la lista de archivos. Por defecto: completo y sin referencias. */
 export interface RowContext {
@@ -68,6 +75,9 @@ export function toRows(files: readonly PanelFile[], scope: Scope, ctx: RowContex
       commit: (complete && f.commit !== undefined && ctx.commits?.[f.commit]) || null,
       dirty: complete && !!f.dirty,
       untracked: complete && !!f.untracked,
+      lines: f.lines ?? null,
+      changes: complete ? (f.changes ?? 0) : 0,
+      generated: !!f.generated,
     });
   }
   return rows;
@@ -175,6 +185,9 @@ export function sortRows(rows: readonly Row[], sort: Sort): Row[] {
     // Lo más sospechoso primero; dentro de cada estado, lo menos referenciado.
     usage: (a, b) => USAGE_ORDER.indexOf(a.usage) - USAGE_ORDER.indexOf(b.usage) || a.refsIn - b.refsIn,
     changed: (a, b) => changedAt(a) - changedAt(b),
+    // Los binarios (sin líneas) van por debajo de un archivo de texto vacío.
+    lines: (a, b) => (a.lines ?? -1) - (b.lines ?? -1),
+    changes: (a, b) => a.changes - b.changes || (a.lines ?? -1) - (b.lines ?? -1),
   };
   const cmp = by[sort.key];
   const sign = sort.dir === 'asc' ? 1 : -1;
@@ -184,8 +197,8 @@ export function sortRows(rows: readonly Row[], sort: Sort): Row[] {
 /** Clic en una cabecera: misma columna invierte; otra empieza por su sentido natural. */
 export function nextSort(current: Sort, key: SortKey): Sort {
   if (current.key === key) return { key, dir: current.dir === 'asc' ? 'desc' : 'asc' };
-  // Tamaño y fecha empiezan por lo grande y lo reciente.
-  return { key, dir: key === 'size' || key === 'changed' ? 'desc' : 'asc' };
+  // Las columnas de cantidad y la fecha empiezan por lo grande y lo reciente.
+  return { key, dir: DESC_FIRST.includes(key) ? 'desc' : 'asc' };
 }
 
 export function totalSize(rows: readonly Row[]): number {

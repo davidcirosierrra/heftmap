@@ -1,7 +1,7 @@
 # Preparar y probar Heft en Cursor
 
-Guía para instalar la extensión y comprobar las **fases 1 y 2** (vista «Carpetas», ámbito y panel
-con la tabla).
+Guía para instalar la extensión y comprobar las **fases 1 a 6** (vista «Carpetas», ámbito y panel
+con tabla, treemap, uso, git y hotspots).
 Funciona igual en VS Code.
 
 ## 1. Requisitos
@@ -121,7 +121,7 @@ Marca cada punto. Si algo falla, abre **Heft: Mostrar registro** (`Ctrl+Shift+P`
 - [ ] Cambia un ajuste `heft.*` (*Settings → Heft*): se vuelve a analizar.
 - [ ] Botón «refrescar» de la cabecera: vuelve a analizar.
 
-## 6. Qué comprobar (fase 2: panel)
+## 6. Qué comprobar (fases 2 a 6: panel)
 
 **Abrir**
 - [ ] Botón de la tabla en la cabecera de la vista «Carpetas», o `Heft: Abrir panel` en la paleta:
@@ -191,13 +191,25 @@ Marca cada punto. Si algo falla, abre **Heft: Mostrar registro** (`Ctrl+Shift+P`
       lleva hash y mensaje; clic en uno resalta lo que tocó.
 - [ ] En una carpeta sin git: la columna muestra `—` y el filtro de cambios está apagado.
 
+**Hotspots (fase 6)**
+- [ ] Columnas **Líneas** (vacía en binarios) y **Cambios** (nº de commits que tocan el archivo).
+- [ ] Botón **Hotspots** (a la derecha de los filtros rápidos): el treemap pasa a área `Líneas` y
+      color `Cambios`, y la tabla se ordena por Cambios. Grande e intenso = candidato a dividir o
+      revisar; grande y gris = código estable. En Feos pero majos deberían destacar
+      `src/index.css` y `src/game/store.ts`.
+- [ ] En área `Líneas` los binarios desaparecen del treemap y las cabeceras de carpeta dan líneas.
+- [ ] `package-lock.json` sale en gris oscuro («Generado o lockfile») aunque tenga muchos cambios.
+- [ ] La leyenda de `Cambios` da los tramos (`12 o más cambios`, `5–11`…); clic resalta uno.
+- [ ] Con `heft.git.since` = `1.month`, los cambios cuentan solo ese periodo.
+- [ ] En una carpeta sin git: el botón Hotspots y los colores de git están apagados; `Líneas` funciona.
+- [ ] Con el panel estrecho la tabla se desplaza en horizontal en vez de aplastar las columnas.
+
 **Estado**
 - [ ] Cambia a otra pestaña y vuelve: se conservan orden, filtro, selección, área, color y zoom.
 - [ ] Crea o borra un archivo: la tabla se actualiza sola; mientras, arriba dice «Actualizando: …».
 
 ## 7. Limitaciones conocidas
 
-- Las columnas Líneas y Cambios y los hotspots (fase 6) no están todavía.
 - «Lo usan» y «Usa» están en el detalle inferior, no en una fila desplegable.
 - Al recargar la ventana el panel se cierra; hay que volver a abrirlo.
 - En un workspace con **varias carpetas raíz**, Heft analiza solo la primera (queda anotado en el registro).

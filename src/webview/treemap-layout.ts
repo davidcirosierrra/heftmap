@@ -5,15 +5,18 @@ import type { Row } from './model.js';
  * Treemap 2D anidado por carpetas (SPEC §2.2). Lógica pura: de filas a rectángulos.
  * El componente solo pinta lo que sale de aquí.
  */
-export type AreaMode = 'bytes' | 'balanced';
+export type AreaMode = 'bytes' | 'balanced' | 'lines';
 
 export const AREA_LABEL: Record<AreaMode, string> = {
   bytes: 'Bytes',
   balanced: 'Equilibrado',
+  lines: 'Líneas',
 };
 
 /** Valor que decide el área de un archivo. 0 = no se dibuja. */
 export function areaValue(row: Row, mode: AreaMode): number {
+  // Líneas: solo archivos de texto; los binarios no se dibujan.
+  if (mode === 'lines') return row.lines ?? 0;
   // Equilibrado: √bytes, para que el código no desaparezca junto a los binarios.
   return mode === 'balanced' ? Math.sqrt(row.size) : row.size;
 }
@@ -29,6 +32,8 @@ export interface Cell {
   h: number;
   /** Bytes reales (suma en carpetas), sea cual sea el modo de área. */
   size: number;
+  /** Líneas de los archivos dibujados (suma en carpetas). */
+  lines: number;
   /** Nº de archivos (1 en archivos). */
   count: number;
   /** Carpeta con cabecera visible (nombre y tamaño). */
@@ -40,6 +45,7 @@ interface Node {
   name: string;
   path: string;
   size: number;
+  lines: number;
   count: number;
   value: number;
   row?: Row;
@@ -72,28 +78,31 @@ export function layoutTreemap(rows: readonly Row[], opts: LayoutOptions): Cell[]
   const zoom = effectiveZoom(rows, opts.zoom);
   const prefix = zoom ? zoom + '/' : '';
 
-  const root: Node = { name: zoom.slice(zoom.lastIndexOf('/') + 1), path: zoom, size: 0, count: 0, value: 0, children: [], dirs: new Map() };
+  const root: Node = { name: zoom.slice(zoom.lastIndexOf('/') + 1), path: zoom, size: 0, lines: 0, count: 0, value: 0, children: [], dirs: new Map() };
   for (const row of rows) {
     if (prefix && !row.path.startsWith(prefix)) continue;
     const value = areaValue(row, opts.area);
     if (!(value > 0)) continue;
     const parts = row.path.slice(prefix.length).split('/');
     let node = root;
+    const lines = row.lines ?? 0;
     node.size += row.size;
+    node.lines += lines;
     node.count++;
     for (let i = 0; i < parts.length - 1; i++) {
       const name = parts[i] as string;
       let child = node.dirs!.get(name);
       if (!child) {
-        child = { name, path: prefix + parts.slice(0, i + 1).join('/'), size: 0, count: 0, value: 0, children: [], dirs: new Map() };
+        child = { name, path: prefix + parts.slice(0, i + 1).join('/'), size: 0, lines: 0, count: 0, value: 0, children: [], dirs: new Map() };
         node.dirs!.set(name, child);
         node.children!.push(child);
       }
       child.size += row.size;
+      child.lines += lines;
       child.count++;
       node = child;
     }
-    node.children!.push({ name: row.name, path: row.path, size: row.size, count: 1, value, row });
+    node.children!.push({ name: row.name, path: row.path, size: row.size, lines, count: 1, value, row });
   }
   if (!root.count) return [];
 
@@ -126,6 +135,7 @@ export function layoutTreemap(rows: readonly Row[], opts: LayoutOptions): Cell[]
       w,
       h,
       size: d.data.size,
+      lines: d.data.lines,
       count: d.data.count,
       header: isDir && hasHeader(d),
       row: d.data.row,

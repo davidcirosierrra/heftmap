@@ -34,6 +34,9 @@ export function Detail(props: {
         </span>
         <span className="d-meta">
           {fmtSize(row.size)} · {pct(props.scopeBytes > 0 ? row.size / props.scopeBytes : 0)} del ámbito
+          {row.lines != null && ` · ${row.lines.toLocaleString('es-ES')} ${row.lines === 1 ? 'línea' : 'líneas'}`}
+          {row.changes > 0 && ` · ${row.changes.toLocaleString('es-ES')} ${row.changes === 1 ? 'cambio' : 'cambios'}`}
+          {row.generated && ' · generado'}
         </span>
         <span className="d-actions">
           <button onClick={() => post({ type: 'open', path: row.path })}>Abrir</button>
