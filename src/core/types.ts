@@ -103,6 +103,8 @@ export interface BuildOptions {
   entryPoints?: string[];
   /** Archivos que nunca cuentan como huérfanos. */
   ignore?: string[];
+  /** Texto más grande que esto (bytes) no se lee: ni líneas ni uso. Por defecto MAX_TEXT_BYTES. */
+  maxTextBytes?: number;
 }
 
 /** Fase del análisis, en orden. `mentions` es la segunda pasada del uso. */

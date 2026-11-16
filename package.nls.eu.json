@@ -22,5 +22,6 @@
   "capabilities.untrusted": "Modu mugatuan Heftmap-ek ez du git exekutatzen: tamainak eta erabilera erakusten ditu, historiarik eta commit gabeko aldaketarik gabe. Lan-eremuko Heftmap ezarpenak ez dira kontuan hartzen.",
   "command.copyReport": "Kopiatu errore-txostena",
   "config.refreshDelay": "Aldaketa baten ondoren (diskoan, git-en edo ezarpenetan) berriro aztertu aurretik itxaroten diren milisegundoak. 250 eta 60000 artean.",
-  "config.autoRefresh": "Berriro aztertu bere kabuz fitxategiak edo git aldatzean. Desaktibatuta, Freskatu botoiak (edo ezarpen-aldaketa batek) bakarrik aztertzen du berriro."
+  "config.autoRefresh": "Berriro aztertu bere kabuz fitxategiak edo git aldatzean. Desaktibatuta, Freskatu botoiak (edo ezarpen-aldaketa batek) bakarrik aztertzen du berriro.",
+  "config.maxTextFileSize": "Hau baino handiagoak diren testu-fitxategiak (MBtan) ez dira irakurtzen: tamaina ezagutzen da, baina ez lerroak ezta erabilera ere. 1 eta 50 artean."
 }

@@ -70,12 +70,15 @@ export interface FileRead {
   size: number;
   binary: boolean;
   lines: number | null;
-  /** Contenido si es texto y no supera MAX_TEXT_BYTES. */
+  /** Contenido si es texto y no supera el límite (`maxTextBytes`). */
   text: string | null;
 }
 
-/** Tamaño, binario o texto, nº de líneas y contenido. null si el archivo ya no existe. */
-export async function readFile(root: string, rel: string): Promise<FileRead | null> {
+/**
+ * Tamaño, binario o texto, nº de líneas y contenido. null si el archivo ya no existe. Un texto de
+ * más de `maxTextBytes` no se lee: se sabe su tamaño, pero no sus líneas ni su contenido.
+ */
+export async function readFile(root: string, rel: string, maxTextBytes: number = MAX_TEXT_BYTES): Promise<FileRead | null> {
   const abs = path.join(root, rel);
   // Un enlace simbólico no se sigue: puede apuntar fuera del repo (~/.ssh, /dev/zero). Cuenta
   // como el enlace en sí, igual que lo guarda git.
@@ -84,7 +87,7 @@ export async function readFile(root: string, rel: string): Promise<FileRead | nu
   if (lst.isSymbolicLink()) return { size: lst.size, binary: false, lines: null, text: null };
   const st = lst;
   if (!st.isFile()) return null;
-  if (BINARY_EXT.has(extOf(rel)) || st.size > MAX_TEXT_BYTES) {
+  if (BINARY_EXT.has(extOf(rel)) || st.size > maxTextBytes) {
     return { size: st.size, binary: BINARY_EXT.has(extOf(rel)), lines: null, text: null };
   }
   const buf = await fs.readFile(abs);

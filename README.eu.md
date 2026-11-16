@@ -53,6 +53,7 @@ balio du, monorepoetan ere bai.
 | `heftmap.usage.entryPoints` | `[]` | Sarrera-puntu gehigarriak (framework baten bideak, adibidez) |
 | `heftmap.refreshDelay` | `1500` | Aldaketa baten ondoren berriro aztertu aurretik itxarotekoa, milisegundotan (250–60000) |
 | `heftmap.autoRefresh` | `true` | Berriro aztertu bere kabuz fitxategiak edo git aldatzean; desaktibatuta = Freskatu-rekin bakarrik |
+| `heftmap.maxTextFileSize` | `5` | Tamaina hau (MB) baino handiagoak diren testuak ez dira irakurtzen: lerrorik eta erabilerarik gabe (1–50) |
 
 ## Monorepoak
 

@@ -2,7 +2,7 @@ import { rmSync } from 'node:fs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildIndex, type FileEntry, type HeftIndex } from '../src/core/index.js';
 import { hotspots } from '../src/report.js';
-import { createKartGame } from './fixture.js';
+import { createKartGame, createRepo } from './fixture.js';
 
 let root: string;
 let index: HeftIndex;
@@ -122,5 +122,31 @@ describe('uso', () => {
   it('excepciones del usuario', async () => {
     const withIgnore = await buildIndex(root, { ignore: ['public/models/trees.glb'] });
     expect(withIgnore.files.find((f) => f.path === 'public/models/trees.glb')?.usage).toBe('exception');
+  });
+});
+
+describe('maxTextBytes (ajuste heftmap.maxTextFileSize)', () => {
+  it('un texto por encima del límite conserva su tamaño, sin líneas ni uso', async () => {
+    const dir = createRepo({
+      'src/main.ts': "import { big } from './big'\nexport default big\n",
+      'src/big.ts': `export const big = 1\n// ${'x'.repeat(4000)}\n`,
+      'public/a.png': 'png',
+      'src/refs.ts': `const a = '/a.png'\nexport default a\n${'//'.repeat(3000)}\n`,
+    });
+    try {
+      const small = await buildIndex(dir, { maxTextBytes: 1024 });
+      const at = (p: string) => small.files.find((f) => f.path === p)!;
+      expect(at('src/big.ts').size).toBeGreaterThan(4000);
+      expect(at('src/big.ts').lines).toBeNull();
+      // refs.ts no se lee: su ruta a /a.png no cuenta.
+      expect(at('public/a.png').usage).toBe('none');
+
+      const normal = await buildIndex(dir);
+      const at2 = (p: string) => normal.files.find((f) => f.path === p)!;
+      expect(at2('src/big.ts').lines).toBe(2);
+      expect(at2('public/a.png').usage).toBe('referenced');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

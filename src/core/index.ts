@@ -29,7 +29,7 @@ export async function buildIndex(rootArg: string, opts: BuildOptions = {}, hooks
   let read = 0;
   progress('read', 0, paths.length);
   await mapLimit(paths, 32, async (rel) => {
-    const r = await readFile(root, rel);
+    const r = await readFile(root, rel, opts.maxTextBytes);
     progress('read', ++read, paths.length);
     if (!r) return; // borrado del disco pero aún en el índice de git
     files.set(rel, {

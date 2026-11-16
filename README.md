@@ -51,6 +51,7 @@ models, audio, textures), useful in any git repository, including monorepos.
 | `heftmap.usage.entryPoints` | `[]` | Extra entry points (framework routes, for example) |
 | `heftmap.refreshDelay` | `1500` | Milliseconds to wait after a change before analyzing again (250–60000) |
 | `heftmap.autoRefresh` | `true` | Analyze again automatically when files or git change; off = only with Refresh |
+| `heftmap.maxTextFileSize` | `5` | Text files above this size (MB) are not read: no lines, no usage (1–50) |
 
 ## Monorepos
 
