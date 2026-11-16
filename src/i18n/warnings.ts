@@ -11,8 +11,13 @@ export function warningText(w: Warning, I: I18n): string {
     case 'unresolved-aliases':
       return I.t('warn.aliases', { n: I.num(w.count), prefixes: w.prefixes.join(', ') });
     case 'invalid-exclude':
-      return I.t('warn.exclude', { patterns: w.patterns.map((p) => `«${p}»`).join(', ') });
+      return invalidPatternsText('heftmap.exclude', w.patterns, I);
     case 'unresolved-imports':
       return I.t('warn.unresolved', { n: I.num(w.count), examples: w.examples.join(', ') });
   }
+}
+
+/** Aviso de patrones de un ajuste que no se pueden evaluar sin riesgo y se ignoran. */
+export function invalidPatternsText(setting: string, patterns: readonly string[], I: I18n): string {
+  return I.t('warn.exclude', { setting, patterns: patterns.map((p) => `«${p}»`).join(', ') });
 }

@@ -30,6 +30,8 @@ export interface HeftSettings {
   usageWeakSources: string[] | undefined;
   /** Patrones de lo que no se analiza en absoluto (estilo .gitignore). */
   exclude: string[];
+  /** Patrones de código que no cuenta en los hotspots (generado a mano, vendorizado…). */
+  hotspotsExclude: string[];
 }
 
 /** Límites de `heftmap.refreshDelay` (ms), los mismos que declara package.json. */
@@ -52,6 +54,7 @@ export function readSettings(scope?: vscode.Uri): HeftSettings {
     // Una lista vacía vale (ninguna carpeta de tooling); otra cosa, el valor por defecto.
     usageWeakSources: Array.isArray(cfg.get('usage.weakSources')) ? strings(cfg.get('usage.weakSources')) : undefined,
     exclude: strings(cfg.get('exclude')),
+    hotspotsExclude: strings(cfg.get('hotspots.exclude')),
   };
 }
 

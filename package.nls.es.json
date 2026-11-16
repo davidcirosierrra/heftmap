@@ -25,5 +25,6 @@
   "config.autoRefresh": "Volver a analizar automáticamente cuando cambian los archivos o git. Si se desactiva, solo se vuelve a analizar con el botón Refrescar (o al cambiar un ajuste).",
   "config.maxTextFileSize": "Los archivos de texto más grandes que esto (en MB) no se leen: se conoce su tamaño, pero no sus líneas ni su uso. Entre 1 y 50.",
   "config.usage.weakSources": "Carpetas de tooling (rutas relativas). Lo que nombran sus archivos cuenta como mención, no como uso: un generador nombra lo que escribe.",
-  "config.exclude": "Archivos y carpetas que Heftmap deja fuera del todo (no se listan, no se leen y sus referencias no cuentan), como en .gitignore: «*.snap» o «fixtures» casan en cualquier carpeta; «docs/images» o «src/**/*.gen.ts» son relativos a la raíz; una carpeta se lleva todo lo que contiene."
+  "config.exclude": "Archivos y carpetas que Heftmap deja fuera del todo (no se listan, no se leen y sus referencias no cuentan), como en .gitignore: «*.snap» o «fixtures» casan en cualquier carpeta; «docs/images» o «src/**/*.gen.ts» son relativos a la raíz; una carpeta se lleva todo lo que contiene.",
+  "config.hotspots.exclude": "Código que no cuenta en los hotspots (copiado de terceros, generado a mano…), con los mismos patrones que heftmap.exclude. Se sigue analizando y saliendo en la tabla."
 }

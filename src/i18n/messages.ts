@@ -130,7 +130,7 @@ export const en = {
   'warn.gitHistory': 'Could not read the git history: {detail}',
   'warn.unresolved': '{n} unresolved relative imports (e.g. {examples})',
   'warn.aliases': '{n} unresolved imports that are neither relative nor declared dependencies: {prefixes}. If they are aliases, files used only through them show as «No importers»: declare the alias in «paths» of a tsconfig.json.',
-  'warn.exclude': 'Ignored heftmap.exclude patterns (too many ** or too long): {patterns}',
+  'warn.exclude': 'Ignored {setting} patterns (too many ** or too long): {patterns}',
 
   // ------------------------------------------------------------------ panel: espera y errores
   'panel.loading': 'Loading…',
@@ -358,7 +358,7 @@ export const es: Messages = {
   'warn.gitHistory': 'No se pudo leer el historial de git: {detail}',
   'warn.unresolved': '{n} imports relativos sin resolver (p. ej. {examples})',
   'warn.aliases': '{n} imports sin resolver que no son relativos ni dependencias declaradas: {prefixes}. Si son alias, los archivos que solo se usan así salen como «Sin importadores»: declara el alias en «paths» de un tsconfig.json.',
-  'warn.exclude': 'Patrones de heftmap.exclude ignorados (demasiados ** o demasiado largos): {patterns}',
+  'warn.exclude': 'Patrones de {setting} ignorados (demasiados ** o demasiado largos): {patterns}',
 
   'panel.loading': 'Cargando…',
   'panel.noFolder': 'Abre una carpeta para ver qué pesa y qué se usa.',
@@ -583,7 +583,7 @@ export const eu: Messages = {
   'warn.gitHistory': 'Ezin izan da git historia irakurri: {detail}',
   'warn.unresolved': '{n} import erlatibo ebatzi gabe (adib. {examples})',
   'warn.aliases': 'Ebatzi gabeko {n} import, ez erlatiboak ez deklaratutako mendekotasunak: {prefixes}. Aliasak badira, horrela bakarrik erabiltzen diren fitxategiak «Inportatzailerik gabe» agertzen dira: deklaratu aliasa tsconfig.json baten «paths» atalean.',
-  'warn.exclude': 'Alde batera utzitako heftmap.exclude ereduak (** gehiegi edo luzeegiak): {patterns}',
+  'warn.exclude': 'Alde batera utzitako {setting} ereduak (** gehiegi edo luzeegiak): {patterns}',
 
   'panel.loading': 'Kargatzen…',
   'panel.noFolder': 'Ireki karpeta bat zerk pisatzen duen eta zer erabiltzen den ikusteko.',

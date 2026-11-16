@@ -2,8 +2,11 @@ import { isHotspotCategory } from '../core/classify.js';
 import type { HeftIndex } from '../core/index.js';
 import type { PanelCommit, PanelFile, PanelIndex, PanelRef } from './panel-protocol.js';
 
-/** Del índice del núcleo a lo que viaja al panel. Pura, sin `vscode`. */
-export function toPanelIndex(index: HeftIndex, rootName: string, updatedAt?: number): PanelIndex {
+/**
+ * Del índice del núcleo a lo que viaja al panel. Pura, sin `vscode`. `notHotspot`: archivos de
+ * código que el usuario saca de los hotspots (ajuste `heftmap.hotspots.exclude`).
+ */
+export function toPanelIndex(index: HeftIndex, rootName: string, updatedAt?: number, notHotspot: (path: string) => boolean = () => false): PanelIndex {
   const kept = index.files.filter((f) => !f.ignoredByGit);
   const at = new Map(kept.map((f, i) => [f.path, i]));
   // Cada referencia una sola vez (desde su origen) y por posición: el grafo de un repo
@@ -34,7 +37,7 @@ export function toPanelIndex(index: HeftIndex, rootName: string, updatedAt?: num
     if (f.lines != null) out.lines = f.lines;
     if (f.changes) out.changes = f.changes;
     if (f.generated) out.generated = true;
-    if (isHotspotCategory(f.category)) out.code = true;
+    if (isHotspotCategory(f.category) && !notHotspot(f.path)) out.code = true;
     return out;
   });
   return { rootName, complete: index.complete, isGit: index.isGit, files, refs, commits, updatedAt };
