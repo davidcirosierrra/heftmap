@@ -83,6 +83,18 @@ describe('maxTextFileSize', () => {
   });
 });
 
+describe('usage.weakSources', () => {
+  it('sin lista válida, undefined (el núcleo pone la suya); una lista vacía vale', () => {
+    expect(readSettings().usageWeakSources).toBeUndefined();
+    fake.config['usage.weakSources'] = 'scripts';
+    expect(readSettings().usageWeakSources).toBeUndefined();
+    fake.config['usage.weakSources'] = [];
+    expect(readSettings().usageWeakSources).toEqual([]);
+    fake.config['usage.weakSources'] = ['gen', 3];
+    expect(toBuildOptions(readSettings(), true).weakSources).toEqual(['gen']);
+  });
+});
+
 describe('toBuildOptions', () => {
   it('pasa los ajustes al análisis y la confianza decide si se usa git', () => {
     const s = readSettings();

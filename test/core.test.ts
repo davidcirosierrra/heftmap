@@ -150,3 +150,28 @@ describe('maxTextBytes (ajuste heftmap.maxTextFileSize)', () => {
     }
   });
 });
+
+describe('weakSources (ajuste heftmap.usage.weakSources)', () => {
+  let dir: string;
+  beforeAll(() => {
+    dir = createKartGame();
+  });
+  afterAll(() => rmSync(dir, { recursive: true, force: true }));
+  const usageWith = async (weakSources: string[] | undefined, p: string) =>
+    (await buildIndex(dir, weakSources ? { weakSources } : {})).files.find((f) => f.path === p)?.usage;
+
+  it('por defecto scripts/, tools/ y bin/: lo que nombra el generador es mención', async () => {
+    expect(await usageWith(undefined, 'public/gen/sprite.png')).toBe('mentioned');
+  });
+
+  it('sin carpetas de tooling, lo que nombra el generador cuenta como uso', async () => {
+    expect(await usageWith([], 'public/gen/sprite.png')).toBe('referenced');
+  });
+
+  it('acepta `./carpeta/` y carpetas anidadas', async () => {
+    expect(await usageWith(['./scripts/'], 'public/gen/sprite.png')).toBe('mentioned');
+    // HUD solo lo importa App, que está en src/components.
+    expect(await usageWith(['src/components'], 'src/components/HUD.tsx')).toBe('mentioned');
+    expect(await usageWith(['src/comp'], 'src/components/HUD.tsx')).toBe('referenced');
+  });
+});
