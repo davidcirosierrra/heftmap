@@ -38,13 +38,15 @@ npm run typecheck # tsc --noEmit
 npm run package   # heftmap.vsix
 ```
 
-- `src/core/`: núcleo sin dependencia de `vscode` (listado, git, uso).
+- `src/core/`: núcleo sin dependencia de `vscode` (listado, git, uso). El uso está en `usage/`:
+  `extract.ts` (extractores por lenguaje), `resolve.ts` (rutas, tsconfig, globs) e `index.ts`
+  (`analyzeUsage`); `usage.ts` solo reexporta.
 - `src/extension/`: la extensión. `scope.ts` y `tree-model.ts` son lógica pura con tests;
-  `extension.ts` es la capa de `vscode` (comandos, ámbito, barra de estado);
-  `folders-view.ts` es la vista «Carpetas» y `decorations.ts` su color por peso. `analysis.ts` es el ciclo de análisis (planificar, cancelar, progreso,
-  vigilancia del disco). El análisis corre en un worker: `runner.ts` lo lanza y
-  `worker.ts` ejecuta el núcleo (bundle aparte, `dist/worker.cjs`). `panel.ts` crea el webview del
-  panel y `panel-protocol.ts` define los mensajes que se cruzan con él.
+  `extension.ts` es la capa de `vscode` (comandos, ámbito, barra de estado); `folders-view.ts`
+  es la vista «Carpetas» y `decorations.ts` su color por peso; `analysis.ts` es el ciclo de
+  análisis (planificar, cancelar, progreso, vigilancia del disco). El análisis corre en un
+  worker: `runner.ts` lo lanza y `worker.ts` ejecuta el núcleo (bundle aparte,
+  `dist/worker.cjs`). `panel.ts` crea el webview del panel y `panel-protocol.ts` define los mensajes que se cruzan con él.
 - `src/webview/`: interfaz del panel (React, bundle de navegador `dist/webview.js`). `model.ts` es
   la lógica de la tabla (filas, filtro, orden), `treemap-layout.ts` la del treemap y `colors.ts` la
   de los colores: puras y con tests. Los `test/webview-*.test.ts` con jsdom prueban el panel real.
