@@ -44,22 +44,21 @@ button { font: inherit; color: inherit; }
 .error { color: var(--vscode-errorForeground); }
 
 /* ------------------------------------------------------------ tabla */
-.table { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.row {
-  display: grid; grid-template-columns: minmax(140px, 2fr) minmax(120px, 3fr) 150px;
-  align-items: center; height: 24px; box-sizing: border-box; padding: 0 12px;
-}
+.main { flex: 1; min-height: 0; display: flex; }
+.table { flex: 1 1 46%; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.row { display: grid; align-items: center; height: 24px; box-sizing: border-box; padding: 0 12px; }
 .cell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 12px; }
 .cell.folder { color: var(--vscode-descriptionForeground); }
-.cell.size { text-align: right; padding-right: 0; font-variant-numeric: tabular-nums; }
-.share { display: inline-block; width: 4.5em; color: var(--vscode-descriptionForeground); }
+.cell.right { text-align: right; padding-right: 0; font-variant-numeric: tabular-nums; }
+.share { display: inline-block; width: 4.2em; color: var(--vscode-descriptionForeground); }
+.swatch { display: inline-block; width: 9px; height: 9px; margin-right: 7px; border-radius: 2px; flex: none; }
 
 .head { border-bottom: 1px solid var(--vscode-panel-border, transparent); height: 28px; padding-right: 22px; }
 .head .cell {
   border: 0; background: none; text-align: left; cursor: pointer; height: 100%;
   font-weight: 600; color: var(--vscode-foreground);
 }
-.head .cell.size { text-align: right; }
+.head .cell.right { text-align: right; }
 .head .cell:hover { background: var(--vscode-list-hoverBackground); }
 .arrow { display: inline-block; width: 1.2em; font-size: 0.75em; text-align: center; }
 
@@ -71,22 +70,71 @@ button { font: inherit; color: inherit; }
   background: var(--vscode-list-inactiveSelectionBackground);
   color: var(--vscode-list-inactiveSelectionForeground, inherit);
 }
-.body:focus .row.selected, .body:focus-within .row.selected {
+.body:focus .row.selected {
   background: var(--vscode-list-activeSelectionBackground);
   color: var(--vscode-list-activeSelectionForeground);
 }
-.body:focus .row.selected .cell.folder, .body:focus .row.selected .share,
-.body:focus-within .row.selected .cell.folder, .body:focus-within .row.selected .share { color: inherit; }
-.open {
-  position: absolute; right: 170px; top: 2px; height: 20px; padding: 0 10px; cursor: pointer;
-  border: 1px solid var(--vscode-button-border, transparent); border-radius: 2px;
+.body:focus .row.selected .cell.folder, .body:focus .row.selected .share { color: inherit; }
+.empty { padding: 24px 12px; color: var(--vscode-descriptionForeground); }
+
+/* ------------------------------------------------------------ treemap */
+.tm-pane {
+  flex: 1 1 54%; min-width: 0; min-height: 0; display: flex; flex-direction: column;
+  border-left: 1px solid var(--vscode-panel-border, transparent);
+}
+.tm-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; padding: 4px 10px; min-height: 28px; box-sizing: border-box; }
+.crumbs { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.crumbs .sep { margin: 0 5px; color: var(--vscode-descriptionForeground); }
+.crumbs .here { font-weight: 600; }
+.select { display: inline-flex; align-items: center; gap: 6px; color: var(--vscode-descriptionForeground); white-space: nowrap; }
+.select select {
+  font: inherit; padding: 2px 4px;
+  color: var(--vscode-dropdown-foreground); background: var(--vscode-dropdown-background);
+  border: 1px solid var(--vscode-dropdown-border, transparent); border-radius: 2px;
+}
+.treemap { flex: 1; min-height: 0; overflow: hidden; margin: 0 10px; }
+.treemap svg { display: block; }
+.treemap text { font-size: 11px; pointer-events: none; }
+.tm-dir { cursor: zoom-in; }
+.tm-dir rect { fill: var(--vscode-editorWidget-background, rgba(128, 128, 128, 0.25)); }
+.tm-dir:hover rect { fill: var(--vscode-list-hoverBackground); }
+.tm-dir text { fill: var(--vscode-foreground); }
+.tm-file { cursor: pointer; }
+.tm-file:hover rect { filter: brightness(1.15); }
+.tm-file.dim { opacity: 0.18; }
+.tm-selected { fill: none; stroke: var(--vscode-editor-foreground, #fff); stroke-width: 2; pointer-events: none; }
+.legend { display: flex; flex-wrap: wrap; gap: 2px 4px; padding: 6px 10px; }
+.leg {
+  display: inline-flex; align-items: center; padding: 1px 6px; cursor: pointer;
+  border: 1px solid transparent; border-radius: 3px; background: none;
+}
+.leg:hover { background: var(--vscode-list-hoverBackground); }
+.leg.on { border-color: var(--vscode-focusBorder); }
+.leg.off { opacity: 0.55; }
+
+/* ------------------------------------------------------------ detalle */
+.detail {
+  padding: 6px 12px; border-top: 1px solid var(--vscode-panel-border, transparent);
+}
+.detail.none { color: var(--vscode-descriptionForeground); }
+.d-main { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; }
+.d-path { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.d-meta { color: var(--vscode-descriptionForeground); white-space: nowrap; }
+.d-actions { display: inline-flex; gap: 6px; margin-left: auto; }
+.detail button:not(.link) {
+  padding: 2px 10px; cursor: pointer; border-radius: 2px;
+  border: 1px solid var(--vscode-button-border, transparent);
   color: var(--vscode-button-foreground); background: var(--vscode-button-background);
 }
-.open:hover { background: var(--vscode-button-hoverBackground); }
-.empty { padding: 24px 12px; color: var(--vscode-descriptionForeground); }
-.foot {
-  padding: 4px 12px; color: var(--vscode-descriptionForeground);
-  border-top: 1px solid var(--vscode-panel-border, transparent);
+.detail button:not(.link):hover { background: var(--vscode-button-hoverBackground); }
+.detail button.secondary {
+  color: var(--vscode-button-secondaryForeground); background: var(--vscode-button-secondaryBackground);
+}
+.detail button.secondary:hover { background: var(--vscode-button-secondaryHoverBackground); }
+
+@media (max-width: 760px) {
+  .main { flex-direction: column; }
+  .tm-pane { border-left: 0; border-top: 1px solid var(--vscode-panel-border, transparent); }
 }
 
 /* ------------------------------------------------------------ espera */
@@ -96,7 +144,7 @@ button { font: inherit; color: inherit; }
 }
 .splash h1 { margin: 6px 0 0; font-size: 1.3em; font-weight: 600; }
 .splash p { margin: 0; }
-.splash .detail { font-variant-numeric: tabular-nums; }
+.splash .detail-line { font-variant-numeric: tabular-nums; }
 .splash .hint { max-width: 36em; color: var(--vscode-descriptionForeground); }
 .splash progress { width: min(320px, 80%); height: 4px; accent-color: var(--vscode-progressBar-background); }
 .splash button {

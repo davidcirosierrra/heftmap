@@ -7,7 +7,7 @@
 
 Nombre: **Heft** (antes «Workspace Files»). Repo `heft`; prefijo de ajustes y comandos `heft.*`.
 
-Estado: **fase 2 hecha** (vista «Carpetas», ámbito, comandos y panel con la tabla; instalar y probar
+Estado: **fase 3 hecha** (vista «Carpetas», ámbito, comandos y panel con tabla y treemap; instalar y probar
 con [prepareextension.md](prepareextension.md)). Fase 0 en [docs/fase-0.md](docs/fase-0.md). Fecha: 16-11-2026.
 Las capturas son de la v1: valen como referencia visual, con las diferencias de la sección 8.
 
@@ -271,7 +271,14 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
    seleccionada. Orden, filtro y selección se guardan con `getState/setState`. Añadido: aviso y
    pantalla de espera del primer análisis (§4.2). Las demás columnas llegan con sus fases (4, 5, 6).
    Pendiente: el panel no se restaura al recargar la ventana (haría falta un serializador).
-3. Treemap 2D enlazado con la tabla (área, color por extensión, zoom).
+3. ~~Treemap 2D enlazado con la tabla (área, color por extensión, zoom).~~ **Hecha**: treemap
+   anidado en SVG (`d3-hierarchy`), área `Bytes` | `Equilibrado`, color por extensión (las 9 que más
+   pesan; el resto «otros»), leyenda que resalta un grupo, zoom por clic en la cabecera de una
+   carpeta con migas, selección enlazada en los dos sentidos y detalle inferior con **Abrir** y
+   **Revelar en el explorador**. La tabla lleva el cuadrado de color. El filtro de texto recorta
+   también el treemap. Doble clic en un rectángulo abre el archivo. Lo que mide menos de un píxel
+   no se dibuja (en `Bytes`, el código junto a binarios grandes: para eso está `Equilibrado`).
+   Errores del panel a la vista (§4.2).
 4. Uso: columna, estados, fila desplegable, color «Uso», acciones sobre «sin rastro».
 5. Git: columna «Último cambio», colores «Antigüedad» y «Commits recientes», detalle del commit.
 6. Hotspots: columnas Líneas y Cambios, área «Líneas», color «Cambios», atajo «Hotspots».

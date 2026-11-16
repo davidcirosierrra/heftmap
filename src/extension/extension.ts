@@ -4,6 +4,7 @@ import { git } from '../core/git.js';
 import type { FileEntry, HeftIndex, Progress } from '../core/index.js';
 import { fmtMs, fmtSize, pct, rel, USAGE_LABEL } from '../report.js';
 import { HeftPanel, type PanelHost } from './panel.js';
+import { toPanelIndex } from './panel-data.js';
 import type { PanelIndex, PanelStatus, WebviewMessage } from './panel-protocol.js';
 import { CancelledError, workerRunner, type IndexJob, type IndexRunner } from './runner.js';
 import {
@@ -300,11 +301,7 @@ class Heft implements vscode.Disposable, PanelHost {
 
   panelIndex(): PanelIndex | null {
     if (!this.index || !this.root) return null;
-    return {
-      rootName: path.basename(this.root.fsPath),
-      complete: this.index.complete,
-      files: this.index.files.filter((f) => !f.ignoredByGit).map((f) => ({ path: f.path, size: f.size })),
-    };
+    return toPanelIndex(this.index, path.basename(this.root.fsPath));
   }
 
   panelStatus(): PanelStatus {
@@ -324,6 +321,10 @@ class Heft implements vscode.Disposable, PanelHost {
     if (m.type === 'open') {
       if (this.root && typeof m.path === 'string' && this.known.has(m.path)) {
         void vscode.commands.executeCommand('vscode.open', vscode.Uri.joinPath(this.root, m.path));
+      }
+    } else if (m.type === 'reveal') {
+      if (this.root && typeof m.path === 'string' && this.known.has(m.path)) {
+        void vscode.commands.executeCommand('revealInExplorer', vscode.Uri.joinPath(this.root, m.path));
       }
     } else if (m.type === 'removeScope') {
       if (typeof m.folder === 'string') this.setScope(removeFolder(this.scope, m.folder));

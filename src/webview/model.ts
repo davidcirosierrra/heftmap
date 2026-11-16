@@ -10,10 +10,13 @@ export interface Row {
   name: string;
   /** Carpeta relativa, sin barra final; '' en la raíz. */
   folder: string;
+  /** Extensión en minúsculas con punto ('.ts'); '' si no tiene. */
+  ext: string;
   size: number;
 }
 
 export type SortKey = 'name' | 'folder' | 'size';
+export const SORT_KEYS: readonly SortKey[] = ['name', 'folder', 'size'];
 export type SortDir = 'asc' | 'desc';
 export interface Sort {
   key: SortKey;
@@ -28,7 +31,16 @@ export function toRows(files: readonly PanelFile[], scope: Scope): Row[] {
   for (const f of files) {
     if (!fileInScope(scope, f.path)) continue;
     const slash = f.path.lastIndexOf('/');
-    rows.push({ path: f.path, name: f.path.slice(slash + 1), folder: slash < 0 ? '' : f.path.slice(0, slash), size: f.size });
+    const name = f.path.slice(slash + 1);
+    const dot = name.lastIndexOf('.');
+    rows.push({
+      path: f.path,
+      name,
+      folder: slash < 0 ? '' : f.path.slice(0, slash),
+      // `.gitignore` no tiene extensión: es su nombre.
+      ext: dot > 0 ? name.slice(dot).toLowerCase() : '',
+      size: f.size,
+    });
   }
   return rows;
 }

@@ -149,14 +149,26 @@ Marca cada punto. Si algo falla, abre **Heft: Mostrar registro** (`Ctrl+Shift+P`
 - [ ] La ✕ de un chip quita esa carpeta (y se desmarca su casilla en la vista).
 - [ ] «Cambiar ámbito…» abre el selector de carpetas.
 
+**Treemap (fase 3)**
+- [ ] A la derecha de la tabla, un treemap anidado por carpetas con cabecera (nombre y tamaño).
+- [ ] Clic en un rectángulo: se selecciona y la tabla se desplaza hasta su fila. Y al revés: clic en
+      una fila marca su rectángulo con un borde. Doble clic en un rectángulo abre el archivo.
+- [ ] Abajo, el detalle: ruta, tamaño, % del ámbito, **Abrir** y **Revelar en el explorador**.
+- [ ] Clic en la cabecera de una carpeta: amplía. Las migas de arriba vuelven atrás.
+- [ ] Área `Equilibrado`: el código deja de desaparecer junto a los binarios.
+- [ ] Leyenda: clic en una extensión resalta sus archivos y atenúa el resto; otro clic lo quita.
+- [ ] La tabla lleva un cuadrado con el color de cada archivo.
+- [ ] El filtro de texto y el ámbito recortan también el treemap.
+- [ ] Estrecha el panel: por debajo de ~760 px el treemap pasa debajo de la tabla.
+
 **Estado**
-- [ ] Cambia a otra pestaña y vuelve: se conservan orden, filtro y selección.
+- [ ] Cambia a otra pestaña y vuelve: se conservan orden, filtro, selección, área y zoom.
 - [ ] Crea o borra un archivo: la tabla se actualiza sola; mientras, arriba dice «Actualizando: …».
 
 ## 7. Limitaciones conocidas
 
-- El panel solo tiene la tabla con tamaños: el treemap (fase 3) y las columnas de uso, git y líneas
-  (fases 4 a 6) no están todavía.
+- El panel tiene la tabla con tamaños y el treemap por extensión: las columnas y colores de uso,
+  git y líneas (fases 4 a 6) no están todavía.
 - Al recargar la ventana el panel se cierra; hay que volver a abrirlo.
 - En un workspace con **varias carpetas raíz**, Heft analiza solo la primera (queda anotado en el registro).
 - El árbol siempre muestra el repo entero; el ámbito se ve con las casillas.

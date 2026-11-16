@@ -38,6 +38,7 @@ export type HostMessage =
 export type WebviewMessage =
   | { type: 'ready' }
   | { type: 'open'; path: string }
+  | { type: 'reveal'; path: string }
   | { type: 'removeScope'; folder: string }
   | { type: 'clearScope' }
   | { type: 'pickScope' }
