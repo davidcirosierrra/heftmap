@@ -499,7 +499,9 @@ cada merge. Fases 0 a 3 en `main` (PR #28 a #49, 298 tests).
 3. **Mejoras del panel** (#44–#49): zoom enlazado con la tabla y salida del zoom desde el detalle,
    «Por qué:», leyenda que filtra, «Copiar tabla», atajos y walkthrough (§2.2, §4.4).
 4. **Cierre**: README en tres idiomas, esta SPEC y el CHANGELOG (#50); revisión del euskera (hecha); captura y
-   GIF de la interfaz final; versión 0.1.0 (no se ha publicado ninguna antes).
+   GIF de la interfaz final; versión 0.1.0 (no se ha publicado ninguna antes). Hecho; `publish.yml`
+   activo. La publicación espera a que Open VSX apruebe el namespace (estado en
+   [docs/publicar.md](docs/publicar.md)).
 
 ### 5.1 Para más adelante (no planificado; decidir tras usar los hotspots en un repo real)
 
