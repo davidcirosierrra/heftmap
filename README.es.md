@@ -6,7 +6,7 @@ audio, texturas), sirve en cualquier repo con git, también en monorepos.
 
 [English](README.md) · [Euskara](README.eu.md)
 
-![Hotspots: líneas × cambios](docs/images/hotspots.png)
+![Heftmap: abrir el panel, Hotspots, zoom a una carpeta](docs/media/heftmap.gif)
 
 ## Qué hace
 
@@ -21,6 +21,10 @@ audio, texturas), sirve en cualquier repo con git, también en monorepos.
 - **Git**: último commit de cada archivo, cambios sin commit y diff.
 - **Hotspots**: un botón cruza líneas y nº de cambios para encontrar el código grande que no para
   de cambiar.
+
+![Cursor con la vista «Carpetas» y el panel de Heftmap](docs/images/window.png)
+
+![Hotspots: líneas × cambios](docs/images/hotspots.png)
 
 ## En el panel
 
