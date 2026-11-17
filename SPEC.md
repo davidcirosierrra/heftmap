@@ -368,7 +368,7 @@ paquetes (npm, pnpm, yarn, bun) ni de Nx o Turborepo, ni de que `node_modules` e
 - Formatos con `Intl`; para euskera, si el motor no trae sus datos (Chromium no los trae), se
   usan los separadores del castellano y se montan a mano el `%` y la fecha.
 - El CLI sigue en castellano: es una herramienta de desarrollo y no va en el `.vsix`.
-- Glosario y formatos en [docs/glosario.md](docs/glosario.md). Pendiente: revisión del euskera.
+- Glosario y formatos en [docs/glosario.md](docs/glosario.md). Euskera revisado por un hablante nativo (17-11-2026).
 
 ### 4.4 ter Registro de errores
 
@@ -496,7 +496,7 @@ cada merge. Fases 0 a 3 en `main` (PR #28 a #49, 298 tests).
    `hotspots.extensions`: con `hotspots.exclude` basta.
 3. **Mejoras del panel** (#44–#49): zoom enlazado con la tabla y salida del zoom desde el detalle,
    «Por qué:», leyenda que filtra, «Copiar tabla», atajos y walkthrough (§2.2, §4.4).
-4. **Cierre**: README en tres idiomas, esta SPEC y el CHANGELOG; revisión del euskera; captura y
+4. **Cierre**: README en tres idiomas, esta SPEC y el CHANGELOG (#50); revisión del euskera (hecha); captura y
    GIF de la interfaz final; versión 0.1.0 (no se ha publicado ninguna antes).
 
 ### 5.1 Para más adelante (no planificado; decidir tras usar los hotspots en un repo real)
