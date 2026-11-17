@@ -1,8 +1,5 @@
 name: Publish
 
-# DESACTIVADO: fuera de .github/workflows, GitHub no lo ejecuta. Para activarlo, moverlo a
-# .github/workflows/publish.yml (ver docs/publicar.md, «Publicar con GitHub Actions»).
-
 # Al crear una release en GitHub (tag vX.Y.Z) se publica en Open VSX y se adjunta el .vsix.
 # Sin token guardado: Trusted Publishing de Open VSX (OIDC). Hay que registrar en open-vsx.org
 # este repo, el archivo `publish.yml` y el entorno `openvsx` (ver docs/publicar.md).
@@ -36,7 +33,8 @@ jobs:
       - run: npm run package
       - name: Publicar en Open VSX
         # --trusted-publishing: falla si no hay token OIDC, en vez de buscar otro método.
-        run: npx --yes ovsx@latest publish heftmap.vsix --trusted-publishing
+        # Versión fijada: lo que publica no cambia sin un PR.
+        run: npx --yes ovsx@1.4.0 publish heftmap.vsix --trusted-publishing
       - name: Adjuntar el .vsix a la release
         run: gh release upload "${GITHUB_REF_NAME}" heftmap.vsix --clobber
         env:
