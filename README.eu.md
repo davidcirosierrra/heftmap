@@ -1,7 +1,5 @@
 # Heftmap — zerk pisatzen duen zure biltegian eta erabiltzen den
 
-> Itzulpen hau berrikusteke dago.
-
 Heftmap-ek fitxategi eta karpeta bakoitzaren pisua erakusten du, inork erreferentziatzen ez dituen
 baliabideak, eta gehien aldatzen den kode handia non dagoen. Baliabide astunak dituzten web
 proiektuetarako pentsatua (`.glb` modeloak, audioa, testurak), git duen edozein biltegitan

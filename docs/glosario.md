@@ -4,7 +4,7 @@ Términos fijos de Heftmap en los tres idiomas. Los textos completos están en
 [`src/i18n/messages.ts`](../src/i18n/messages.ts) (panel, vista lateral, avisos y registro) y en
 `package.nls*.json` (comandos, vista y ajustes).
 
-**Pendiente**: revisión del euskera por un hablante nativo antes de publicar.
+Euskera revisado por un hablante nativo (17-11-2026).
 
 | Concepto | English | Castellano | Euskara |
 |----------|---------|------------|---------|
