@@ -102,7 +102,7 @@ están en la configuración del bundler (Vite, Metro, Babel) no se pueden seguir
 ## Problemas
 
 El registro está en *Output → Heftmap*. Si Heftmap falla lo dice y ofrece **Copiar informe**: pégalo en
-una [incidencia](https://github.com/davidcirosierrra/Heft/issues). Problemas de seguridad: ver
+una [incidencia](https://github.com/davidcirosierrra/heftmap/issues). Problemas de seguridad: ver
 [SECURITY.md](SECURITY.md).
 
 ## Licencia

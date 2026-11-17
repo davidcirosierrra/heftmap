@@ -5,7 +5,7 @@
 > Diseño interactivo v2: https://claude.ai/artifact/SM6p8UJHZht4bQe87xk3Ph
 > Diseño v1 (histórico): https://claude.ai/artifact/CHDkw3WS8N5qcDQn5cVtPE
 
-Nombre: **Heftmap** (antes «Heft» y, antes aún, «Workspace Files»; se renombró por coincidir con Heft de Rush Stack). Id `notime-labs.heftmap`; prefijo de ajustes y comandos `heftmap.*`. El repo de GitHub sigue llamándose `Heft`.
+Nombre: **Heftmap** (antes «Heft» y, antes aún, «Workspace Files»; se renombró por coincidir con Heft de Rush Stack). Id `notime-labs.heftmap`; prefijo de ajustes y comandos `heftmap.*`. El repo de GitHub es `davidcirosierrra/heftmap` (antes `Heft`, rehecho el 17-11-2026 con el historial limpio de emails).
 
 Estado: **fases 0 a 6 hechas** (vista «Carpetas», ámbito, comandos y panel con tabla, treemap, uso,
 git y hotspots; instalar y probar
@@ -514,7 +514,7 @@ cada merge. Fases 0 a 3 en `main` (PR #28 a #49, 298 tests).
 ## 6. Pendiente de decidir
 
 - ~~Publisher y dónde se publica~~: Open VSX, publisher `notime-labs` (namespace pendiente de
-  aprobación, incidencia #15802), Trusted Publishing desde `davidcirosierrra/Heft`. Guía en
+  aprobación, incidencia #15802), Trusted Publishing desde `davidcirosierrra/heftmap`. Guía en
   [docs/publicar.md](docs/publicar.md).
 - Límite de archivos y si el análisis va en un worker (decidir con los datos de la fase 0).
 - Si la vista lateral muestra archivos o solo carpetas.

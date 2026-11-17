@@ -107,7 +107,7 @@ deklaratzeak konpontzen du.
 ## Arazoak
 
 Erregistroa *Output → Heftmap* atalean dago. Heftmap-ek huts egiten badu, esan egiten du eta
-**Kopiatu txostena** eskaintzen du: itsatsi [intzidentzia](https://github.com/davidcirosierrra/Heft/issues)
+**Kopiatu txostena** eskaintzen du: itsatsi [intzidentzia](https://github.com/davidcirosierrra/heftmap/issues)
 batean. Segurtasun-arazoak: ikus [SECURITY.md](SECURITY.md).
 
 ## Lizentzia

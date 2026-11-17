@@ -13,8 +13,8 @@ Funciona igual en VS Code.
 ## 2. Preparar el repo
 
 ```bash
-git clone https://github.com/davidcirosierrra/Heft.git
-cd Heft
+git clone https://github.com/davidcirosierrra/heftmap.git
+cd heftmap
 npm install
 npm test                        # núcleo, ámbito, árbol, panel (lógica y DOM) y humo de la extensión
 ```

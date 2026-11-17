@@ -21,11 +21,11 @@ el Marketplace solo hace falta para llegar a usuarios de VS Code (sección 6).
 
 ## 2. Antes de hacer público el repo (David)
 
-1. **Emails del historial.** Al hacerlo público, el email de autor de cada commit queda visible.
-   En el historial hay dos tuyos: el personal y el de Tecnalia (en un commit hecho desde el
-   trabajo). Si no quieres que se vean, hay que reescribir el historial *antes* de hacerlo
-   público (después ya está copiado). Para los commits futuros: GitHub → Settings → Emails →
-   *Keep my email addresses private* y usar el email `…@users.noreply.github.com`.
+1. **Emails del historial.** Hecho: el repo se rehízo como `davidcirosierrra/heftmap` con el
+   historial reescrito (`git filter-repo --mailmap`) para que todos los commits lleven el email
+   `…@users.noreply.github.com`. El repo antiguo `Heft` queda privado. Para lo que venga:
+   *Keep my email addresses private* y *Block command line pushes that expose my email* están
+   activados, y el repo local usa el `noreply` en `git config user.email`.
 2. **Hacerlo público**: Settings → General → Danger Zone → *Change visibility*.
 3. **Seguridad** (Settings → Advanced Security): activar *Private vulnerability reporting* (lo
    usa `SECURITY.md`), *Dependabot alerts* y *Secret scanning*.
@@ -45,7 +45,7 @@ el Marketplace solo hace falta para llegar a usuarios de VS Code (sección 6).
    a *Namespaces*, el botón **+** → `notime-labs`. Sin namespace no se puede registrar el
    *Trusted Publisher*.
 5. **Trusted Publisher** (en vez de token): *Settings* → *Trusted Publishers* → registrar
-   repositorio `davidcirosierrra/heft`, workflow `publish.yml` y entorno `openvsx`. Así GitHub
+   repositorio `davidcirosierrra/heftmap`, workflow `publish.yml` y entorno `openvsx`. Así GitHub
    Actions publica con un token OIDC que dura minutos y solo vale para ese repo, ese archivo y
    ese entorno: no hay ningún secreto guardado que se pueda filtrar. Se puede registrar ya,
    aunque la acción esté desactivada.
@@ -91,9 +91,8 @@ un paso `npx vsce publish -i heftmap.vsix` a `publish.yml` con su secreto.
 ## 7. Pendiente
 
 - [ ] (David) Pasos 2, 3 y 4.
-- [ ] (David) Una captura de la ventana completa de Cursor con la vista «Carpetas» y el panel, y si
-      puedes un GIF corto (abrir panel → *Hotspots* → clic en el treemap). Se guardan en
-      `docs/images/` y se añaden al README.
+- [x] (David) Captura de la ventana completa (`docs/images/window.png`) y GIF
+      (`docs/media/heftmap.gif`, fuera del `.vsix`), en el README.
 - [x] Nombre visible: «Heft» coincidía con el sistema de build de Rush Stack (Microsoft); se
       renombró a «Heftmap», con id `notime-labs.heftmap` y claves `heftmap.*`. El repositorio de
-      GitHub sigue siendo `davidcirosierrra/Heft`.
+      GitHub es `davidcirosierrra/heftmap`.

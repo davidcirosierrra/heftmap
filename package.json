@@ -16,11 +16,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/davidcirosierrra/Heft"
+    "url": "https://github.com/davidcirosierrra/heftmap"
   },
-  "homepage": "https://github.com/davidcirosierrra/Heft#readme",
+  "homepage": "https://github.com/davidcirosierrra/heftmap#readme",
   "bugs": {
-    "url": "https://github.com/davidcirosierrra/Heft/issues"
+    "url": "https://github.com/davidcirosierrra/heftmap/issues"
   },
   "engines": {
     "node": ">=20",
