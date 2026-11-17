@@ -71,6 +71,8 @@ describe('primer análisis: aviso sobre el árbol y panel de espera', () => {
     expect(panel().html).toContain("default-src 'none'");
     expect(panel().html).toContain('dist/webview.js');
     expect(panel().html).toContain('dist/webview.css');
+    // Pantalla de carga en el propio HTML: no se queda en blanco mientras carga el bundle.
+    expect(panel().html).toMatch(/<div id="root"><div class="splash" role="status"><span class="spinner"><\/span><h1>Cargando…<\/h1>/);
     expect(panel().posted).toEqual([]);
   });
 
