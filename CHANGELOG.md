@@ -19,7 +19,8 @@
 - Usage: references between files, assets with no trace, mentioned files and entry points;
   ignore or move to the trash (with confirmation).
 - The file detail says **why** a file got its usage state.
-- Git: last change, uncommitted changes, age and recent-commit colours, diff.
+- Git: last change, uncommitted changes, age and recent-commit colours, diff. The age legend
+  switches to hours when its bands would read the same («today · today · today»).
 - Hotspots: lines × how often a file changes, source code only.
 - Monorepos: per-app tsconfig aliases and workspace packages, with or without `node_modules`.
 

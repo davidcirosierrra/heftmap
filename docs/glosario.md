@@ -40,6 +40,7 @@ Sin traducir en ningún idioma: Heftmap, treemap, hotspots, commit, hash, diff, 
 | Número | 3,006 · 1.5 | 3006 · 1,5 | 3006 · 1,5 |
 | Porcentaje | 51% · <0.1% | 51 % · <0,1 % | % 51 · <% 0,1 |
 | Fecha relativa | 3 d ago | hace 3 d | duela 3 egun |
+| Fecha relativa fina (leyenda «Antigüedad» cuando los tramos se repiten) | now · 20 min ago · 5 h ago | ahora · hace 20 min · hace 5 h | orain · duela 20 min · duela 5 ordu |
 | Fecha | 11/12/2026 | 12/11/2026 | 2026/11/12 |
 
 Chromium (y con él el panel dentro de VS Code) no trae datos de euskera para `Intl`. En ese caso

@@ -210,15 +210,22 @@ function byAge(rows: readonly Row[], I: I18n, now: number): Coloring {
     const t = r.commit.time;
     return `t${Math.max(0, floors.findIndex((f) => t >= f))}`;
   };
-  const groups = floors.map((floor, i) => {
-    const newest = i === 0 ? null : (floors[i - 1] as number);
-    const from = I.rel(floor, now);
-    // El tramo más reciente llega hasta hoy: «hoy – hace 2 sem»; los demás, «hace 2 sem – hace 3 meses».
-    const to = I.rel(newest ?? now, now);
-    const label = to === from ? from : I.t('legend.range', { to, from });
+  // Etiqueta de cada tramo: «hoy – hace 2 sem», «hace 2 sem – hace 3 meses». Si dos tramos
+  // quedan con la misma etiqueta (todo el repo es de hoy: «hoy · hoy · hoy»), se repite con la
+  // escala fina: «ahora – hace 3 h», «hace 3 h – hace 20 h».
+  const labelsWith = (rel: (time: number, now: number) => string): string[] =>
+    floors.map((floor, i) => {
+      const newest = i === 0 ? now : (floors[i - 1] as number);
+      const from = rel(floor, now);
+      const to = rel(newest, now);
+      return to === from ? from : I.t('legend.range', { to, from });
+    });
+  let labels = labelsWith(I.rel);
+  if (new Set(labels).size < labels.length) labels = labelsWith(I.relFine);
+  const groups = floors.map((_, i) => {
     // Con menos de 5 tramos se reparten los colores de punta a punta.
     const color = AGE_COLORS[floors.length === 1 ? 0 : Math.round((i * (AGE_COLORS.length - 1)) / (floors.length - 1))] as string;
-    return { key: `t${i}`, label, color };
+    return { key: `t${i}`, label: labels[i] as string, color };
   });
   return fixedGroups('age', rows, keyOf, [
     { key: NEW, label: I.t('legend.new'), color: '#b07aa1' },

@@ -53,6 +53,8 @@ export interface I18n {
   pct(x: number): string;
   /** Hace cuánto: «hoy», «hace 3 d», «duela 2 aste». */
   rel(time: number, now?: number): string;
+  /** Hace cuánto, más fino: «ahora», «hace 20 min», «hace 5 h», «hace 12 d». Para distinguir tramos cercanos. */
+  relFine(time: number, now?: number): string;
   /** Duración de una fase: «850 ms», «2,15 s». */
   ms(ms: number): string;
   time(ms: number): string;
@@ -123,6 +125,14 @@ export function i18n(locale: Locale): I18n {
       if (d < 60) return t('rel.weeks', { n: num(Math.round(d / 7)) });
       if (d < 730) return t('rel.months', { n: num(Math.round(d / 30)) });
       return t('rel.years', { n: num(Math.round(d / 365)) });
+    },
+    relFine: (time, now = Date.now()) => {
+      const min = Math.floor((now - time) / 60_000);
+      if (min < 1) return t('rel.now');
+      if (min < 60) return t('rel.minutes', { n: num(min) });
+      const h = Math.floor(min / 60);
+      if (h < 48) return t('rel.hours', { n: num(h) });
+      return t('rel.days', { n: num(Math.floor(h / 24)) });
     },
     ms: (ms) => (ms < 1000 ? `${num(Math.round(ms))} ms` : `${fixed(ms / 1000, 2)} s`),
     time: (ms) => new Date(ms).toLocaleTimeString(fmtTag),
