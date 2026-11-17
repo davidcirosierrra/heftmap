@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import * as vscode from 'vscode';
-import type { Locale } from '../i18n/index.js';
+import { i18n, type Locale } from '../i18n/index.js';
 import type { HostMessage, PanelIndex, PanelStatus, WebviewMessage } from './panel-protocol.js';
 
 /** Lo que el panel pide a la extensión. Los datos se piden, no se guardan aquí. */
@@ -108,7 +108,14 @@ export class HeftPanel implements vscode.Disposable {
   }
 }
 
-/** El idioma va en la página para que el primer pintado («Cargando…») ya salga bien. */
+/**
+ * El idioma va en la página para que el primer pintado («Cargando…») ya salga bien.
+ *
+ * `#root` lleva ya la misma pantalla de carga que pinta React (`Splash` en App.tsx): el
+ * bundle pesa ~300 KB y, mientras se descarga, se analiza y monta React, el panel se quedaba
+ * en blanco (al abrirlo, al recargar la ventana y al volver a la pestaña, porque el webview
+ * se descarga al ocultarse). React sustituye este contenido en su primer render.
+ */
 function html(webview: vscode.Webview, dist: vscode.Uri, locale: Locale): string {
   const nonce = randomBytes(16).toString('base64');
   const js = webview.asWebviewUri(vscode.Uri.joinPath(dist, 'webview.js'));
@@ -124,8 +131,12 @@ function html(webview: vscode.Webview, dist: vscode.Uri, locale: Locale): string
 <title>Heftmap</title>
 </head>
 <body>
-<div id="root"></div>
+<div id="root"><div class="splash" role="status"><span class="spinner"></span><h1>${escapeHtml(i18n(locale).t('panel.loading'))}</h1></div></div>
 <script nonce="${nonce}" src="${js}"></script>
 </body>
 </html>`;
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }
