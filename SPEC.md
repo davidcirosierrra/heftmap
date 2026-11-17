@@ -113,6 +113,8 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
   - `Extensión` (por defecto).
   - `Uso`: referenciado / mencionado / sin rastro / punto de entrada / no analizado.
   - `Antigüedad`: 5 tramos calculados por **cuantiles del propio repo**, no por fechas fijas.
+    Si dos tramos quedan con la misma etiqueta (todo el repo es de hoy), la leyenda pasa a
+    minutos, horas y días: «ahora – hace 3 h», «hace 3 h – hace 20 h».
   - `Commits recientes`: color solo para los últimos 8 commits; el resto en gris neutro.
   - `Cambios`: escala de un solo tono, de gris (estable) a intenso (muy tocado), por cuantiles del repo.
 - Leyenda según el modo; clic en un elemento de la leyenda resalta sus archivos en el treemap,

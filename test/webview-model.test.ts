@@ -266,6 +266,22 @@ describe('git (fase 5)', () => {
     expect(c.legend).toHaveLength(5);
   });
 
+  it('«Antigüedad» con todo el repo de hoy: etiquetas en horas, sin repetir «hoy»', () => {
+    const HOUR = DAY / 24;
+    const today = Array.from({ length: 10 }, (_, i) => ({ ...commit(i, 0), time: now - i * 2 * HOUR }));
+    const c = coloring('age', toRows(today.map((_, i) => ({ path: `f${i}`, size: 1, commit: i })), [], { commits: today }), ES, now);
+    const labels = c.legend.map((l) => l.label);
+    expect(labels).toHaveLength(5);
+    expect(new Set(labels).size).toBe(labels.length);
+    expect(labels[0]).toMatch(/^ahora – hace \d+ h$/);
+    expect(labels.some((l) => l.includes('hoy'))).toBe(false);
+  });
+
+  it('«Antigüedad» con tramos que ya se distinguen: sigue con la escala normal', () => {
+    const c = coloring('age', rows, ES, now);
+    expect(c.legend.some((l) => /min|\bh\b/.test(l.label))).toBe(false);
+  });
+
   it('color «Commits recientes»: solo los últimos 8; mismo commit, mismo color', () => {
     const c = coloring('recent', rows, ES);
     expect(c.legend.map((l) => l.label)).toEqual([

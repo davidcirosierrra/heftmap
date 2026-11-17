@@ -77,6 +77,19 @@ describe('idiomas: formatos', () => {
     expect(EU.rel(now - 800 * DAY, now)).toBe('duela 2 urte');
   });
 
+  it('fechas relativas finas: minutos, horas y días', () => {
+    const MIN = 60_000;
+    expect([EN.relFine(now, now), EN.relFine(now - 20 * MIN, now), EN.relFine(now - 5 * 60 * MIN, now), EN.relFine(now - 12 * DAY, now)]).toEqual([
+      'now',
+      '20 min ago',
+      '5 h ago',
+      '12 d ago',
+    ]);
+    expect(ES.relFine(now - 30 * 60 * MIN, now)).toBe('hace 30 h');
+    expect(EU.relFine(now - 3 * 60 * MIN, now)).toBe('duela 3 ordu');
+    expect(EU.relFine(now - 10 * MIN, now)).toBe('duela 10 min');
+  });
+
   it('euskera sin datos de Intl (como en Chromium): separadores del castellano, % y fecha a la vasca', async () => {
     const real = Intl.NumberFormat.supportedLocalesOf;
     Intl.NumberFormat.supportedLocalesOf = ((tags: string[]) => tags.filter((t) => !t.startsWith('eu'))) as typeof real;

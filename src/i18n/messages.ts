@@ -25,6 +25,9 @@ export const en = {
   'common.uncommitted': 'Uncommitted changes',
 
   // ------------------------------------------------------------------ fechas relativas
+  'rel.now': 'now',
+  'rel.minutes': '{n} min ago',
+  'rel.hours': '{n} h ago',
   'rel.today': 'today',
   'rel.yesterday': 'yesterday',
   'rel.days': '{n} d ago',
@@ -282,6 +285,9 @@ export const es: Messages = {
   'common.generated': 'generado',
   'common.uncommitted': 'Cambios sin commit',
 
+  'rel.now': 'ahora',
+  'rel.minutes': 'hace {n} min',
+  'rel.hours': 'hace {n} h',
   'rel.today': 'hoy',
   'rel.yesterday': 'ayer',
   'rel.days': 'hace {n} d',
@@ -530,6 +536,9 @@ export const eu: Messages = {
   'common.generated': 'sortua',
   'common.uncommitted': 'Commit gabeko aldaketak',
 
+  'rel.now': 'orain',
+  'rel.minutes': 'duela {n} min',
+  'rel.hours': 'duela {n} ordu',
   'rel.today': 'gaur',
   'rel.yesterday': 'atzo',
   'rel.days': 'duela {n} egun',
