@@ -26,6 +26,32 @@ models, audio, textures), useful in any git repository, including monorepos.
 
 ![Age of the last change, zoomed into a folder](docs/images/age.png)
 
+## In the panel
+
+- **Zoom into a folder**: click its header in the treemap. The table and the totals keep only that
+  folder and a «Zoom: folder/ ✕» chip says why there are fewer rows. ✕ or Escape leaves the zoom.
+- **Filter by legend group**: click a group in the legend (an extension, a usage state, an age
+  band…). The treemap highlights it and the table keeps only its files, with a «Group: X ✕» chip.
+  Click again or ✕ to show everything.
+- **Why**: the detail of a file says which rule decided its usage state («Why: no file refers to it
+  or mentions its name»).
+- **Copy table**: copies the rows shown, as Markdown (for an issue or a PR) or CSV (for a
+  spreadsheet). The command *Heftmap: Copy Table…* does the same; with the panel closed it copies
+  the whole scope.
+- **First steps**: *Help: Welcome* → «Get started with Heftmap» walks through the panel, the
+  scope, files with no trace and hotspots.
+
+## Keyboard
+
+| Keys | Where | What |
+|------|-------|------|
+| `Ctrl+Shift+Alt+H` (`Cmd+Ctrl+Shift+H` on Mac) | Anywhere | Open the panel |
+| `/` | Panel | Go to the filter |
+| `Escape` | Panel, outside the filter | Leave the zoom |
+| `↑ ↓`, `Page Up/Down`, `Home/End` | Table | Move the selection |
+| `Enter` | Table | Open the selected file |
+| `← →`, `Home` | Divider | Resize the table and the chart; `Home` or double click resets it |
+
 ## What it doesn't do
 
 - It isn't a dead-code detector. For code, «No importers» is a low-confidence hint (framework

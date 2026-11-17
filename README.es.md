@@ -22,6 +22,33 @@ audio, texturas), sirve en cualquier repo con git, también en monorepos.
 - **Hotspots**: un botón cruza líneas y nº de cambios para encontrar el código grande que no para
   de cambiar.
 
+## En el panel
+
+- **Zoom a una carpeta**: clic en su cabecera del treemap. La tabla y los totales se quedan con esa
+  carpeta y un chip «Zoom: carpeta/ ✕» explica por qué hay menos filas. El ✕ o Escape salen del
+  zoom.
+- **Filtrar por un grupo de la leyenda**: clic en un grupo (una extensión, un estado de uso, un
+  tramo de antigüedad…). El treemap lo resalta y la tabla deja solo sus archivos, con el chip
+  «Grupo: X ✕». Otro clic o el ✕ lo enseñan todo.
+- **Por qué**: el detalle de un archivo dice qué regla decidió su estado de uso («Por qué: ningún
+  archivo lo referencia ni menciona su nombre»).
+- **Copiar tabla**: copia las filas que se ven, en Markdown (para un issue o un PR) o en CSV (para
+  una hoja de cálculo). El comando *Heftmap: Copiar tabla…* hace lo mismo; con el panel cerrado
+  copia todo el ámbito.
+- **Primeros pasos**: *Help: Welcome* → «Primeros pasos con Heftmap» recorre el panel, el ámbito,
+  los archivos sin rastro y los hotspots.
+
+## Teclado
+
+| Teclas | Dónde | Qué hace |
+|--------|-------|----------|
+| `Ctrl+Shift+Alt+H` (`Cmd+Ctrl+Shift+H` en Mac) | En cualquier sitio | Abre el panel |
+| `/` | Panel | Lleva al filtro |
+| `Escape` | Panel, fuera del filtro | Sale del zoom |
+| `↑ ↓`, `Re Pág/Av Pág`, `Inicio/Fin` | Tabla | Mueve la selección |
+| `Enter` | Tabla | Abre el archivo seleccionado |
+| `← →`, `Inicio` | Divisor | Reparte el ancho entre tabla y gráfico; `Inicio` o doble clic lo reinician |
+
 ## Qué no hace
 
 - No detecta código muerto: en código, «Sin importadores» es un aviso de baja confianza (las

@@ -14,7 +14,7 @@ Funciona igual en VS Code.
 
 ```bash
 git clone https://github.com/davidcirosierrra/Heft.git
-cd Heftmap
+cd Heft
 npm install
 npm test                        # núcleo, ámbito, árbol, panel (lógica y DOM) y humo de la extensión
 ```
@@ -24,7 +24,7 @@ npm test                        # núcleo, ámbito, árbol, panel (lógica y DOM
 ### A. Instalar el `.vsix` (como la usarás de verdad)
 
 ```bash
-npm run package                 # genera heftmap.vsix (~1 MB)
+npm run package                 # genera heftmap.vsix (~1,8 MB)
 ```
 
 En Cursor:

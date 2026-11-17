@@ -27,6 +27,33 @@ balio du, monorepoetan ere bai.
 - **Hotspot-ak**: botoi batek lerroak eta aldaketa kopurua gurutzatzen ditu, aldatzen jarraitzen
   duen kode handia aurkitzeko.
 
+## Panelean
+
+- **Karpeta batera zooma**: egin klik haren goiburuan treemap-ean. Taulak eta guztizkoek karpeta
+  hori bakarrik erakusten dute, eta «Zooma: karpeta/ ✕» txipak azaltzen du zergatik dauden
+  errenkada gutxiago. ✕-k edo Escape-k zoometik ateratzen dute.
+- **Legendako talde baten arabera iragazi**: egin klik talde batean (luzapen bat, erabilera-egoera
+  bat, antzinatasun-tarte bat…). Treemap-ak nabarmentzen du eta taulak haren fitxategiak bakarrik
+  uzten ditu, «Taldea: X ✕» txiparekin. Beste klik batek edo ✕-k dena erakusten dute.
+- **Zergatik**: fitxategiaren xehetasunak dio zein arauk erabaki duen haren erabilera-egoera
+  («Zergatik: ez dago hura erreferentziatzen edo bere izena aipatzen duen fitxategirik»).
+- **Kopiatu taula**: ikusten diren errenkadak kopiatzen ditu, Markdown formatuan (issue edo PR
+  baterako) edo CSV formatuan (kalkulu-orri baterako). *Heftmap: Kopiatu taula…* komandoak gauza
+  bera egiten du; panela itxita badago, esparru osoa kopiatzen du.
+- **Lehen urratsak**: *Help: Welcome* → «Lehen urratsak Heftmap-ekin»: panela, esparrua,
+  arrastorik gabeko fitxategiak eta hotspot-ak.
+
+## Teklatua
+
+| Teklak | Non | Zer egiten du |
+|--------|-----|---------------|
+| `Ctrl+Shift+Alt+H` (`Cmd+Ctrl+Shift+H` Mac-en) | Edonon | Panela irekitzen du |
+| `/` | Panela | Iragazkira eramaten du |
+| `Escape` | Panela, iragazkitik kanpo | Zoometik ateratzen du |
+| `↑ ↓`, `Page Up/Down`, `Home/End` | Taula | Hautapena mugitzen du |
+| `Enter` | Taula | Hautatutako fitxategia irekitzen du |
+| `← →`, `Home` | Zatitzailea | Zabalera banatzen du taularen eta grafikoaren artean; `Home`-k edo klik bikoitzak hasierakora itzultzen dute |
+
 ## Zer ez du egiten
 
 - Ez du kode hila detektatzen: kodean, «Inportatzailerik gabe» konfiantza txikiko abisua da

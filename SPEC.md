@@ -9,7 +9,10 @@ Nombre: **Heftmap** (antes «Heft» y, antes aún, «Workspace Files»; se renom
 
 Estado: **fases 0 a 6 hechas** (vista «Carpetas», ámbito, comandos y panel con tabla, treemap, uso,
 git y hotspots; instalar y probar
-con [prepareextension.md](prepareextension.md); publicar: [docs/publicar.md](docs/publicar.md)). Fase 0 en [docs/fase-0.md](docs/fase-0.md). Fecha: 16-11-2026.
+con [prepareextension.md](prepareextension.md); publicar: [docs/publicar.md](docs/publicar.md)). Fase 0 en [docs/fase-0.md](docs/fase-0.md).
+Después, plan de mejoras en cinco fases (§5.2): fases 0 a 3 hechas (renombrado, refactor, ocho
+ajustes y mejoras del panel); la 4 es este cierre de documentación, euskera y versión 0.1.0.
+Fecha: 17-11-2026.
 Las capturas son de la v1: valen como referencia visual, con las diferencias de la sección 8.
 
 ---
@@ -76,6 +79,10 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
 - Chips del ámbito (con ✕) o «Todo el repositorio». Totales: nº de archivos y tamaño.
 - Filtro por texto (nombre o ruta).
 - Filtros rápidos: Todos · **Sin rastro (n)** · Mencionados (n) · Puntos de entrada · Con cambios sin commit.
+- Chips de recorte, cada uno con ✕: **«Zoom: carpeta/»** mientras hay una carpeta ampliada en el
+  treemap y **«Grupo: X»** mientras hay un grupo de la leyenda elegido. Explican por qué la tabla
+  tiene menos filas.
+- Botón **Copiar tabla** (ver «Exportar» más abajo).
 
 **Tabla** (virtualizada; una fila por archivo)
 
@@ -96,6 +103,10 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
 
 **Treemap 2D** (`d3-hierarchy`, `treemapSquarify`)
 - Anidado por carpetas, cabecera con nombre y tamaño. Clic en cabecera: zoom; migas para volver.
+- El zoom recorta también la tabla y los totales: la tabla enseña lo filtrado **y** dentro de la
+  carpeta ampliada. Se sale con el ✕ del chip, con las migas o con Escape (fuera del filtro). Si
+  desde el detalle («Lo usan», «Usa») se elige un archivo de fuera de la carpeta, se sale del zoom
+  y se selecciona.
 - **Área** (selector): `Bytes` (por defecto) | `Equilibrado` (√bytes, para que el código no desaparezca
   junto a los binarios) | `Líneas` (solo archivos de texto; los binarios no se dibujan).
 - **Color** (selector):
@@ -104,7 +115,9 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
   - `Antigüedad`: 5 tramos calculados por **cuantiles del propio repo**, no por fechas fijas.
   - `Commits recientes`: color solo para los últimos 8 commits; el resto en gris neutro.
   - `Cambios`: escala de un solo tono, de gris (estable) a intenso (muy tocado), por cuantiles del repo.
-- Leyenda según el modo; clic en un elemento de la leyenda resalta sus archivos y atenúa el resto.
+- Leyenda según el modo; clic en un elemento de la leyenda resalta sus archivos en el treemap,
+  atenúa el resto y deja en la tabla solo ese grupo (chip «Grupo: X ✕»). Otro clic en el mismo
+  grupo o el ✕ lo quitan. Si al cambiar de modo de color el grupo ya no existe, se quita solo.
 - Colores con contraste suficiente en tema claro y oscuro (usar variables de tema de VS Code).
 
 **Detalle del archivo seleccionado**
@@ -112,6 +125,23 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
 - Último commit: hash (clic = copiar completo), mensaje, autor, fecha, **Ver diff** si hay cambios.
 - En archivos «sin rastro»: **Ignorar este archivo** y **Mover a la papelera…** (con confirmación;
   nunca borrado automático).
+- Línea **«Por qué:»** con la regla que decidió el estado de uso (§3.3), en lenguaje llano.
+
+**Exportar**
+- **Copiar tabla** pide el formato (QuickPick): **Markdown** (para un issue, un PR o un documento) o
+  **CSV** (para una hoja de cálculo). Copia al portapapeles las filas que se ven, en su orden:
+  ruta, tamaño, líneas, cambios, uso y último cambio.
+- El webview solo manda las rutas visibles; el host monta el texto con los formateadores de
+  `src/report.ts` y descarta rutas que no estén en el índice o que git ignore.
+- Comando `Heftmap: Copiar tabla…`: con el panel abierto, lo que enseña su tabla; cerrado, todo
+  el ámbito.
+
+**Teclado**
+- Global: `Ctrl+Shift+Alt+H` (`Cmd+Ctrl+Shift+H` en Mac) abre el panel. Se eligió porque no
+  choca con atajos de Cursor ni de VS Code.
+- En el panel: `/` lleva al filtro; Escape sale del zoom. Mientras se escribe en un campo no se
+  interceptan (allí Escape es del propio campo).
+- Tabla: ↑ ↓, Re/Av Pág, Inicio/Fin y Enter (abre). Divisor: ← →, Inicio o doble clic.
 
 ## 3. Reglas de comportamiento
 
@@ -139,6 +169,23 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
 | **Punto de entrada** | Se usa desde fuera del grafo; nunca es huérfano |
 | **No analizado** | Configuración, documentación, lockfiles |
 
+- Cada estado sale de la **primera regla que se cumple**, en este orden (`usageOf` en
+  `src/core/index.ts`). La regla viaja con el archivo (`FileEntry.usageRule`, `PanelFile`) y el
+  detalle la enseña como «Por qué:» (textos `why.*`).
+
+  | # | Regla | Estado | Cuándo |
+  |---|-------|--------|--------|
+  | 1 | `ignored-by-git` | (ignorado por git) | Carpeta ignorada por git: solo cuenta por su peso |
+  | 2 | `ignore-setting` | excepción | Está en `heftmap.usage.ignore` |
+  | 3 | `category` | No analizado | Configuración, documentación, lockfile u otro lenguaje |
+  | 4 | `hard-ref` | Referenciado | Alguna referencia real (import, ruta que se resuelve…) desde fuera de las fuentes débiles |
+  | 5 | `entry-declared` | Punto de entrada | `package.json` (`main`, `exports`, `bin`…), paquete del monorepo o `heftmap.usage.entryPoints` |
+  | 6 | `entry-convention` | Punto de entrada | Por convención: `index.html`, `vite.config.*`, tests, `*.d.ts`… |
+  | 7 | `weak-ref` | Mencionado | Solo menciones de su nombre o referencias desde `heftmap.usage.weakSources` y scripts de otros lenguajes |
+  | 8 | `no-refs` | Sin rastro (recurso) / sin importadores (código) | Nada lo nombra |
+
+  Una referencia real gana a «punto de entrada»: un `vite.config.ts` importado por otro archivo
+  sale «Referenciado».
 - El veredicto «sin rastro» solo se da con confianza para **recursos** (modelos, audio, imágenes,
   fuentes, datos). Para **código**, la tabla muestra «sin importadores» como aviso de baja confianza y
   remite a Knip.
@@ -299,7 +346,12 @@ paquetes (npm, pnpm, yarn, bun) ni de Nx o Turborepo, ni de que `node_modules` e
 
 ### 4.4 Comandos y menús
 - Paleta: `Heftmap: Abrir panel`, `Elegir carpetas del ámbito…` (QuickPick múltiple),
-  `Todo el repositorio`, `Refrescar`.
+  `Todo el repositorio`, `Refrescar`, `Copiar tabla…`, `Ver el registro` y
+  `Copiar informe de errores`.
+- Atajo: `heftmap.openPanel` en `Ctrl+Shift+Alt+H` / `Cmd+Ctrl+Shift+H` (`contributes.keybindings`).
+- Walkthrough «Primeros pasos con Heftmap» (`contributes.walkthroughs`, id `heftmap.start`):
+  abrir el panel, elegir ámbito, archivos sin rastro y hotspots, con imágenes de `docs/images/` y
+  enlaces `command:` a los comandos.
 - Menú contextual del explorador sobre carpetas: `Añadir al ámbito` · `Limitar ámbito a esta carpeta`.
 
 ### 4.4 bis Idiomas
@@ -341,6 +393,23 @@ paquetes (npm, pnpm, yarn, bun) ni de Nx o Turborepo, ni de que `node_modules` e
 | `heftmap.git.since` | *(vacío)* | Limitar el historial en repos grandes, p. ej. `1.year` |
 | `heftmap.usage.ignore` | `[]` | Archivos que nunca se marcan «sin rastro» |
 | `heftmap.usage.entryPoints` | `[]` | Puntos de entrada extra además de los automáticos |
+| `heftmap.refreshDelay` | `1500` | Espera en ms tras un cambio antes de reanalizar (250–60000) |
+| `heftmap.autoRefresh` | `true` | Reanalizar solo al cambiar archivos o git; `false` = solo con Refrescar |
+| `heftmap.maxTextFileSize` | `5` | MB; los textos más grandes no se leen: sin líneas ni uso (1–50) |
+| `heftmap.usage.weakSources` | `["scripts", "tools", "bin"]` | Carpetas de tooling: lo que nombran cuenta como mención |
+| `heftmap.exclude` | `[]` | Patrones como en `.gitignore`; lo excluido no existe para Heftmap |
+| `heftmap.hotspots.exclude` | `[]` | Código que no entra en los hotspots; sigue en la tabla y no reanaliza |
+| `heftmap.panel.defaultArea` | `bytes` | Área con la que abre un panel sin estado guardado: `bytes`, `balanced`, `lines` |
+| `heftmap.panel.defaultColor` | `ext` | Color con el que abre un panel sin estado guardado: `ext`, `usage`, `age`, `recent`, `changes` |
+
+- Toda la configuración se lee de una vez en `src/extension/settings.ts` (tipo `HeftSettings`),
+  que valida tipo y rango y vuelve al valor por defecto si viene mal.
+- Los que aceptan rutas o patrones (`publicDir`, `git.since`, `usage.ignore`,
+  `usage.entryPoints`, `usage.weakSources`, `exclude`, `hotspots.exclude`) están en
+  `restrictedConfigurations`: en un workspace sin confianza se
+  ignora lo que diga el propio workspace.
+- Los patrones usan `globToRegExp` con sus límites (`src/core/limits.ts`); uno demasiado complejo
+  se descarta con un aviso en el registro, sin colgar el análisis.
 
 ## 5. Fases
 
@@ -411,6 +480,25 @@ Ajustes del panel tras probarlo en el editor:
   error si falla y, en reposo, «Última actualización: hh:mm:ss». Antes aparecía solo al analizar
   y la tabla saltaba.
 
+### 5.2 Plan de mejoras (16 y 17-11-2026)
+
+Después de las fases 0 a 6, un plan de cinco fases con un PR por paso y la CI en verde antes de
+cada merge. Fases 0 a 3 en `main` (PR #28 a #49, 298 tests).
+
+0. **Red de seguridad** (#28, #29): test de caracterización que fija el estado de uso de todos los
+   archivos de los fixtures, y renombrado a Heftmap (`notime-labs.heftmap`, claves `heftmap.*`).
+1. **Refactor sin cambio de comportamiento** (#30–#36): límites en `src/core/limits.ts`; vista
+   Carpetas y decoraciones fuera de `extension.ts`; ciclo de análisis en `analysis.ts`;
+   `usage.ts` partido en `usage/`; `usageOf` devuelve también la regla (§3.3); `App.tsx` aligerado
+   (`columns.tsx`, `useSaved`, `useSplit`); una sola función de medida en el treemap. Criterio:
+   los tests pasan cambiando solo rutas de import.
+2. **Ajustes** (#37–#43): `settings.ts` y los ocho ajustes nuevos de §4.5. Se descartó
+   `hotspots.extensions`: con `hotspots.exclude` basta.
+3. **Mejoras del panel** (#44–#49): zoom enlazado con la tabla y salida del zoom desde el detalle,
+   «Por qué:», leyenda que filtra, «Copiar tabla», atajos y walkthrough (§2.2, §4.4).
+4. **Cierre**: README en tres idiomas, esta SPEC y el CHANGELOG; revisión del euskera; captura y
+   GIF de la interfaz final; versión 0.1.0 (no se ha publicado ninguna antes).
+
 ### 5.1 Para más adelante (no planificado; decidir tras usar los hotspots en un repo real)
 
 - **Impacto**: nº de archivos que dependen de uno, directa **o indirectamente** (cierre transitivo
@@ -423,8 +511,9 @@ Ajustes del panel tras probarlo en el editor:
 
 ## 6. Pendiente de decidir
 
-- Publisher y si se publica en Open VSX o solo `.vsix` para uso propio. Si se publica, comprobar
-  antes que el nombre `heftmap` está libre.
+- ~~Publisher y dónde se publica~~: Open VSX, publisher `notime-labs` (namespace pendiente de
+  aprobación, incidencia #15802), Trusted Publishing desde `davidcirosierrra/Heft`. Guía en
+  [docs/publicar.md](docs/publicar.md).
 - Límite de archivos y si el análisis va en un worker (decidir con los datos de la fase 0).
 - Si la vista lateral muestra archivos o solo carpetas.
 - Qué cuenta como «archivo generado» para excluirlo de los hotspots (lista fija o ajuste).
