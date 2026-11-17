@@ -6,7 +6,7 @@ models, audio, textures), useful in any git repository, including monorepos.
 
 [Español](README.es.md) · [Euskara](README.eu.md)
 
-![Hotspots: lines × changes](docs/images/hotspots.png)
+![Heftmap: open the panel, Hotspots, zoom into a folder](docs/media/heftmap.gif)
 
 ## What it does
 
@@ -21,6 +21,10 @@ models, audio, textures), useful in any git repository, including monorepos.
 - **Git**: last commit of every file, uncommitted changes and diff.
 - **Hotspots**: one button crosses lines and number of changes to find large code that keeps
   changing.
+
+![Cursor with the Folders view and the Heftmap panel](docs/images/window.png)
+
+![Hotspots: lines × changes](docs/images/hotspots.png)
 
 ![Usage: who references each file](docs/images/usage.png)
 

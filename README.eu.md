@@ -7,7 +7,7 @@ balio du, monorepoetan ere bai.
 
 [English](README.md) · [Español](README.es.md)
 
-![Hotspot-ak: lerroak × aldaketak](docs/images/hotspots.png)
+![Heftmap: panela ireki, Hotspot-ak, karpeta batera zooma](docs/media/heftmap.gif)
 
 ## Zer egiten du
 
@@ -24,6 +24,10 @@ balio du, monorepoetan ere bai.
 - **Git**: fitxategi bakoitzaren azken commita, commit gabeko aldaketak eta diff-a.
 - **Hotspot-ak**: botoi batek lerroak eta aldaketa kopurua gurutzatzen ditu, aldatzen jarraitzen
   duen kode handia aurkitzeko.
+
+![Cursor «Karpetak» ikuspegiarekin eta Heftmap panelarekin](docs/images/window.png)
+
+![Hotspot-ak: lerroak × aldaketak](docs/images/hotspots.png)
 
 ## Panelean
 
