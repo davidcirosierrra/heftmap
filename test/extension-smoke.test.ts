@@ -8,7 +8,7 @@ import { inProcessRunner } from './in-process-runner.js';
 
 /**
  * Test de humo: la extensión real contra un `vscode` simulado (alias en vitest.config.ts)
- * sobre el proyecto kart-game. No sustituye a probarla en Cursor (prepareextension.md).
+ * sobre el proyecto kart-game. No sustituye a probarla en Cursor (docs/prepareextension.md).
  */
 let root: string;
 let context: ReturnType<typeof makeContext>;
