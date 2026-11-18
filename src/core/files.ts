@@ -1,4 +1,4 @@
-import { promises as fs } from 'node:fs';
+import { constants, promises as fs } from 'node:fs';
 import path from 'node:path';
 import { BINARY_EXT, extOf } from './classify.js';
 import { git } from './git.js';
@@ -85,15 +85,24 @@ export async function readFile(root: string, rel: string, maxTextBytes: number =
   const lst = await fs.lstat(abs).catch(() => null);
   if (!lst) return null;
   if (lst.isSymbolicLink()) return { size: lst.size, binary: false, lines: null, text: null };
-  const st = lst;
-  if (!st.isFile()) return null;
-  if (BINARY_EXT.has(extOf(rel)) || st.size > maxTextBytes) {
-    return { size: st.size, binary: BINARY_EXT.has(extOf(rel)), lines: null, text: null };
+  if (!lst.isFile()) return null;
+  // Se abre una vez y todo lo demás va sobre el descriptor: entre el `lstat` y la lectura alguien
+  // podría cambiar el archivo por un enlace. O_NOFOLLOW no existe en Windows.
+  const fh = await fs.open(abs, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0)).catch(() => null);
+  if (!fh) return null;
+  try {
+    const st = await fh.stat();
+    if (!st.isFile() || st.dev !== lst.dev || st.ino !== lst.ino) return null;
+    if (BINARY_EXT.has(extOf(rel)) || st.size > maxTextBytes) {
+      return { size: st.size, binary: BINARY_EXT.has(extOf(rel)), lines: null, text: null };
+    }
+    const buf = await fh.readFile();
+    const head = buf.subarray(0, 8000);
+    if (head.includes(0)) return { size: st.size, binary: true, lines: null, text: null };
+    return { size: st.size, binary: false, lines: countLines(buf), text: buf.toString('utf8') };
+  } finally {
+    await fh.close();
   }
-  const buf = await fs.readFile(abs);
-  const head = buf.subarray(0, 8000);
-  if (head.includes(0)) return { size: st.size, binary: true, lines: null, text: null };
-  return { size: st.size, binary: false, lines: countLines(buf), text: buf.toString('utf8') };
 }
 
 export function countLines(buf: Buffer): number {
