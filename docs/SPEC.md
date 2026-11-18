@@ -9,7 +9,7 @@ Nombre: **Heftmap** (antes «Heft» y, antes aún, «Workspace Files»; se renom
 
 Estado: **fases 0 a 6 hechas** (vista «Carpetas», ámbito, comandos y panel con tabla, treemap, uso,
 git y hotspots; instalar y probar
-con [prepareextension.md](prepareextension.md); publicar: [docs/publicar.md](docs/publicar.md)). Fase 0 en [docs/fase-0.md](docs/fase-0.md).
+con [prepareextension.md](prepareextension.md); publicar: [docs/publicar.md](publicar.md)). Fase 0 en [docs/fase-0.md](fase-0.md).
 Después, plan de mejoras en cinco fases (§5.2): fases 0 a 3 hechas (renombrado, refactor, ocho
 ajustes y mejoras del panel); la 4 es este cierre de documentación, euskera y versión 0.1.0.
 Fecha: 17-11-2026.
@@ -197,7 +197,7 @@ Disposición: barra superior · tabla a la izquierda · treemap a la derecha · 
 - Se **leen como origen** de referencias, aunque no sean candidatos: `index.html`, el manifest PWA
   (iconos), configs como `vite.config.ts` (donde a menudo se declara el manifest), CSS, componentes
   `.vue/.svelte/.astro` y Markdown (imágenes del README).
-- Reglas añadidas en la fase 0 (ver [docs/fase-0.md](docs/fase-0.md)):
+- Reglas añadidas en la fase 0 (ver [docs/fase-0.md](fase-0.md)):
   - En TS/JS los strings se leen del AST: una ruta en un comentario no es uso.
   - En Markdown solo cuentan enlaces e `<img>` hacia recursos y documentos: citar `src/x.ts` en el
     README no demuestra que el código se use.
@@ -272,7 +272,7 @@ paquetes (npm, pnpm, yarn, bun) ni de Nx o Turborepo, ni de que `node_modules` e
 
 ### 3.6 Seguridad
 
-- La carpeta analizada es entrada no fiable. Detalle y revisión en [docs/seguridad.md](docs/seguridad.md).
+- La carpeta analizada es entrada no fiable. Detalle y revisión en [docs/seguridad.md](seguridad.md).
 - **Workspace Trust** (`capabilities.untrustedWorkspaces: limited`): sin confianza, Heftmap no ejecuta
   git (analiza como carpeta sin repo) e ignora sus ajustes del workspace; la vista lo dice. Al
   confiar, se reanaliza.
@@ -370,7 +370,7 @@ paquetes (npm, pnpm, yarn, bun) ni de Nx o Turborepo, ni de que `node_modules` e
 - Formatos con `Intl`; para euskera, si el motor no trae sus datos (Chromium no los trae), se
   usan los separadores del castellano y se montan a mano el `%` y la fecha.
 - El CLI sigue en castellano: es una herramienta de desarrollo y no va en el `.vsix`.
-- Glosario y formatos en [docs/glosario.md](docs/glosario.md). Euskera revisado por un hablante nativo (17-11-2026).
+- Glosario y formatos en [docs/glosario.md](glosario.md). Euskera revisado por un hablante nativo (17-11-2026).
 
 ### 4.4 ter Registro de errores
 
@@ -415,7 +415,7 @@ paquetes (npm, pnpm, yarn, bun) ni de Nx o Turborepo, ni de que `node_modules` e
 
 ## 5. Fases
 
-0. ~~**Validación con un repo real**~~ **Hecha** ([docs/fase-0.md](docs/fase-0.md)): Feos pero majos
+0. ~~**Validación con un repo real**~~ **Hecha** ([docs/fase-0.md](fase-0.md)): Feos pero majos
    survival (0 falsos; coincide con Knip) y `vitejs/vite` (3.006 archivos en ~2 s; de 21 «sin rastro»
    a 1 real tras corregir 7 causas de falsos positivos).
 1. ~~Vista lateral «Carpetas» con tamaños y casillas de ámbito.~~ **Hecha**: más comandos, menú
@@ -501,7 +501,7 @@ cada merge. Fases 0 a 3 en `main` (PR #28 a #49, 298 tests).
 4. **Cierre**: README en tres idiomas, esta SPEC y el CHANGELOG (#50); revisión del euskera (hecha); captura y
    GIF de la interfaz final; versión 0.1.0 (no se ha publicado ninguna antes). Hecho; `publish.yml`
    activo. La publicación espera a que Open VSX apruebe el namespace (estado en
-   [docs/publicar.md](docs/publicar.md)).
+   [docs/publicar.md](publicar.md)).
 
 ### 5.1 Para más adelante (no planificado; decidir tras usar los hotspots en un repo real)
 
@@ -517,7 +517,7 @@ cada merge. Fases 0 a 3 en `main` (PR #28 a #49, 298 tests).
 
 - ~~Publisher y dónde se publica~~: Open VSX, publisher `notime-labs` (namespace pendiente de
   aprobación, incidencia #15802), Trusted Publishing desde `notime-labs/heftmap`. Guía en
-  [docs/publicar.md](docs/publicar.md).
+  [docs/publicar.md](publicar.md).
 - Límite de archivos y si el análisis va en un worker (decidir con los datos de la fase 0).
 - Si la vista lateral muestra archivos o solo carpetas.
 - Qué cuenta como «archivo generado» para excluirlo de los hotspots (lista fija o ajuste).

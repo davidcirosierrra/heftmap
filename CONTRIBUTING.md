@@ -16,9 +16,9 @@ con el botón «Hotspots». Lo siguiente es el análisis incremental (plan en la
 queda como opcional.
 La interfaz está en inglés, castellano y euskera (ajuste `heftmap.language`). Seguridad:
 [SECURITY.md](SECURITY.md) y [docs/seguridad.md](docs/seguridad.md).
-Diseño completo en [SPEC.md](SPEC.md); resultados de la fase 0 en [docs/fase-0.md](docs/fase-0.md).
+Diseño completo en [SPEC.md](docs/SPEC.md); resultados de la fase 0 en [docs/fase-0.md](docs/fase-0.md).
 
-**Instalar y probar en Cursor: [prepareextension.md](prepareextension.md).**
+**Instalar y probar en Cursor: [prepareextension.md](docs/prepareextension.md).**
 
 ## CLI (fase 0)
 
