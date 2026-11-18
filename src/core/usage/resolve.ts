@@ -148,7 +148,8 @@ export function makeTsResolver(root: string, files: Map<string, FileEntry>): TsR
           }
         }
         if (captured === null) continue;
-        for (const t of targets) out.push(toRel(path.resolve(base, t.replace('*', captured))));
+        // split/join y no `replace`: con un texto como reemplazo, `replace` interpreta `$&`, `$'`…
+        for (const t of targets) out.push(toRel(path.resolve(base, t.split('*').join(captured))));
       }
     }
     if (options.baseUrl) out.push(toRel(path.resolve(options.baseUrl, clean)));
