@@ -3,7 +3,7 @@
 ## Reporting a vulnerability
 
 Please **do not open a public issue** for security problems. Use GitHub's
-[private vulnerability reporting](https://github.com/davidcirosierrra/heftmap/security/advisories/new)
+[private vulnerability reporting](https://github.com/notime-labs/heftmap/security/advisories/new)
 instead. You will get an answer within a week.
 
 Useful to include: what you did, what happened, the Heftmap version (*Extensions* view) and, if

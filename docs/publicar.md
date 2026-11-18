@@ -30,7 +30,7 @@ quedar inactiva o salir como «no verificada».
 - Licencia MIT, `SECURITY.md`, `CHANGELOG.md` con la sección 0.1.0.
 - `package.json`: versión `0.1.0`, `publisher` `notime-labs`, nombre y descripción en tres idiomas
   (`package.nls*.json`), icono, `galleryBanner`, `keywords`, `homepage`, `bugs` y `repository`
-  apuntando a `davidcirosierrra/heftmap`.
+  apuntando a `notime-labs/heftmap`.
 - README en inglés (el de la tienda), castellano y euskera; euskera revisado.
 - Capturas de la interfaz final en `docs/images/` (también las usa el walkthrough) y GIF en
   `docs/media/heftmap.gif`, fuera del `.vsix`.
@@ -42,7 +42,7 @@ quedar inactiva o salir como «no verificada».
 
 ## 2. GitHub (hecho)
 
-- Repo `davidcirosierrra/heftmap`, **público**. Se rehízo desde el antiguo `Heft` (ahora privado)
+- Repo `notime-labs/heftmap` (organización, transferido desde `davidcirosierrra/heftmap`), **público**. Se rehízo desde el antiguo `Heft` (ahora privado)
   con el historial reescrito (`git filter-repo --mailmap`) para que todos los commits lleven el
   email `…@users.noreply.github.com`. Para lo que venga: *Keep my email addresses private* y
   *Block command line pushes that expose my email* activados, y `git config user.email` con el
@@ -66,7 +66,7 @@ quedar inactiva o salir como «no verificada».
 
 4. **Trusted Publisher** (cuando la #15802 esté aprobada): *Settings* → *Trusted Publishers* →
    - namespace `notime-labs`;
-   - repositorio `davidcirosierrra/heftmap` (owner `davidcirosierrra`, repo `heftmap`);
+   - repositorio `notime-labs/heftmap` (owner `notime-labs`, repo `heftmap`);
    - workflow `publish.yml`;
    - entorno `openvsx`.
 
