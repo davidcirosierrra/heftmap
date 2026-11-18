@@ -6,6 +6,17 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+    ignore:
+      # Va atado a engines.vscode: vsce no empaqueta si @types/vscode es más nuevo.
+      # Se sube a mano, a la vez que engines.vscode.
+      - dependency-name: "@types/vscode"
+      # TypeScript se usa en runtime como parser (src/core/usage/extract.ts).
+      # TS 7 (port nativo) no trae la API de compilador en JS: el salto de major es a mano.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      # Los tipos deben seguir al Node del extension host de VS Code/Cursor, no al último Node.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     groups:
       # Un único PR semanal con todas las actualizaciones menores y de parches.
       npm-minor-patch:
