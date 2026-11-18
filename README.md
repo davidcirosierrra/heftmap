@@ -104,7 +104,7 @@ and declaring them in a tsconfig `paths` fixes it.
 ## Problems
 
 *Output → Heftmap* has the log. If Heftmap fails it says so and offers **Copy report**: paste it into an
-[issue](https://github.com/davidcirosierrra/heftmap/issues). Security problems: see
+[issue](https://github.com/notime-labs/heftmap/issues). Security problems: see
 [SECURITY.md](SECURITY.md).
 
 ## License
