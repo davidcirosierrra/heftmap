@@ -404,7 +404,8 @@
     "build:worker": "esbuild src/extension/worker.ts --bundle --platform=node --format=cjs --target=node20 --minify --sourcemap --outfile=dist/worker.cjs",
     "build:webview": "esbuild src/webview/main.tsx --bundle --platform=browser --format=iife --target=es2022 --minify --outfile=dist/webview.js",
     "watch:ext": "npm run build:worker && npm run build:webview && npm run build:host -- --watch",
-    "package": "npm run build:ext && vsce package --no-dependencies --out heftmap.vsix",
+    "vscode:prepublish": "npm run build:ext",
+    "package": "vsce package --no-dependencies --out heftmap.vsix",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "heftmap": "node dist/cli.js"
