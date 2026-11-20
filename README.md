@@ -66,7 +66,7 @@ models, audio, textures), useful in any git repository, including monorepos.
 
 ## Requirements
 
-- Cursor, VS Code 1.85 or later, or any editor that installs from Open VSX.
+- VS Code 1.85 or later (Visual Studio Marketplace), Cursor or any editor that installs from Open VSX.
 - `git` in the `PATH` for history and changes. Without git, Heftmap still shows sizes and usage.
 - In Restricted Mode (untrusted folders) Heftmap does not run git. See [SECURITY.md](SECURITY.md).
 

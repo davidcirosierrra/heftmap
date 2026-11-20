@@ -48,7 +48,7 @@ Para desinstalar: panel de extensiones → Heftmap → **Uninstall**, o
 ### B. Modo desarrollo con F5 (para depurar)
 
 1. Abre la carpeta `Heftmap` en Cursor.
-2. Pulsa **F5** (o *Run and Debug* → **Heftmap: probar la extensión**).
+2. Pulsa **F5** (o *Run and Debug* → **Run Heftmap**).
 3. Se abre otra ventana, el *Extension Development Host*, con Heftmap cargada desde el código.
    Abre ahí el proyecto que quieras analizar (**File → Open Folder…**).
 4. Tras cambiar código: `Ctrl+R` en la ventana de pruebas para recargar (la tarea previa recompila).

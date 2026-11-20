@@ -37,7 +37,7 @@ npm test
 ### Run the extension from source
 
 1. Open the folder in Cursor or VS Code.
-2. Press **F5** (*Run and Debug* → **Heftmap: probar la extensión**). The pre-launch task builds
+2. Press **F5** (*Run and Debug* → **Run Heftmap**). The pre-launch task builds
    `dist/`.
 3. An *Extension Development Host* window opens with Heftmap loaded from your code. Open any
    project there to analyze it.
@@ -168,7 +168,7 @@ analysis, the next big piece of work.
 
 ## Releases
 
-Releases are made by the maintainer and published to Open VSX and the Visual Studio Marketplace.
+Releases are made by the maintainer and published to [Open VSX](https://open-vsx.org/extension/notime-labs/heftmap) and the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=notime-labs.heftmap).
 The process is documented in [docs/publicar.md](docs/publicar.md) (Spanish).
 
 ## License

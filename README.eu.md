@@ -66,7 +66,7 @@ balio du, monorepoetan ere bai.
 
 ## Baldintzak
 
-- Cursor, VS Code 1.85 edo berriagoa, edo Open VSX-etik instalatzen duen edozein editore.
+- VS Code 1.85 edo berriagoa (Visual Studio Marketplace), Cursor edo Open VSX-etik instalatzen duen edozein editore.
 - `git` `PATH`-ean, historiarako eta aldaketetarako. Git gabe, Heftmap-ek tamainak eta erabilera
   erakusten ditu.
 - Modu mugatuan (konfiantzarik gabeko karpetak) Heftmap-ek ez du git exekutatzen. Ikus [SECURITY.md](SECURITY.md).
