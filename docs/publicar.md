@@ -11,8 +11,8 @@ cuentas.
 
 ## Estado (20-11-2026): 0.1.0 publicada en las dos tiendas
 
-La 0.1.0 se publicó **a mano** (subiendo el `.vsix`) en Open VSX y en el Marketplace, sin pasar
-por `publish.yml`. Open VSX dio la propiedad del namespace `notime-labs` (incidencia
+La 0.1.0 se publicó **a mano**, arrastrando `heftmap.vsix` a la web de Open VSX y a la del
+Marketplace, sin pasar por `publish.yml`. Open VSX dio la propiedad del namespace `notime-labs` (incidencia
 [#15802](https://github.com/EclipseFdn/open-vsx.org/issues/15802)).
 
 **Pendiente (nada bloquea):**
