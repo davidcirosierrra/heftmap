@@ -105,6 +105,10 @@ El registro está en *Output → Heftmap*. Si Heftmap falla lo dice y ofrece **C
 una [incidencia](https://github.com/notime-labs/heftmap/issues). Problemas de seguridad: ver
 [SECURITY.md](SECURITY.md).
 
+## Contribuir
+
+Se agradecen errores, traducciones y pull requests: mira [CONTRIBUTING.md](CONTRIBUTING.md) (en inglés).
+
 ## Licencia
 
 [MIT](LICENSE)

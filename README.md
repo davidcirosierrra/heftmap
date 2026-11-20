@@ -107,6 +107,10 @@ and declaring them in a tsconfig `paths` fixes it.
 [issue](https://github.com/notime-labs/heftmap/issues). Security problems: see
 [SECURITY.md](SECURITY.md).
 
+## Contributing
+
+Bug reports, translations and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## License
 
 [MIT](LICENSE)

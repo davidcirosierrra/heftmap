@@ -110,6 +110,10 @@ Erregistroa *Output → Heftmap* atalean dago. Heftmap-ek huts egiten badu, esan
 **Kopiatu txostena** eskaintzen du: itsatsi [intzidentzia](https://github.com/notime-labs/heftmap/issues)
 batean. Segurtasun-arazoak: ikus [SECURITY.md](SECURITY.md).
 
+## Laguntzea
+
+Akatsak, itzulpenak eta pull requestak ongi etorriak dira: ikus [CONTRIBUTING.md](CONTRIBUTING.md) (ingelesez).
+
 ## Lizentzia
 
 [MIT](LICENSE)
