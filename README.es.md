@@ -63,7 +63,7 @@ audio, texturas), sirve en cualquier repo con git, también en monorepos.
 
 ## Requisitos
 
-- Cursor, VS Code 1.85 o posterior, o cualquier editor que instale desde Open VSX.
+- VS Code 1.85 o posterior (Visual Studio Marketplace), Cursor o cualquier editor que instale desde Open VSX.
 - `git` en el `PATH` para el historial y los cambios. Sin git, Heftmap enseña tamaños y uso.
 - En modo restringido (carpetas sin confianza) Heftmap no ejecuta git. Ver [SECURITY.md](SECURITY.md).
 
@@ -104,6 +104,10 @@ están en la configuración del bundler (Vite, Metro, Babel) no se pueden seguir
 El registro está en *Output → Heftmap*. Si Heftmap falla lo dice y ofrece **Copiar informe**: pégalo en
 una [incidencia](https://github.com/notime-labs/heftmap/issues). Problemas de seguridad: ver
 [SECURITY.md](SECURITY.md).
+
+## Contribuir
+
+Se agradecen errores, traducciones y pull requests: mira [CONTRIBUTING.md](CONTRIBUTING.md) (en inglés).
 
 ## Licencia
 

@@ -66,7 +66,7 @@ models, audio, textures), useful in any git repository, including monorepos.
 
 ## Requirements
 
-- Cursor, VS Code 1.85 or later, or any editor that installs from Open VSX.
+- VS Code 1.85 or later (Visual Studio Marketplace), Cursor or any editor that installs from Open VSX.
 - `git` in the `PATH` for history and changes. Without git, Heftmap still shows sizes and usage.
 - In Restricted Mode (untrusted folders) Heftmap does not run git. See [SECURITY.md](SECURITY.md).
 
@@ -106,6 +106,10 @@ and declaring them in a tsconfig `paths` fixes it.
 *Output → Heftmap* has the log. If Heftmap fails it says so and offers **Copy report**: paste it into an
 [issue](https://github.com/notime-labs/heftmap/issues). Security problems: see
 [SECURITY.md](SECURITY.md).
+
+## Contributing
+
+Bug reports, translations and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

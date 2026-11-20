@@ -66,7 +66,7 @@ balio du, monorepoetan ere bai.
 
 ## Baldintzak
 
-- Cursor, VS Code 1.85 edo berriagoa, edo Open VSX-etik instalatzen duen edozein editore.
+- VS Code 1.85 edo berriagoa (Visual Studio Marketplace), Cursor edo Open VSX-etik instalatzen duen edozein editore.
 - `git` `PATH`-ean, historiarako eta aldaketetarako. Git gabe, Heftmap-ek tamainak eta erabilera
   erakusten ditu.
 - Modu mugatuan (konfiantzarik gabeko karpetak) Heftmap-ek ez du git exekutatzen. Ikus [SECURITY.md](SECURITY.md).
@@ -109,6 +109,10 @@ deklaratzeak konpontzen du.
 Erregistroa *Output → Heftmap* atalean dago. Heftmap-ek huts egiten badu, esan egiten du eta
 **Kopiatu txostena** eskaintzen du: itsatsi [intzidentzia](https://github.com/notime-labs/heftmap/issues)
 batean. Segurtasun-arazoak: ikus [SECURITY.md](SECURITY.md).
+
+## Laguntzea
+
+Akatsak, itzulpenak eta pull requestak ongi etorriak dira: ikus [CONTRIBUTING.md](CONTRIBUTING.md) (ingelesez).
 
 ## Lizentzia
 

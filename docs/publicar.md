@@ -1,29 +1,31 @@
 # Publicar Heftmap
 
-Guía y estado de la publicación en **Open VSX**, que es de donde instala Cursor. El Marketplace de
-Microsoft (para VS Code) queda para más adelante (sección 6). Lo marcado **(David)** solo lo puede
-hacer el dueño de las cuentas.
+Guía y estado de la publicación. Heftmap está en dos tiendas:
 
-## Estado (17-11-2026): esperando a Open VSX
+- **Open VSX** (de ahí instala Cursor): https://open-vsx.org/extension/notime-labs/heftmap
+- **Visual Studio Marketplace** (VS Code):
+  https://marketplace.visualstudio.com/items?itemName=notime-labs.heftmap
 
-Todo lo del repo está listo. Falta que Open VSX dé a `davidcirosierrra` la propiedad del namespace
-`notime-labs` (incidencia [#15802](https://github.com/EclipseFdn/open-vsx.org/issues/15802)). Hasta
-entonces no se puede registrar el Trusted Publisher: solo puede hacerlo el **propietario** del
-namespace, y crear el namespace no lo hace a uno propietario.
+Las dos con el publisher `notime-labs`. Lo marcado **(David)** solo lo puede hacer el dueño de las
+cuentas.
 
-**Pendiente, en este orden:**
+## Estado (20-11-2026): 0.1.0 publicada en las dos tiendas
 
-- [ ] (Open VSX) Aprobar la incidencia #15802. Se ha contestado a su pregunta (relación con el
-      namespace) y se ha avisado del cambio de repo de `Heft` a `heftmap`. Al aprobarla, el aviso
-      ⚠ de `notime-labs` desaparece en open-vsx.org → *Settings*.
-- [ ] (David) Registrar el **Trusted Publisher** (sección 3, paso 4).
-- [ ] (David) Crear la release **`v0.1.0`** y aprobar el despliegue (sección 4).
-- [ ] (David) Comprobar la extensión en Open VSX y en Cursor (sección 4, paso 5).
+La 0.1.0 se publicó **a mano** (subiendo el `.vsix`) en Open VSX y en el Marketplace, sin pasar
+por `publish.yml`. Open VSX dio la propiedad del namespace `notime-labs` (incidencia
+[#15802](https://github.com/EclipseFdn/open-vsx.org/issues/15802)).
+
+**Pendiente (nada bloquea):**
+
+- [ ] (David) Registrar el **Trusted Publisher** en Open VSX (sección 3, paso 4), si no está ya.
+      Sin él, `publish.yml` falla sin publicar nada.
+- [ ] (David) Opcional: release y tag **`v0.1.0`** en GitHub para que el historial tenga la versión
+      publicada. Crear la release lanza `publish.yml`: **rechazar** el despliegue del entorno
+      `openvsx` (la 0.1.0 ya está en Open VSX y no se puede volver a subir).
+- [ ] Añadir el Marketplace a `publish.yml` (sección 6) para que la próxima versión salga en las dos
+      tiendas desde la release. Mientras tanto, el Marketplace se publica a mano.
 - [ ] (Opcional) Pedir la verificación de publicador en el foro de Cursor, cuando Open VSX ya la
       muestre como verificada.
-
-No publicar antes con un token de acceso: con el namespace sin verificar, la extensión puede
-quedar inactiva o salir como «no verificada».
 
 ## 1. Hecho en el repo
 
@@ -61,10 +63,10 @@ quedar inactiva o salir como «no verificada».
 1. Entrar en https://open-vsx.org con GitHub (`davidcirosierrra`).
 2. Cuenta de Eclipse con *GitHub Username* = `davidcirosierrra` y *Publisher Agreement* firmado
    (avatar → *Settings* → *Log in with Eclipse*). Sin el acuerdo, la publicación falla.
-3. Namespace `notime-labs` (igual que `publisher` en `package.json`): **creado**; falta la
-   propiedad (incidencia #15802).
+3. Namespace `notime-labs` (igual que `publisher` en `package.json`): creado y con propiedad
+   (incidencia #15802, resuelta).
 
-4. **Trusted Publisher** (cuando la #15802 esté aprobada): *Settings* → *Trusted Publishers* →
+4. **Trusted Publisher**: *Settings* → *Trusted Publishers* →
    - namespace `notime-labs`;
    - repositorio `notime-labs/heftmap` (owner `notime-labs`, repo `heftmap`);
    - workflow `publish.yml`;
@@ -76,38 +78,43 @@ quedar inactiva o salir como «no verificada».
 
 No pulsar *Claim Ownership* en la página del namespace: abre otra incidencia como la #15802.
 
-## 4. Primera publicación (David)
+## 4. Publicar una versión con GitHub Actions (David)
 
-1. Comprobar que `package.json` dice `0.1.0` y que `CHANGELOG.md` tiene su sección.
-2. GitHub → Releases → *Draft a new release* → tag nuevo `v0.1.0` sobre `main` → título `0.1.0` →
-   texto de la sección 0.1.0 del CHANGELOG → *Publish release*.
+La 0.1.0 se subió a mano; a partir de la siguiente, con la release. Requisito: Trusted Publisher
+registrado (sección 3, paso 4).
+
+1. Comprobar que `package.json` tiene la versión nueva y que `CHANGELOG.md` tiene su sección.
+2. GitHub → Releases → *Draft a new release* → tag nuevo `vX.Y.Z` sobre `main` → título `X.Y.Z` →
+   texto de la sección del CHANGELOG → *Publish release*.
 3. Actions → *Publish* → el job espera aprobación del entorno `openvsx` → *Review deployments* →
    *Approve and deploy*.
 4. La acción pasa typecheck y tests, comprueba que el tag coincide con la versión, empaqueta,
    publica en Open VSX y adjunta `heftmap.vsix` a la release. Open VSX revisa cada extensión al
    publicar (secretos, archivos maliciosos conocidos, nombres parecidos); si la rechaza, el
    registro de la acción dice qué comprobación falló.
-5. Comprobar https://open-vsx.org/extension/notime-labs/heftmap y buscarla en Cursor
-   (*Extensions* → «Heftmap»). Puede tardar un rato en salir en Cursor.
+5. Mientras `publish.yml` no publique en el Marketplace (sección 6): subir ese mismo `heftmap.vsix`
+   a mano en https://marketplace.visualstudio.com/manage → `notime-labs` → Heftmap → *Update*.
+6. Comprobar la versión en las dos tiendas y en Cursor (*Extensions* → «Heftmap»). Puede tardar un
+   rato en salir en Cursor.
 
-Si la acción falla después de crear la release: arreglar en un PR, borrar la release y el tag
-`v0.1.0` en GitHub, y volver a crearlos. Si ya se publicó en Open VSX, no se puede volver a subir
-la misma versión: subir a `0.1.1`.
+Si la acción falla después de crear la release: arreglar en un PR, borrar la release y el tag en
+GitHub, y volver a crearlos. Si ya se publicó en alguna tienda, no se puede volver a subir la misma
+versión: subir el parche (`X.Y.Z+1`).
 
-**Alternativa sin GitHub Actions** (solo si hiciera falta): token de un solo uso en *Settings* →
-*Access Tokens*, `npm run package` y `npx ovsx publish heftmap.vsix -p <token>`; borrar el token
-después.
+**Sin GitHub Actions** (como la 0.1.0): `npm run package` y subir `heftmap.vsix` en la web de cada
+tienda (Open VSX: *Settings* → *Extensions* → *Publish*; Marketplace: página *manage*). O con un
+token de un solo uso: `npx ovsx publish heftmap.vsix -p <token>`, y borrar el token después.
 
 ## 5. Versiones siguientes
 
 1. Subir `version` en `package.json` y añadir su sección en `CHANGELOG.md` (PR normal).
-2. Release con tag `vX.Y.Z` igual a la versión y aprobar el despliegue. La acción comprueba que
-   coinciden.
+2. Release con tag `vX.Y.Z` igual a la versión y aprobar el despliegue (sección 4). La acción
+   comprueba que coinciden.
 
-## 6. Marketplace de Microsoft (opcional, más adelante)
+## 6. Visual Studio Marketplace
 
-Para usuarios de VS Code. Hace falta una cuenta de Microsoft, crear el publisher `notime-labs` en
-https://marketplace.visualstudio.com/manage y una credencial con permiso *Marketplace (Manage)*.
-Microsoft está cambiando los tokens de Azure DevOps por otro sistema de identidad a finales de
-2026: mirar la documentación del momento. Luego se añade un paso `npx vsce publish -i heftmap.vsix`
-a `publish.yml`.
+Publisher `notime-labs` creado en https://marketplace.visualstudio.com/manage y 0.1.0 publicada a
+mano. Para automatizarlo hace falta una credencial con permiso *Marketplace (Manage)* guardada en
+el entorno de GitHub y un paso `npx vsce publish -i heftmap.vsix` en `publish.yml`. Microsoft está
+cambiando los tokens de Azure DevOps por otro sistema de identidad a finales de 2026: mirar la
+documentación del momento antes de crear la credencial (si permite OIDC, mejor que un token).
